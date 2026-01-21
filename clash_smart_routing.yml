@@ -1,0 +1,79 @@
+# Clash Meta / Hiddify Zero-Touch Template
+# Подготовлено: 21 января 2026 (Incident Response - ya.ru SNI)
+
+port: 7890
+socks-port: 7891
+allow-lan: true
+mode: rule
+log-level: info
+external-controller: 127.0.0.1:9090
+
+dns:
+  enable: true
+  ipv6: false
+  enhanced-mode: fake-ip
+  listen: 0.0.0.0:53
+  nameserver:
+    - 8.8.8.8
+    - 1.1.1.1
+  fallback:
+    - https://dns.google/dns-query
+  fallback-filter:
+    geoip: true
+    ipcidr:
+      - 240.0.0.0/4
+
+# 1. Секция прокси
+proxies:
+{%- set proxy_list = conf['proxies'] or proxies or [] %}
+{%- for node in proxy_list %}
+  - name: "VPN-Node"
+    type: "vless"
+    server: "{{ node.server }}"
+    port: {{ node.port }}
+    uuid: "{{ node.uuid }}"
+    network: "{{ node.network }}"
+    tls: true
+    udp: true
+    flow: "xtls-rprx-vision"
+    client-fingerprint: "chrome"
+    servername: "ya.ru"
+    reality-opts:
+      public-key: "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4"
+      short-id: ""
+{%- endfor %}
+
+# 2. Секция групп
+proxy-groups:
+  - name: "PROXY"
+    type: select
+    proxies:
+      - "VPN-Node"
+      - "DIRECT"
+
+  - name: "RUSSIA"
+    type: select
+    proxies:
+      - "DIRECT"
+      - "PROXY"
+
+  - name: "ADS"
+    type: select
+    proxies:
+      - "REJECT"
+      - "DIRECT"
+
+# 3. Секция правил
+rules:
+  - DOMAIN-KEYWORD,ads,ADS
+  - GEOSITE,category-ads-all,ADS
+  - GEOSITE,category-gov-ru,RUSSIA
+  - GEOSITE,yandex,RUSSIA
+  - GEOSITE,vk,RUSSIA
+  - GEOSITE,ru,RUSSIA
+  - GEOIP,ru,RUSSIA
+  - DOMAIN-SUFFIX,ru,RUSSIA
+  - DOMAIN-SUFFIX,xn--p1ai,RUSSIA
+  - GEOSITE,telegram,PROXY
+  - GEOIP,PRIVATE,DIRECT
+  - MATCH,PROXY

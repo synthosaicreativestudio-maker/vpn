@@ -1,0 +1,42 @@
+{
+  "dns": {
+    "servers": [
+      { "tag": "proxy-dns", "address": "https://8.8.8.8/dns-query", "detour": "proxy" },
+      { "tag": "local-dns", "address": "local", "detour": "direct" }
+    ],
+    "rules": [
+      { "protocol": "dns", "server": "local-dns" },
+      { "domain_suffix": [".ru", ".рф", "vk.com", "gosuslugi.ru", "yandex.ru"], "server": "local-dns" }
+    ],
+    "final": "proxy-dns",
+    "strategy": "prefer_ipv4"
+  },
+  "outbounds": [
+    {
+      "type": "vless",
+      "tag": "proxy",
+      "server": "{{ server.host }}",
+      "server_port": 443,
+      "uuid": "{{ user.uuid }}",
+      "flow": "xtls-rprx-vision",
+      "tls": {
+        "enabled": true,
+        "server_name": "ya.ru",
+        "utls": { "enabled": true, "fingerprint": "chrome" },
+        "reality": {
+          "enabled": true,
+          "public_key": "{{ server.reality_public_key }}",
+          "short_id": "{{ server.reality_short_id }}"
+        }
+      }
+    },
+    { "type": "direct", "tag": "direct" }
+  ],
+  "route": {
+    "rules": [
+      { "geoip": ["ru", "private"], "outbound": "direct" },
+      { "geosite": ["category-ads-all"], "outbound": "block" }
+    ],
+    "auto_detect_interface": true
+  }
+}
