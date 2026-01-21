@@ -1,0 +1,54 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password "LEJ6U5chSK"
+set host "root@37.1.212.51"
+set local_dir "/Users/verakoroleva/Desktop/vpn"
+
+# Function to upload file
+proc upload {file remote_path password host} {
+    spawn scp -o StrictHostKeyChecking=no $file $host:$remote_path
+    expect {
+        "password:" { send "$password\r" }
+        timeout { puts "Timeout uploading $file"; exit 1 }
+    }
+    expect eof
+}
+
+puts "🚀 Starting Deployment..."
+
+# Upload Files
+puts "📂 Uploading configurations..."
+upload "$local_dir/setup.sh" "/var/lib/marzban/setup.sh" $password $host
+upload "$local_dir/static_sub.json" "/var/lib/marzban/static_sub.json" $password $host
+upload "$local_dir/sing-box-json.jinja2" "/var/lib/marzban/templates/sing-box-json.jinja2" $password $host
+upload "$local_dir/fix_db.py" "/var/lib/marzban/fix_db.py" $password $host
+
+# SSH and Execute Commands
+puts "🔧 Connecting to server to execute commands..."
+spawn ssh -o StrictHostKeyChecking=no $host
+expect "password:"
+send "$password\r"
+expect "#"
+
+# 1. Run Setup Script
+puts "🚀 Running Setup Script..."
+send "chmod +x /var/lib/marzban/setup.sh && /var/lib/marzban/setup.sh\r"
+expect "#"
+
+# 2. Run DB Fix
+puts "🧹 Cleaning Database..."
+send "python3 /var/lib/marzban/fix_db.py\r"
+expect "#"
+
+# 3. Restart Marzban to apply DB changes if any (just in case setup.sh started it before DB fix)
+send "cd /var/lib/marzban && docker compose restart\r"
+expect "#"
+
+# 6. Verify Nginx Status
+send "systemctl status nginx --no-pager\r"
+expect "#"
+
+puts "✅ Deployment Complete!"
+send "exit\r"
+expect eof

@@ -1,0 +1,54 @@
+# Clash Meta Subscription Template для Happ
+# Дата: 21.01.2026
+# Настройка: Smart-VPN с маскировкой под Yandex
+
+port: 7890
+socks-port: 7891
+allow-lan: false
+mode: rule
+log-level: info
+dns:
+  enable: true
+  enhanced-mode: fake-ip
+  nameserver:
+    - 8.8.8.8
+    - 1.1.1.1
+  fallback-filter:
+    geoip: true
+    geoip-code: RU
+
+proxies:
+{%- set proxy_list = conf['proxies'] or proxies or [] %}
+{%- for node in proxy_list %}
+  - name: "Marz (vera) [VLESS - tcp]"
+    type: vless
+    server: {{ node.server }}
+    port: {{ node.port }}
+    uuid: {{ node.uuid }}
+    tls: true
+    udp: true
+    flow: xtls-rprx-vision
+    servername: taxi.yandex.ru
+    reality-opts:
+      public-key: n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4
+      short-id: ""
+{%- endfor %}
+
+proxy-groups:
+  - name: "🚀 Smart VPN"
+    type: select
+    proxies:
+      - "Marz (vera) [VLESS - tcp]"
+      - DIRECT
+
+rules:
+  # Правила исключения (Госуслуги и банки не должны видеть VPN)
+  - DOMAIN-SUFFIX,gosuslugi.ru,DIRECT
+  - DOMAIN-SUFFIX,sberbank.ru,DIRECT
+  - DOMAIN-SUFFIX,tinkoff.ru,DIRECT
+  - DOMAIN-SUFFIX,ya.ru,DIRECT
+  - DOMAIN-SUFFIX,ru,DIRECT
+  - GEOIP,RU,DIRECT
+  
+  # Весь зарубежный трафик через прокси
+  - MATCH,🚀 Smart VPN

@@ -1,0 +1,156 @@
+# Clash Meta конфигурация - Гибридный режим (VLESS + HTTP Proxy)
+# Для использования в Clash Meta (поддерживает VLESS + REALITY)
+
+port: 7890
+socks-port: 7891
+allow-lan: false
+mode: rule
+log-level: warning
+external-controller: 127.0.0.1:9090
+secret: ""
+dns:
+  enable: true
+  listen: 0.0.0.0:53
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  nameserver:
+    - 8.8.8.8
+    - 8.8.4.4
+    - 1.1.1.1
+  fallback:
+    - 8.8.8.8
+    - 1.1.1.1
+  fallback-filter:
+    geoip: true
+    geoip-code: RU
+    ipcidr:
+      - 240.0.0.0/4
+
+proxies:
+  # VLESS + REALITY прокси
+  - name: "VLESS-Reality-Microsoft"
+    type: vless
+    server: 37.1.212.51
+    port: 443
+    uuid: eb4a1cf2-4235-4b0a-83b2-0e5a298389ed
+    tls: true
+    servername: www.microsoft.com
+    reality-opts:
+      public-key: n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4
+      short-id: ""
+    flow: xtls-rprx-vision
+    network: tcp
+    udp: true
+
+  # HTTP Proxy (TinyProxy)
+  - name: "TinyProxy-HTTP"
+    type: http
+    server: 37.1.212.51
+    port: 8080
+    username: root
+    password: LEJ6U5chSK
+    tls: false
+
+proxy-groups:
+  # Группа выбора прокси
+  - name: "🚀 Прокси"
+    type: select
+    proxies:
+      - VLESS-Reality-Microsoft
+      - TinyProxy-HTTP
+      - DIRECT
+
+  # Автоматический выбор
+  - name: "⚡ Автовыбор"
+    type: url-test
+    proxies:
+      - VLESS-Reality-Microsoft
+      - TinyProxy-HTTP
+    url: 'http://www.gstatic.com/generate_204'
+    interval: 300
+    tolerance: 50
+
+  # Fallback группа
+  - name: "🔄 Fallback"
+    type: fallback
+    proxies:
+      - VLESS-Reality-Microsoft
+      - TinyProxy-HTTP
+      - DIRECT
+    url: 'http://www.gstatic.com/generate_204'
+    interval: 300
+
+rules:
+  # Локальные адреса
+  - IP-CIDR,0.0.0.0/8,DIRECT
+  - IP-CIDR,10.0.0.0/8,DIRECT
+  - IP-CIDR,100.64.0.0/10,DIRECT
+  - IP-CIDR,127.0.0.0/8,DIRECT
+  - IP-CIDR,169.254.0.0/16,DIRECT
+  - IP-CIDR,172.16.0.0/12,DIRECT
+  - IP-CIDR,192.0.0.0/24,DIRECT
+  - IP-CIDR,192.0.2.0/24,DIRECT
+  - IP-CIDR,192.168.0.0/16,DIRECT
+  - IP-CIDR,198.18.0.0/15,DIRECT
+  - IP-CIDR,198.51.100.0/24,DIRECT
+  - IP-CIDR,203.0.113.0/24,DIRECT
+  - IP-CIDR,224.0.0.0/4,DIRECT
+  - IP-CIDR,::1/128,DIRECT
+  - IP-CIDR,fc00::/7,DIRECT
+  - IP-CIDR,fe80::/10,DIRECT
+
+  # Российские IP
+  - GEOIP,RU,DIRECT
+
+  # Российские домены
+  - DOMAIN-SUFFIX,ru,DIRECT
+  - DOMAIN-SUFFIX,рф,DIRECT
+  - DOMAIN-SUFFIX,su,DIRECT
+
+  # Yandex
+  - DOMAIN-SUFFIX,yandex.ru,DIRECT
+  - DOMAIN-SUFFIX,yandex.com,DIRECT
+  - DOMAIN-SUFFIX,yandex.net,DIRECT
+  - DOMAIN-SUFFIX,ya.ru,DIRECT
+  - DOMAIN-KEYWORD,yandex,DIRECT
+
+  # Mail.ru
+  - DOMAIN-SUFFIX,mail.ru,DIRECT
+  - DOMAIN-SUFFIX,my.mail.ru,DIRECT
+  - DOMAIN-SUFFIX,ok.ru,DIRECT
+  - DOMAIN-KEYWORD,mailru,DIRECT
+
+  # VK
+  - DOMAIN-SUFFIX,vk.com,DIRECT
+  - DOMAIN-SUFFIX,vk.ru,DIRECT
+  - DOMAIN-KEYWORD,vk,DIRECT
+
+  # Банки (основные)
+  - DOMAIN-SUFFIX,sberbank.ru,DIRECT
+  - DOMAIN-SUFFIX,sber.ru,DIRECT
+  - DOMAIN-SUFFIX,tinkoff.ru,DIRECT
+  - DOMAIN-SUFFIX,alfabank.ru,DIRECT
+  - DOMAIN-SUFFIX,vtb.ru,DIRECT
+  - DOMAIN-SUFFIX,gazprombank.ru,DIRECT
+  - DOMAIN-SUFFIX,raiffeisen.ru,DIRECT
+  - DOMAIN-SUFFIX,rosbank.ru,DIRECT
+
+  # Госуслуги
+  - DOMAIN-SUFFIX,gosuslugi.ru,DIRECT
+  - DOMAIN-SUFFIX,nalog.ru,DIRECT
+  - DOMAIN-SUFFIX,pfr.gov.ru,DIRECT
+  - DOMAIN-SUFFIX,fss.ru,DIRECT
+
+  # Telegram (работает напрямую в РФ)
+  - DOMAIN-SUFFIX,telegram.org,DIRECT
+  - DOMAIN-SUFFIX,telegram.me,DIRECT
+  - DOMAIN-SUFFIX,t.me,DIRECT
+  - DOMAIN-KEYWORD,telegram,DIRECT
+
+  # Реклама - блокировка
+  - DOMAIN-SUFFIX,doubleclick.net,REJECT
+  - DOMAIN-SUFFIX,googlesyndication.com,REJECT
+  - DOMAIN-SUFFIX,googleadservices.com,REJECT
+
+  # Всё остальное через прокси
+  - MATCH,🚀 Прокси
