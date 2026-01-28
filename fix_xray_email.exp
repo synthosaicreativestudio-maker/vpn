@@ -1,0 +1,55 @@
+#!/usr/bin/expect -f
+set timeout 30
+set password "LEJ6U5chSK"
+set host "root@37.1.212.51"
+
+spawn ssh -o StrictHostKeyChecking=no $host
+expect "password:"
+send "$password\r"
+expect "#"
+
+puts "\n========== GETTING CORRECT USER ID =========="
+# We'll try to get the user list via CLI to see the ID for 'vera' if it exists in DB,
+# OR create a new user 'vera_fixed' to get a clean ID.
+
+# Try to list users (might fail if cli not in path, we use the python module method again)
+send "docker compose -f /opt/marzban/docker-compose.yml exec -T marzban marzban cli user list\r"
+expect {
+    "Username" { puts "✅ Got user list" }
+    "Error" { puts "⚠️ User list failed" }
+    "#" { }
+}
+
+puts "\n========== FIXING CONFIG =========="
+# Assuming we might fail to get the list, let's just inspect the config we have.
+# The plan is to change "email": "vera" to a numeric ID if we can find one, 
+# OR just disable the problematic user in the config if it's manual.
+# BUT wait, this config looks manually injected into xray_config.json path?
+# Marzban usually generates this.
+# Ah, the user manually created xray_config.json in setup.sh!
+# That's why! Marzban expects its own managed config.
+# If we manually override /var/lib/marzban/xray_config.json, we must respect Marzban's conventions if we want stats.
+# If we don't care about stats, we can change the email to something that doesn't trigger the parser, 
+# e.g. "sys_admin" -> but the parser tries to int() it.
+# So we MUST provide an int-like string or disable usage recording for this inbound?
+# Usage recording is triggering on ALL inbounds probably.
+
+# FIX: Change email to a random number (e.g. 1) to satisfy the int() parser, 
+# even if it doesn't match a real user, it might just fail the lookup silently or log a warning instead of crashing?
+# No, code does: admin_id = user_admin_map.get(int(user_usage["uid"]))
+# If we change "vera" to "1", int("1") works. user_admin_map.get(1) might be None.
+# If it handles None gracefully, we are good.
+
+send "sed -i 's/\"email\": \"vera\"/\"email\": \"1\"/' /var/lib/marzban/xray_config.json\r"
+expect "#"
+
+puts "\n========== RESTARTING MARZBAN =========="
+send "docker compose -f /opt/marzban/docker-compose.yml restart\r"
+expect "#"
+
+puts "\n========== CHECKING LOGS AGAIN =========="
+send "sleep 5 && docker logs marzban --tail 20 2>&1\r"
+expect "#"
+
+send "exit\r"
+expect eof

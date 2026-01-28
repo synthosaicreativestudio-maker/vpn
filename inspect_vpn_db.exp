@@ -1,0 +1,27 @@
+#!/usr/bin/expect -f
+set timeout 30
+set password "LEJ6U5chSK"
+set host "root@37.1.212.51"
+
+spawn ssh -o StrictHostKeyChecking=no $host
+expect "password:"
+send "$password\r"
+expect "#"
+
+puts "\n========== CHECKING MARZBAN DB =========="
+# Check users in DB
+send "docker compose -f /opt/marzban/docker-compose.yml exec marzban sqlite3 /var/lib/marzban/db.sqlite3 \"SELECT id, username FROM users;\"\r"
+expect "#"
+
+puts "\n========== CHECKING XRAY CONFIG =========="
+# Check xray config for email/ids
+send "cat /var/lib/marzban/xray_config.json\r"
+expect "#"
+
+puts "\n========== ATTEMPTING TO FIX DB =========="
+# Deleting problematic user 'vera' if it exists in a weird state or isn't needed, 
+# OR we might need to update the python code if we can access it.
+# First let's just see the data.
+
+send "exit\r"
+expect eof

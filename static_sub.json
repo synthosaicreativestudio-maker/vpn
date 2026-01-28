@@ -63,7 +63,7 @@
             "packet_encoding": "xudp",
             "tls": {
                 "enabled": true,
-                "server_name": "www.microsoft.com",
+                "server_name": "taxi.yandex.ru",
                 "utls": {
                     "enabled": true,
                     "fingerprint": "chrome"

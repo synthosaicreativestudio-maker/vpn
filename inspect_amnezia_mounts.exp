@@ -1,0 +1,26 @@
+#!/usr/bin/expect -f
+set timeout 30
+set password "LEJ6U5chSK"
+set host "root@37.1.212.51"
+
+spawn ssh -o StrictHostKeyChecking=no $host
+expect "password:"
+send "$password\r"
+expect "#"
+
+puts "\n========== INSPECTING VOLUME MOUNTS =========="
+# Check where the containers mount their data
+send "docker inspect amnezia-awg --format '{{json .Mounts}}'\r"
+expect "#"
+send "docker inspect amnezia-wireguard --format '{{json .Mounts}}'\r"
+expect "#"
+
+puts "\n========== TRYING 'wg showconf' inside container =========="
+# Often wg is available in path
+send "docker exec amnezia-awg wg showconf wg0\r"
+expect "#"
+send "docker exec amnezia-wireguard wg showconf wg0\r"
+expect "#"
+
+send "exit\r"
+expect eof

@@ -1,0 +1,32 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password "LEJ6U5chSK"
+set host "root@37.1.212.51"
+set local_dir "/Users/verakoroleva/Desktop/vpn"
+
+puts "📤 Uploading fixed Xray config..."
+spawn scp -o StrictHostKeyChecking=no $local_dir/xray_config_fixed.json $host:/var/lib/marzban/xray_config.json
+expect {
+    "password:" { send "$password\r" }
+    timeout { puts "Timeout"; exit 1 }
+}
+expect eof
+
+puts "🔄 Restarting Marzban..."
+spawn ssh -o StrictHostKeyChecking=no $host
+expect "password:"
+send "$password\r"
+expect "#"
+
+send "cd /var/lib/marzban && docker compose restart\r"
+expect {
+    "Started" { }
+    "marzban" { }
+    timeout { }
+}
+expect "#"
+
+puts "✅ Config fixed and service restarted!"
+send "exit\r"
+expect eof

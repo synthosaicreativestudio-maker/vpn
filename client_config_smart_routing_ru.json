@@ -12,7 +12,10 @@
       },
       "sniffing": {
         "enabled": true,
-        "destOverride": ["http", "tls"]
+        "destOverride": [
+          "http",
+          "tls"
+        ]
       },
       "tag": "socks-in"
     },
@@ -24,7 +27,10 @@
       },
       "sniffing": {
         "enabled": true,
-        "destOverride": ["http", "tls"]
+        "destOverride": [
+          "http",
+          "tls"
+        ]
       },
       "tag": "http-in"
     }
@@ -53,7 +59,7 @@
         "realitySettings": {
           "show": false,
           "fingerprint": "chrome",
-          "serverName": "www.microsoft.com",
+          "serverName": "taxi.yandex.ru",
           "publicKey": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4",
           "shortId": ""
         }
@@ -98,42 +104,58 @@
       },
       {
         "type": "field",
-        "ip": ["geoip:ru"],
+        "ip": [
+          "geoip:ru"
+        ],
         "outboundTag": "direct"
       },
       {
         "type": "field",
-        "domain": ["geosite:ru"],
+        "domain": [
+          "geosite:ru"
+        ],
         "outboundTag": "direct"
       },
       {
         "type": "field",
-        "domain": ["geosite:yandex"],
+        "domain": [
+          "geosite:yandex"
+        ],
         "outboundTag": "direct"
       },
       {
         "type": "field",
-        "domain": ["geosite:mailru"],
+        "domain": [
+          "geosite:mailru"
+        ],
         "outboundTag": "direct"
       },
       {
         "type": "field",
-        "domain": ["geosite:vk"],
+        "domain": [
+          "geosite:vk"
+        ],
         "outboundTag": "direct"
       },
       {
         "type": "field",
-        "domain": ["geosite:category-gov-ru"],
+        "domain": [
+          "geosite:category-gov-ru"
+        ],
         "outboundTag": "direct"
       },
       {
         "type": "field",
-        "domain": ["geosite:category-bank-ru"],
+        "domain": [
+          "geosite:category-bank-ru"
+        ],
         "outboundTag": "direct"
       },
       {
         "type": "field",
-        "domain": ["geosite:telegram"],
+        "domain": [
+          "geosite:telegram"
+        ],
         "outboundTag": "direct"
       },
       {
@@ -156,7 +178,9 @@
       {
         "address": "8.8.8.8",
         "port": 53,
-        "domains": ["geosite:geolocation-!cn"]
+        "domains": [
+          "geosite:geolocation-!cn"
+        ]
       },
       {
         "address": "77.88.8.8",

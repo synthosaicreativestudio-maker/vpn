@@ -1,0 +1,32 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password "LEJ6U5chSK"
+set host "root@37.1.212.51"
+
+puts "🔍 Diagnosing VPN Server..."
+
+spawn ssh -o StrictHostKeyChecking=no $host
+expect "password:"
+send "$password\r"
+expect "#"
+
+puts "📊 Checking Docker containers..."
+send "docker ps -a\r"
+expect "#"
+
+puts "📋 Checking Marzban logs..."
+send "docker logs marzban --tail 50 2>&1\r"
+expect "#"
+
+puts "🔧 Checking Xray config validity..."
+send "cat /var/lib/marzban/xray_config.json | head -100\r"
+expect "#"
+
+puts "🌐 Testing external connectivity..."
+send "curl -s -o /dev/null -w '%{http_code}' https://google.com\r"
+expect "#"
+
+puts "✅ Diagnosis complete"
+send "exit\r"
+expect eof

@@ -1,0 +1,48 @@
+#!/usr/bin/expect -f
+set timeout 30
+set password "LEJ6U5chSK"
+set host "root@37.1.212.51"
+
+spawn ssh -o StrictHostKeyChecking=no $host
+expect "password:"
+send "$password\r"
+expect "#"
+
+puts "🔧 Fixing TinyProxy whitelist - removing IP restrictions..."
+
+# Backup current config
+send "cp /etc/tinyproxy/tinyproxy.conf /etc/tinyproxy/tinyproxy.conf.backup\r"
+expect "#"
+
+# Remove all Allow lines except localhost, then add BasicAuth instead
+send "sed -i '/^Allow 158.160/d; /^Allow 84.252/d' /etc/tinyproxy/tinyproxy.conf\r"
+expect "#"
+
+# Check if BasicAuth is already configured
+send "grep -q '^BasicAuth' /etc/tinyproxy/tinyproxy.conf && echo 'BasicAuth exists' || echo 'Adding BasicAuth'\r"
+expect {
+    "BasicAuth exists" { puts "✅ BasicAuth already configured" }
+    "Adding BasicAuth" {
+        send "echo 'BasicAuth root LEJ6U5chSK' >> /etc/tinyproxy/tinyproxy.conf\r"
+        expect "#"
+        puts "✅ Added BasicAuth"
+    }
+}
+expect "#"
+
+# Allow from any IP (since we use BasicAuth)
+send "grep -q '^Allow 0.0.0.0/0' /etc/tinyproxy/tinyproxy.conf || echo 'Allow 0.0.0.0/0' >> /etc/tinyproxy/tinyproxy.conf\r"
+expect "#"
+
+# Restart TinyProxy
+send "systemctl restart tinyproxy\r"
+expect "#"
+
+puts "✅ TinyProxy restarted. Testing proxy..."
+
+# Test proxy works  
+send "curl -x http://root:LEJ6U5chSK@127.0.0.1:8080 -s --max-time 5 https://api.ipify.org && echo ''\r"
+expect "#"
+
+send "exit\r"
+expect eof

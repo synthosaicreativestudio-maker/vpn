@@ -1,4 +1,5 @@
-import sqlite3, re
+import sqlite3
+import re
 import os
 
 def clean_db(path='/var/lib/marzban/db.sqlite3'):
@@ -11,7 +12,8 @@ def clean_db(path='/var/lib/marzban/db.sqlite3'):
         cursor.execute("SELECT id, username FROM users")
         for uid, name in cursor.fetchall():
             new_name = re.sub(r'[^a-zA-Z0-9\-_]', '', name)
-            if not new_name: new_name = f"user_{uid}"
+            if not new_name:
+                new_name = f"user_{uid}"
             if new_name != name:
                 print(f"Fixing {name} -> {new_name}")
                 cursor.execute("UPDATE users SET username = ? WHERE id = ?", (new_name, uid))

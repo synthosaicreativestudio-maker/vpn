@@ -1,0 +1,27 @@
+#!/usr/bin/expect -f
+set timeout 30
+set password "LEJ6U5chSK"
+set host "root@37.1.212.51"
+
+spawn ssh -o StrictHostKeyChecking=no $host
+expect "password:"
+send "$password\r"
+expect "#"
+
+puts "\n========== SEARCHING FOR AMNEZIA CONFIGS =========="
+# Check common locations
+send "find /opt/amnezia -name '*.conf' -o -name '*.json' 2>/dev/null | head -n 10\r"
+expect "#"
+
+puts "\n========== CHECKING AMNEZIA CONTAINER =========="
+# Try to see if there's a cli tool for amnezia
+send "docker exec amnezia-awg echo 'checking container' || echo 'container not accessible'\r"
+expect "#"
+
+# Often Amnezia Client generates the config client-side via API. 
+# But maybe we can find a wireguard config file locally to share.
+send "cat /opt/amnezia/awg/wireguard/wg0.conf 2>/dev/null\r"
+expect "#"
+
+send "exit\r"
+expect eof

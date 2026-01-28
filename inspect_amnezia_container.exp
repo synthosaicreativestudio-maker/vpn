@@ -1,0 +1,30 @@
+#!/usr/bin/expect -f
+set timeout 30
+set password "LEJ6U5chSK"
+set host "root@37.1.212.51"
+
+spawn ssh -o StrictHostKeyChecking=no $host
+expect "password:"
+send "$password\r"
+expect "#"
+
+puts "\n========== LISTING AMNEZIA CONTAINERS =========="
+send "docker ps --filter 'name=amnezia' --format '{{.ID}} {{.Names}} {{.Image}}'\r"
+expect "#"
+
+puts "\n========== INSPECTING WG CONTAINER CONFIG =========="
+# Try to find config inside the container directly
+send "docker exec amnezia-awg env\r"
+expect "#"
+send "docker exec amnezia-awg ls -R /etc/amnezia 2>/dev/null\r"
+expect "#"
+send "docker exec amnezia-awg cat /etc/wireguard/wg0.conf 2>/dev/null\r"
+expect "#"
+
+puts "\n========== CHECKING AMNEZIA-WIREGUARD CONTAINER =========="
+# The legacy one
+send "docker exec amnezia-wireguard cat /etc/wireguard/wg0.conf 2>/dev/null\r"
+expect "#"
+
+send "exit\r"
+expect eof

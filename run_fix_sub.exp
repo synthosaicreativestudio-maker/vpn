@@ -1,0 +1,33 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password "LEJ6U5chSK"
+set host "root@37.1.212.51"
+set local_file "/Users/verakoroleva/Desktop/vpn/fix_subscription_template.sh"
+set remote_file "/var/lib/marzban/fix_subscription_template.sh"
+
+# Upload
+spawn scp -o StrictHostKeyChecking=no $local_file $host:$remote_file
+expect {
+    "password:" { send "$password\r" }
+    timeout { puts "Timeout uploading"; exit 1 }
+}
+expect eof
+
+# Execute
+spawn ssh -o StrictHostKeyChecking=no $host
+expect "password:"
+send "$password\r"
+expect "#"
+
+send "chmod +x $remote_file\r"
+expect "#"
+
+send "$remote_file\r"
+expect {
+    "Restarting Marzban" { exp_continue }
+    "#" { }
+}
+
+send "exit\r"
+expect eof
