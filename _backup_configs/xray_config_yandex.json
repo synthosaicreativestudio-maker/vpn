@@ -1,0 +1,96 @@
+{
+  "log": {
+    "loglevel": "warning"
+  },
+  "routing": {
+    "domainStrategy": "IPIfNonMatch",
+    "rules": [
+      {
+        "type": "field",
+        "outboundTag": "BLOCK",
+        "domain": [
+          "geosite:category-ads-all"
+        ]
+      },
+      {
+        "type": "field",
+        "outboundTag": "BLOCK",
+        "ip": [
+          "geoip:private"
+        ]
+      }
+    ]
+  },
+  "inbounds": [
+    {
+      "tag": "Shadowsocks TCP",
+      "listen": "0.0.0.0",
+      "port": 1080,
+      "protocol": "shadowsocks",
+      "settings": {
+        "clients": [],
+        "network": "tcp,udp"
+      }
+    },
+    {
+      "tag": "VLESS-Reality-Yandex",
+      "protocol": "vless",
+      "listen": "0.0.0.0",
+      "port": 443,
+      "settings": {
+        "clients": [
+          {
+            "id": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
+            "flow": "xtls-rprx-vision"
+          }
+        ],
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "reality",
+        "realitySettings": {
+          "show": false,
+          "dest": "taxi.yandex.ru:443",
+          "xver": 0,
+          "serverNames": [
+            "taxi.yandex.ru",
+            "ya.ru",
+            "yandex.ru"
+          ],
+          "privateKey": "4PjME9JBUmV-Td9rZGS9l0147TXqMJtcU_f2iG-PVxA",
+          "shortIds": [
+            ""
+          ],
+          "minClientVer": "",
+          "maxClientVer": "",
+          "maxTimeDiff": 0,
+          "publicKey": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4"
+        },
+        "tcpSettings": {
+          "acceptProxyProtocol": false,
+          "header": {
+            "type": "none"
+          }
+        }
+      },
+      "sniffing": {
+        "enabled": true,
+        "destOverride": [
+          "http",
+          "tls"
+        ]
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "tag": "DIRECT"
+    },
+    {
+      "protocol": "blackhole",
+      "tag": "BLOCK"
+    }
+  ]
+}
