@@ -1,0 +1,82 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password "LEJ6U5chSK"
+set host "root@37.1.212.51"
+set local_dir "/Users/verakoroleva/Desktop/vpn"
+
+# Function to upload file
+proc upload {file remote_path password host} {
+    spawn scp -o StrictHostKeyChecking=no $file $host:$remote_path
+    expect {
+        "password:" { send "$password\r" }
+        timeout { puts "Timeout uploading $file"; exit 1 }
+    }
+    expect eof
+}
+
+puts "🚀 Starting Static Subscription Deployment..."
+
+# 1. Upload happ_config.json as smart-vpn.json
+puts "📂 Uploading static subscription file..."
+upload "$local_dir/happ_config.json" "/var/www/html/smart-vpn.json" $password $host
+
+# 2. SSH and Update Nginx
+puts "🔧 Connecting to server to update Nginx..."
+spawn ssh -o StrictHostKeyChecking=no $host
+expect "password:"
+send "$password\r"
+expect "#"
+
+# Update Nginx config to ensure /var/www/html is accessible
+puts "🔧 Updating Nginx configuration..."
+# We create a new location specifically for this file to ensure it overrides any other rules
+# Using printf to append/modify is tricky, so we'll rewrite the site config safely using cat
+# We reuse the previous structure but ensure the static file location is present
+
+send "cat <<EOF > /etc/nginx/sites-available/marzban
+server {
+    listen 127.0.0.1:8081 ssl http2;
+    server_name 37.1.212.51.sslip.io;
+
+    ssl_certificate /etc/letsencrypt/live/37.1.212.51.sslip.io/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/37.1.212.51.sslip.io/privkey.pem;
+
+    location /.well-known/acme-challenge/ { root /var/www/html; }
+
+    # STATIC SUBSCRIPTION BYPASS (The Fix)
+    location /smart-vpn.json {
+        alias /var/www/html/smart-vpn.json;
+        default_type application/json;
+        add_header Content-Disposition 'attachment; filename=\"smart-vpn.json\"';
+    }
+
+    # Subscription Proxy (Original) - Kept for reference but likely broken
+    location /sub/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host \\\$host;
+        proxy_set_header X-Real-IP \\\$remote_addr;
+        proxy_set_header X-Forwarded-For \\\$proxy_add_x_forwarded_for;
+    }
+
+    # Dashboard/API
+    location ~ ^/(dashboard|api|static|docs|openapi.json|assets) {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host \\\$host;
+        proxy_set_header X-Real-IP \\\$remote_addr;
+        proxy_set_header X-Forwarded-For \\\$proxy_add_x_forwarded_for;
+    }
+
+    location / { return 404; }
+}
+EOF
+\r"
+expect "#"
+
+puts "🔄 Restarting Nginx..."
+send "systemctl restart nginx\r"
+expect "#"
+
+puts "✅ Static Deployment Complete!"
+send "exit\r"
+expect eof

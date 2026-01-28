@@ -1,0 +1,127 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password "LEJ6U5chSK"
+set host "root@37.1.212.51"
+
+puts "🚀 Config Xray Fallbacks..."
+
+spawn ssh -o StrictHostKeyChecking=no $host
+expect "password:"
+send "$password\r"
+expect "#"
+
+# We need to overwrite xray_config.json with the correct fallback structure
+# 1. Add 37.1.212.51.sslip.io to serverNames
+# 2. Add fallback entry for it pointing to 127.0.0.1:8081
+
+puts "🔧 Overwriting Xray Config..."
+
+# Write config to a local temporary file first to avoid Expect escaping hell
+set config_content {
+{
+  "log": {
+    "loglevel": "warning"
+  },
+  "inbounds": [
+    {
+      "tag": "VLESS_IN",
+      "listen": "0.0.0.0",
+      "port": 443,
+      "protocol": "vless",
+      "settings": {
+        "clients": [
+          {
+            "id": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
+            "flow": "xtls-rprx-vision",
+            "email": "Marz-vera"
+          }
+        ],
+        "decryption": "none",
+        "fallbacks": [
+          {
+            "name": "37.1.212.51.sslip.io",
+            "dest": "127.0.0.1:8081",
+            "xver": 1
+          },
+          {
+            "dest": "taxi.yandex.ru:443",
+            "xver": 0
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "reality",
+        "realitySettings": {
+          "show": false,
+          "dest": "taxi.yandex.ru:443",
+          "xver": 0,
+          "serverNames": [
+            "taxi.yandex.ru",
+            "ya.ru",
+            "yandex.ru",
+            "37.1.212.51.sslip.io"
+          ],
+          "privateKey": "4PjME9JBUmV-Td9rZGS9l0147TXqMJtcU_f2iG-PVxA",
+          "shortIds": [
+            ""
+          ]
+        }
+      },
+      "sniffing": {
+        "enabled": true,
+        "destOverride": ["http", "tls"]
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "tag": "DIRECT"
+    },
+    {
+      "protocol": "blackhole",
+      "tag": "BLOCK"
+    }
+  ],
+  "routing": {
+    "rules": [
+      {
+        "type": "field",
+        "ip": [
+          "geoip:private"
+        ],
+        "outboundTag": "DIRECT"
+      }
+    ]
+  }
+}
+}
+
+# Create local file
+set fp [open "temp_xray_config.json" w]
+puts $fp $config_content
+close $fp
+
+puts "📂 Uploading correct Xray config..."
+spawn scp -o StrictHostKeyChecking=no temp_xray_config.json $host:/var/lib/marzban/xray_config.json
+expect {
+    "password:" { send "$password\r" }
+}
+expect eof
+
+# Reconnect to restart service
+spawn ssh -o StrictHostKeyChecking=no $host
+expect "password:"
+send "$password\r"
+expect "#"
+
+
+puts "🔄 Restarting Marzban to apply Xray changes..."
+send "cd /var/lib/marzban && docker compose restart\r"
+expect "#"
+
+puts "✅ Xray Fallback Fixed!"
+send "exit\r"
+expect eof

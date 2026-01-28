@@ -12,7 +12,10 @@
       },
       "sniffing": {
         "enabled": true,
-        "destOverride": ["http", "tls"]
+        "destOverride": [
+          "http",
+          "tls"
+        ]
       },
       "tag": "socks-in"
     },
@@ -24,7 +27,10 @@
       },
       "sniffing": {
         "enabled": true,
-        "destOverride": ["http", "tls"]
+        "destOverride": [
+          "http",
+          "tls"
+        ]
       },
       "tag": "http-in"
     }
@@ -53,7 +59,7 @@
         "realitySettings": {
           "show": false,
           "fingerprint": "chrome",
-          "serverName": "www.microsoft.com",
+          "serverName": "taxi.yandex.ru",
           "publicKey": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4",
           "shortId": ""
         }
@@ -104,7 +110,9 @@
       {
         "address": "8.8.8.8",
         "port": 53,
-        "domains": ["geosite:geolocation-!cn"]
+        "domains": [
+          "geosite:geolocation-!cn"
+        ]
       },
       {
         "address": "8.8.4.4",

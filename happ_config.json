@@ -30,11 +30,23 @@
         "server": "google"
       },
       {
-        "geosite": ["ru", "yandex", "vk", "mailru", "category-gov-ru"],
+        "geosite": [
+          "ru",
+          "yandex",
+          "vk",
+          "mailru",
+          "category-gov-ru"
+        ],
         "server": "local"
       },
       {
-        "domain_suffix": [".ru", ".su", ".xn--p1ai", ".by", ".kz"],
+        "domain_suffix": [
+          ".ru",
+          ".su",
+          ".xn--p1ai",
+          ".by",
+          ".kz"
+        ],
         "server": "local"
       }
     ]
@@ -54,7 +66,7 @@
       "tag": "proxy",
       "server": "37.1.212.51",
       "server_port": 443,
-      "uuid": "{{ user.uuid }}",
+      "uuid": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
       "flow": "xtls-rprx-vision",
       "packet_encoding": "xudp",
       "tls": {
@@ -103,19 +115,36 @@
         "outbound": "block"
       },
       {
-        "geosite": ["category-gov-ru", "yandex", "vk", "sberbank", "wildberries", "ozon"],
+        "geosite": [
+          "category-gov-ru",
+          "yandex",
+          "vk",
+          "sberbank",
+          "wildberries",
+          "ozon"
+        ],
         "outbound": "direct"
       },
       {
-        "domain_suffix": [".ru", ".su", ".xn--p1ai", "gosuslugi.ru", "gu-st.ru", "mos.ru", "gov.ru"],
+        "domain_suffix": [
+          ".ru",
+          ".su",
+          ".xn--p1ai",
+          "gosuslugi.ru",
+          "gu-st.ru",
+          "mos.ru",
+          "gov.ru"
+        ],
         "outbound": "direct"
       },
       {
-        "geoip": ["ru", "private"],
+        "geoip": [
+          "ru",
+          "private"
+        ],
         "outbound": "direct"
       }
     ],
-    "auto_detect_interface": true,
-    "final": "proxy"
+    "auto_detect_interface": true
   }
 }

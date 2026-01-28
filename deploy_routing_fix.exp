@@ -1,0 +1,29 @@
+#!/usr/bin/expect -f
+set timeout 60
+set password "LEJ6U5chSK"
+set host "root@37.1.212.51"
+set local_dir "/Users/verakoroleva/Desktop/vpn"
+
+# Upload the updated template
+spawn scp -o StrictHostKeyChecking=no $local_dir/sing-box-json.jinja2 $host:/var/lib/marzban/templates/sing-box-json.jinja2
+expect "password:"
+send "$password\r"
+expect eof
+
+# Connect and restart Marzban
+spawn ssh -o StrictHostKeyChecking=no $host
+expect "password:"
+send "$password\r"
+expect "#"
+
+puts "\n========== RESTARTING MARZBAN =========="
+send "docker compose -f /opt/marzban/docker-compose.yml restart\r"
+expect "#"
+
+puts "\n========== VERIFYING TEMPLATE =========="
+send "cat /var/lib/marzban/templates/sing-box-json.jinja2 | grep -A2 'final'\r"
+expect "#"
+
+puts "✅ Done!"
+send "exit\r"
+expect eof

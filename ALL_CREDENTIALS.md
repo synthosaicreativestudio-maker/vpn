@@ -170,3 +170,26 @@ http://37.1.212.51:8000/sub/{username}
 
 **Обновлено:** 21 января 2026  
 **Статус:** ✅ Все сервисы работают с новой маскировкой
+
+---
+
+## 🛡️ Smart-VPN Version 2 (Backup / Google Bypass)
+
+> [!TIP]
+> Используйте этот канал, если основной (Yandex) перестанет работать или будет работать медленно.
+
+### Параметры подключения:
+- **Протокол:** VLESS + gRPC
+- **Порт:** `2096`
+- **SNI (Маскировка):** `dl.google.com` (Google Updates)
+- **Безопасность:** REALITY
+
+### 🔑 Ключи (NIST P-256 / x25519):
+- **Private Key:** `wDIkaDAGMFcuMfydHc9GLwCSPJULp29FXsqYFKFYe08`
+- **Public Key:** `x_GPfa0J4Js_wngtYThTvO4fpBWIT9rH-NNQ-2dhYHg`
+
+### 🔗 Ссылка для подключения (vless://):
+```text
+vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:2096?security=reality&encryption=none&pbk=x_GPfa0J4Js_wngtYThTvO4fpBWIT9rH-NNQ-2dhYHg&fp=chrome&type=grpc&serviceName=grpc&sni=dl.google.com#%F0%9F%9B%A1%EF%B8%8F%20Smart-Backup-Google
+```
+

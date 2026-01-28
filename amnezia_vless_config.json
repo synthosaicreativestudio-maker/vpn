@@ -1,0 +1,19 @@
+{
+  "containers": [
+    {
+      "container": "amnezia-xray",
+      "xray": {
+        "site": "taxi.yandex.ru",
+        "port": "443",
+        "protocol": "vless",
+        "shortId": "",
+        "privateKey": "4PjME9JBUmV-Td9rZGS9l0147TXqMJtcU_f2iG-PVxA",
+        "publicKey": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4",
+        "flow": "xtls-rprx-vision",
+        "uuid": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed"
+      }
+    }
+  ],
+  "hostName": "37.1.212.51",
+  "description": "Smart VPN USA - Yandex Mask"
+}

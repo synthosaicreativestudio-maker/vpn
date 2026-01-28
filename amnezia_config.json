@@ -12,7 +12,10 @@
       },
       "sniffing": {
         "enabled": true,
-        "destOverride": ["http", "tls"]
+        "destOverride": [
+          "http",
+          "tls"
+        ]
       }
     }
   ],
@@ -40,7 +43,7 @@
         "realitySettings": {
           "show": false,
           "fingerprint": "chrome",
-          "serverName": "www.microsoft.com",
+          "serverName": "taxi.yandex.ru",
           "publicKey": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4",
           "shortId": ""
         }

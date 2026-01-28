@@ -1,0 +1,41 @@
+#!/usr/bin/expect -f
+set timeout 60
+set password "LEJ6U5chSK"
+set host "root@37.1.212.51"
+
+spawn ssh -o StrictHostKeyChecking=no $host
+expect "password:"
+send "$password\r"
+expect "#"
+
+puts "\n========== 1. DOCKER CONTAINERS =========="
+send "docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'\r"
+expect "#"
+
+puts "\n========== 2. TINYPROXY STATUS =========="
+send "systemctl status tinyproxy --no-pager 2>/dev/null || echo 'TinyProxy not installed as service'\r"
+expect "#"
+
+puts "\n========== 3. LISTENING PORTS =========="
+send "ss -tlnp | grep -E ':(443|8080|8000|22)'\r"
+expect "#"
+
+puts "\n========== 4. FIREWALL (UFW) STATUS =========="
+send "ufw status verbose\r"
+expect "#"
+
+puts "\n========== 5. XRAY/MARZBAN LOGS (last 20 lines) =========="
+send "docker logs marzban --tail 20 2>&1\r"
+expect "#"
+
+puts "\n========== 6. TEST EXTERNAL CONNECTIVITY =========="
+send "curl -s --max-time 5 https://api.ipify.org && echo ''\r"
+expect "#"
+
+puts "\n========== 7. PROXY CONFIG CHECK =========="
+send "cat /etc/tinyproxy/tinyproxy.conf 2>/dev/null | grep -E '^(Port|Allow|BasicAuth)' || echo 'TinyProxy config not found'\r"
+expect "#"
+
+puts "\n========== DIAGNOSTICS COMPLETE =========="
+send "exit\r"
+expect eof
