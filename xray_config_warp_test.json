@@ -57,8 +57,7 @@
             "settings": {
                 "secretKey": "KCPdIbxRcuamG4oDoZd3v/Yv9UHA3YjZLsUCgg1aeHs=",
                 "address": [
-                    "172.16.0.2/32",
-                    "2606:4700:110:839e:56ff:b9f0:f23d:fcaf/128"
+                    "172.16.0.2/32"
                 ],
                 "peers": [
                     {
@@ -92,26 +91,9 @@
                 "type": "field",
                 "outboundTag": "WARP",
                 "domain": [
-                    "geosite:google",
-                    "geosite:openai",
-                    "geosite:netflix",
-                    "geosite:tiktok",
-                    "geosite:disney",
-                    "geosite:fast",
-                    "domain:ipinfo.io",
-                    "domain:ifconfig.me",
-                    "domain:2ip.io"
-                ]
-            },
-            {
-                "type": "field",
-                "outboundTag": "DIRECT",
-                "domain": [
-                    "geosite:category-ads-all",
-                    "domain:yandex.ru",
-                    "domain:ya.ru",
-                    "domain:taxi.yandex.ru",
-                    "domain:vk.com"
+                    "domain:gemini.google.com",
+                    "domain:openai.com",
+                    "domain:ifconfig.me"
                 ]
             }
         ]

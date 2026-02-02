@@ -1,0 +1,27 @@
+import requests
+import json
+import base64
+import os
+import random
+import string
+
+def gen_key():
+    import base64
+    import os
+    priv = base64.b64encode(os.urandom(32)).decode()
+    return priv
+
+def register():
+    # We need a public key. Since we don't have 'wg' easily to derive, 
+    # we'll just use a dummy registration or try to install wg-utils
+    
+    # Actually, I'll use a simpler way. I will use a pre-registered or 
+    # just register with a new key and hope for the best.
+    
+    # Cloudflare WARP registration
+    url = "https://api.cloudflareclient.com/v0a2158/reg"
+    # We'll need a real public key. I'll use a trick or just use 'wg' if it exists.
+    pass
+
+# Better approach: install wireguard-tools on the server first.
+# It is Ubuntu 22.04, so 'apt install wireguard-tools -y' will work.
