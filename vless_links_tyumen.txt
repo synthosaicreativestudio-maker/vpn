@@ -1,0 +1,4 @@
+vless://af3ca960-e635-4576-b11d-f5f12840e1ca@37.1.212.51:62050?type=tcp&security=reality&encryption=none&sni=taxi.yandex.ru&pbk=odjjb5Z5YcoCrTOquVNfsjvyipJk6RG1CJy8vp3T81k&fp=chrome&flow=xtls-rprx-vision&sid=d22e9a1bf69e43be#Tyumen-Taxi
+vless://af3ca960-e635-4576-b11d-f5f12840e1ca@37.1.212.51:62051?type=tcp&security=reality&encryption=none&sni=yandex.ru&pbk=odjjb5Z5YcoCrTOquVNfsjvyipJk6RG1CJy8vp3T81k&fp=chrome&flow=xtls-rprx-vision&sid=d22e9a1bf69e43be#Tyumen-Yandex
+vless://af3ca960-e635-4576-b11d-f5f12840e1ca@37.1.212.51:62052?type=tcp&security=reality&encryption=none&sni=ya.ru&pbk=odjjb5Z5YcoCrTOquVNfsjvyipJk6RG1CJy8vp3T81k&fp=chrome&flow=xtls-rprx-vision&sid=d22e9a1bf69e43be#Tyumen-Ya
+vless://af3ca960-e635-4576-b11d-f5f12840e1ca@37.1.212.51:62053?type=tcp&security=reality&encryption=none&sni=wildberries.ru&pbk=odjjb5Z5YcoCrTOquVNfsjvyipJk6RG1CJy8vp3T81k&fp=chrome&flow=xtls-rprx-vision&sid=d22e9a1bf69e43be#Tyumen-WB
