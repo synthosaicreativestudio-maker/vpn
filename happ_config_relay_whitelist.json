@@ -1,0 +1,148 @@
+{
+    "log": {
+        "level": "warn",
+        "timestamp": true
+    },
+    "dns": {
+        "servers": [
+            {
+                "tag": "dns-remote",
+                "address": "https://8.8.8.8/dns-query",
+                "address_resolver": "dns-local",
+                "detour": "proxy"
+            },
+            {
+                "tag": "dns-local",
+                "address": "local",
+                "detour": "direct"
+            }
+        ],
+        "rules": [
+            {
+                "outbound": "any",
+                "server": "dns-local"
+            },
+            {
+                "geosite": [
+                    "ru",
+                    "yandex",
+                    "vk",
+                    "mailru",
+                    "category-gov-ru"
+                ],
+                "server": "dns-local"
+            },
+            {
+                "domain_suffix": [
+                    ".ru",
+                    ".su",
+                    ".xn--p1ai"
+                ],
+                "server": "dns-local"
+            }
+        ]
+    },
+    "inbounds": [
+        {
+            "type": "tun",
+            "inet4_address": "172.19.0.1/30",
+            "auto_route": true,
+            "strict_route": true,
+            "sniff": true
+        }
+    ],
+    "outbounds": [
+        {
+            "type": "vless",
+            "tag": "proxy",
+            "server": "89.169.176.108",
+            "server_port": 443,
+            "uuid": "7221cad9-11e4-43c0-879d-df1f7eae1894",
+            "flow": "xtls-rprx-vision",
+            "packet_encoding": "xudp",
+            "tls": {
+                "enabled": true,
+                "server_name": "taxi.yandex.ru",
+                "utls": {
+                    "enabled": true,
+                    "fingerprint": "chrome"
+                },
+                "reality": {
+                    "enabled": true,
+                    "public_key": "EMtCkgnk8HQL-Iv-Qk95Wyi9ltRM9-A2P-t5OP0xdEU",
+                    "short_id": ""
+                }
+            }
+        },
+        {
+            "type": "direct",
+            "tag": "direct"
+        },
+        {
+            "type": "block",
+            "tag": "block"
+        },
+        {
+            "type": "dns",
+            "tag": "dns-out"
+        }
+    ],
+    "route": {
+        "rules": [
+            {
+                "protocol": "dns",
+                "outbound": "dns-out"
+            },
+            {
+                "geosite": "category-ads-all",
+                "outbound": "block"
+            },
+            {
+                "geosite": [
+                    "ru",
+                    "category-gov-ru",
+                    "yandex",
+                    "vk",
+                    "mailru",
+                    "sberbank",
+                    "wildberries",
+                    "ozon"
+                ],
+                "outbound": "direct"
+            },
+            {
+                "domain_suffix": [
+                    ".ru",
+                    ".su",
+                    ".xn--p1ai"
+                ],
+                "outbound": "direct"
+            },
+            {
+                "domain_keyword": [
+                    "gosuslugi",
+                    "yandex",
+                    "sberbank",
+                    "tinkoff",
+                    "wildberries",
+                    "ozon",
+                    "avito",
+                    "2gis",
+                    "megafon",
+                    "beeline",
+                    "mts"
+                ],
+                "outbound": "direct"
+            },
+            {
+                "geoip": [
+                    "ru",
+                    "private"
+                ],
+                "outbound": "direct"
+            }
+        ],
+        "auto_detect_interface": true,
+        "final": "proxy"
+    }
+}
