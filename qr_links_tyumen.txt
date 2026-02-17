@@ -1,0 +1,8 @@
+https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=vless%3A%2F%2Faf3ca960-e635-4576-b11d-f5f12840e1ca%4037.1.212.51%3A62050%3Ftype%3Dtcp%26security%3Dreality%26encryption%3Dnone%26sni%3Dtaxi.yandex.ru%26pbk%3Dodjjb5Z5YcoCrTOquVNfsjvyipJk6RG1CJy8vp3T81k%26fp%3Dchrome%26flow%3Dxtls-rprx-vision%26sid%3Dd22e9a1bf69e43be%23Tyumen-Taxi
+
+https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=vless%3A%2F%2Faf3ca960-e635-4576-b11d-f5f12840e1ca%4037.1.212.51%3A62051%3Ftype%3Dtcp%26security%3Dreality%26encryption%3Dnone%26sni%3Dyandex.ru%26pbk%3Dodjjb5Z5YcoCrTOquVNfsjvyipJk6RG1CJy8vp3T81k%26fp%3Dchrome%26flow%3Dxtls-rprx-vision%26sid%3Dd22e9a1bf69e43be%23Tyumen-Yandex
+
+https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=vless%3A%2F%2Faf3ca960-e635-4576-b11d-f5f12840e1ca%4037.1.212.51%3A62052%3Ftype%3Dtcp%26security%3Dreality%26encryption%3Dnone%26sni%3Dya.ru%26pbk%3Dodjjb5Z5YcoCrTOquVNfsjvyipJk6RG1CJy8vp3T81k%26fp%3Dchrome%26flow%3Dxtls-rprx-vision%26sid%3Dd22e9a1bf69e43be%23Tyumen-Ya
+
+https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=vless%3A%2F%2Faf3ca960-e635-4576-b11d-f5f12840e1ca%4037.1.212.51%3A62053%3Ftype%3Dtcp%26security%3Dreality%26encryption%3Dnone%26sni%3Dwildberries.ru%26pbk%3Dodjjb5Z5YcoCrTOquVNfsjvyipJk6RG1CJy8vp3T81k%26fp%3Dchrome%26flow%3Dxtls-rprx-vision%26sid%3Dd22e9a1bf69e43be%23Tyumen-WB
+

@@ -73,29 +73,28 @@ async def process_trial(callback: types.CallbackQuery):
             links = res.get("links", [])
             vless_link = links[0] if links else ""
             
-            await callback.message.edit_text(
-                "✅ <b>Тестовый доступ на 3 дня готов!</b>\n\n"
-                "1️⃣ <b>Скачайте приложение Happ:</b>\n"
-                "• <a href='https://apps.apple.com/app/id6444665403'>Скачать для iPhone</a>\n"
-                "• <a href='https://play.google.com/store/apps/details?id=com.happ.app'>Скачать для Android</a>\n\n"
-                "2️⃣ <b>Настройте подключение:</b>\n"
-                "• Скопируйте одну из ссылок ниже (нажмите на неё).\n"
-                "• В приложении нажмите <b>+</b> или <b>Добавить конфигурацию</b>.\n"
-                "• Выберите <b>Import from Clipboard</b> (Импорт).\n\n"
-                "<i>Если первая ссылка не принимается, используйте вторую (VLESS).</i>"
+            builder = InlineKeyboardBuilder()
+            builder.row(types.InlineKeyboardButton(text="🍎 Скачать для iPhone (Happ)", url="https://apps.apple.com/us/app/happ-proxy-utility/id6504287215?l=ru"))
+            builder.row(types.InlineKeyboardButton(text="🤖 Скачать для Android (Happ)", url="https://play.google.com/store/apps/details?id=com.happproxy&pcampaignid=web_share"))
+
+            text = (
+                "✅ <b>Доступ на 3 дня готов!</b>\n\n"
+                "<b>1. Установите приложение:</b>\n"
+                "Нажмите кнопки ниже для установки (рекомендуем <b>Happ</b>).\n\n"
+                "<b>2. Как подключиться:</b>\n"
+                "• Скопируйте <b>VLESS-ссылку</b> ниже (нажмите на неё).\n"
+                "• В приложении нажмите <b>+</b> ➡ <b>Import from Clipboard</b>.\n"
+                "• Выберите добавленный сервер и нажмите <b>Connect</b>.\n\n"
+                "👇 <b>Ваш ключ (нажмите, чтобы скопировать):</b>\n"
+                f"<code>{vless_link}</code>"
             )
             
-            # Ссылка на подписку
-            await callback.message.answer(f"🔗 <b>Ссылка-подписка (авто-обновление):</b>\n<code>{sub_url}</code>")
-            
-            # Прямая ссылка VLESS как альтернатива
-            if vless_link:
-                await callback.message.answer(f"⚙️ <b>Прямая VLESS-ссылка:</b>\n<code>{vless_link}</code>")
+            await callback.message.edit_text(text, reply_markup=builder.as_markup())
         else:
             await callback.message.edit_text("❌ <b>Ошибка при создании доступа.</b> Попробуйте позже.")
     except Exception as e:
         logger.error(f"Error in process_trial: {e}")
-        await callback.message.edit_text("❌ <b>Произошла ошибка.</b> Пожалуйста, попробуйте еще раз или напишите поддержке.")
+        await callback.message.edit_text("❌ <b>Произошла ошибка.</b> Пожалуйста, попробуйте еще раз.")
 
 @dp.callback_query(F.data.startswith("buy_"))
 async def process_buy(callback: types.CallbackQuery):
@@ -105,7 +104,7 @@ async def process_buy(callback: types.CallbackQuery):
     tariff = TARIFFS.get(tariff_key)
     
     if not PAYMENT_TOKEN:
-        await callback.answer("❌ Оплата временно недоступна (не настроен токен).", show_alert=True)
+        await callback.answer("❌ Оплата временно недоступна.", show_alert=True)
         return
 
     await bot.send_invoice(
@@ -116,7 +115,7 @@ async def process_buy(callback: types.CallbackQuery):
         provider_token=PAYMENT_TOKEN,
         currency="RUB",
         prices=[
-            types.LabeledPrice(label=tariff['name'], amount=tariff['price'] * 100) # Цена в копейках
+            types.LabeledPrice(label=tariff['name'], amount=tariff['price'] * 100)
         ],
         start_parameter="vpn_subscription",
     )
@@ -132,14 +131,11 @@ async def process_successful_payment(message: types.Message):
     tariff_key = message.successful_payment.invoice_payload
     tariff = TARIFFS.get(tariff_key)
     
-    await message.answer(f"✅ <b>Оплата прошла успешно!</b> Оформляю подписку: {tariff['name']}...")
-    
     # Логика продления/создания в Marzban
     username = f"user_{user_id}"
     days = tariff['days']
     
     try:
-        # Получаем текущее состояние (чтобы продлить, если уже есть)
         current_user = await marzban.get_user(username)
         if current_user and current_user.get("expire"):
             current_expire = current_user.get("expire")
@@ -156,24 +152,25 @@ async def process_successful_payment(message: types.Message):
             links = res.get("links", [])
             vless_link = links[0] if links else ""
 
-            await message.answer(
-                f"✨ <b>Подписка успешно оформлена!</b>\n"
-                f"📅 <b>Действует до:</b> {datetime.datetime.fromtimestamp(new_expire).strftime('%d.%m.%Y')}\n\n"
-                f"🚀 <b>Инструкция по установке:</b>\n"
-                f"• <a href='https://apps.apple.com/app/id6444665403'>Скачать Happ для iPhone</a>\n"
-                f"• <a href='https://play.google.com/store/apps/details?id=com.happ.app'>Скачать Happ для Android</a>\n\n"
-                f"👇 <b>Ваши ключи доступа (нажмите для копирования):</b>"
+            builder = InlineKeyboardBuilder()
+            builder.row(types.InlineKeyboardButton(text="🍎 Скачать для iPhone", url="https://apps.apple.com/us/app/happ-proxy-utility/id6504287215?l=ru"))
+            builder.row(types.InlineKeyboardButton(text="🤖 Скачать для Android", url="https://play.google.com/store/apps/details?id=com.happproxy&pcampaignid=web_share"))
+
+            text = (
+                f"✨ <b>Подписка успешно оформлена до {datetime.datetime.fromtimestamp(new_expire).strftime('%d.%m.%Y')}!</b>\n\n"
+                "<b>Инструкция:</b>\n"
+                "1. Скачайте приложение Happ по кнопкам ниже.\n"
+                "2. Скопируйте ключ и импортируйте через <b>+</b> ➡ <b>Import from Clipboard</b>.\n\n"
+                "👇 <b>Ваш новый ключ:</b>\n"
+                f"<code>{vless_link}</code>"
             )
-            
-            await message.answer(f"🔗 <b>Ссылка-подписка (авто-обновление):</b>\n<code>{sub_url}</code>")
-            
-            if vless_link:
-                await message.answer(f"⚙️ <b>Прямая VLESS-ссылка:</b>\n<code>{vless_link}</code>")
+
+            await message.answer(text, reply_markup=builder.as_markup())
         else:
-            await message.answer("❌ <b>Произошла ошибка при обновлении подписки.</b> Пожалуйста, напишите поддержке.")
+            await message.answer("❌ <b>Ошибка при обновлении подписки.</b> Напишите в поддержку.")
     except Exception as e:
         logger.error(f"Error in process_successful_payment: {e}")
-        await message.answer("❌ <b>Произошла критическая ошибка.</b> Пожалуйста, напишите поддержке.")
+        await message.answer("❌ <b>Произошла критическая ошибка.</b>")
 
 @dp.message(Command("status"))
 async def cmd_status(message: types.Message):
