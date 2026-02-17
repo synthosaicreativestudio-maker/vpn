@@ -13,7 +13,12 @@
                     {
                         "id": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
                         "flow": "xtls-rprx-vision",
-                        "email": "1"
+                        "email": "direct-client"
+                    },
+                    {
+                        "id": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
+                        "flow": "",
+                        "email": "relay-from-yandex-vm"
                     }
                 ],
                 "decryption": "none",
