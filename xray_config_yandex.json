@@ -80,13 +80,53 @@
         }
     ],
     "routing": {
+        "domainStrategy": "IPIfNonMatch",
         "rules": [
             {
                 "type": "field",
+                "outboundTag": "BLOCK",
+                "domain": [
+                    "geosite:category-ads-all"
+                ]
+            },
+            {
+                "type": "field",
+                "outboundTag": "DIRECT",
                 "ip": [
                     "geoip:private"
-                ],
-                "outboundTag": "DIRECT"
+                ]
+            },
+            {
+                "type": "field",
+                "outboundTag": "DIRECT",
+                "domain": [
+                    "geosite:ru",
+                    "domain:yandex.ru",
+                    "domain:ya.ru",
+                    "domain:taxi.yandex.ru",
+                    "domain:vk.com",
+                    "domain:mail.ru",
+                    "domain:ok.ru",
+                    "domain:sberbank.ru",
+                    "domain:tinkoff.ru",
+                    "domain:gosuslugi.ru",
+                    "domain:wildberries.ru",
+                    "domain:ozon.ru",
+                    "domain:2gis.ru",
+                    "domain:avito.ru",
+                    "domain:mos.ru",
+                    "domain:rt.ru",
+                    "domain:mts.ru",
+                    "domain:megafon.ru",
+                    "domain:beeline.ru"
+                ]
+            },
+            {
+                "type": "field",
+                "outboundTag": "DIRECT",
+                "ip": [
+                    "geoip:ru"
+                ]
             },
             {
                 "type": "field",
@@ -97,23 +137,25 @@
                     "geosite:netflix",
                     "geosite:tiktok",
                     "geosite:disney",
+                    "geosite:facebook",
+                    "geosite:twitter",
+                    "geosite:instagram",
+                    "geosite:youtube",
+                    "geosite:spotify",
+                    "geosite:telegram",
+                    "geosite:whatsapp",
                     "geosite:fast",
                     "domain:ipinfo.io",
                     "domain:ifconfig.me",
-                    "domain:2ip.io"
-                ]
-            },
-            {
-                "type": "field",
-                "outboundTag": "DIRECT",
-                "domain": [
-                    "geosite:category-ads-all",
-                    "domain:yandex.ru",
-                    "domain:ya.ru",
-                    "domain:taxi.yandex.ru",
-                    "domain:vk.com"
+                    "domain:2ip.io",
+                    "domain:linkedin.com",
+                    "domain:medium.com",
+                    "domain:reddit.com",
+                    "domain:github.com",
+                    "domain:stackoverflow.com"
                 ]
             }
-        ]
+        ],
+        "balancers": []
     }
 }
