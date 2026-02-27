@@ -5,7 +5,7 @@
 
 ## Ссылка для подключения (Hiddify / v2rayNG)
 ```
-vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@d5d0lho2jtj1prft4f03.aqkd4clz.apigw.yandexcloud.net:443?type=splithttp&security=tls&sni=d5d0lho2jtj1prft4f03.aqkd4clz.apigw.yandexcloud.net&fp=chrome&host=d5d0lho2jtj1prft4f03.aqkd4clz.apigw.yandexcloud.net&path=%2Fycpath2026#Yandex-API-Bypass
+vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@89.169.176.108:8443?type=ws&security=none&fp=chrome&path=%2Fyandex2026#Yandex-VM-Bypass
 ```
 
 ## Что делает

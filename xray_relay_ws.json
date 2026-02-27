@@ -1,0 +1,167 @@
+{
+    "log": {
+        "loglevel": "warning"
+    },
+    "inbounds": [
+        {
+            "tag": "VLESS_RELAY_IN",
+            "listen": "0.0.0.0",
+            "port": 443,
+            "protocol": "vless",
+            "settings": {
+                "clients": [
+                    {
+                        "id": "7221cad9-11e4-43c0-879d-df1f7eae1894",
+                        "flow": "xtls-rprx-vision",
+                        "email": "relay-user"
+                    }
+                ],
+                "decryption": "none",
+                "fallbacks": [
+                    {
+                        "dest": "taxi.yandex.ru:443",
+                        "xver": 0
+                    }
+                ]
+            },
+            "streamSettings": {
+                "network": "tcp",
+                "security": "reality",
+                "realitySettings": {
+                    "show": false,
+                    "dest": "taxi.yandex.ru:443",
+                    "xver": 0,
+                    "serverNames": [
+                        "taxi.yandex.ru",
+                        "ya.ru"
+                    ],
+                    "privateKey": "WDF_DF8v4IhIYrqN0ohfpRipi0H2OG2npY22rOl1Ung",
+                    "shortIds": [
+                        ""
+                    ]
+                }
+            },
+            "sniffing": {
+                "enabled": true,
+                "destOverride": [
+                    "http",
+                    "tls"
+                ]
+            }
+        },
+        {
+            "tag": "VLESS_WS_BYPASS",
+            "listen": "0.0.0.0",
+            "port": 8443,
+            "protocol": "vless",
+            "settings": {
+                "clients": [
+                    {
+                        "id": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
+                        "flow": ""
+                    }
+                ],
+                "decryption": "none"
+            },
+            "streamSettings": {
+                "network": "ws",
+                "wsSettings": {
+                    "path": "/yandex2026"
+                }
+            },
+            "sniffing": {
+                "enabled": true,
+                "destOverride": [
+                    "http",
+                    "tls"
+                ]
+            }
+        }
+    ],
+    "outbounds": [
+        {
+            "tag": "direct",
+            "protocol": "freedom"
+        },
+        {
+            "tag": "to-main-vps-tyumen",
+            "protocol": "vless",
+            "settings": {
+                "vnext": [
+                    {
+                        "address": "37.1.212.51",
+                        "port": 62050,
+                        "users": [
+                            {
+                                "id": "af3ca960-e635-4576-b11d-f5f12840e1ca",
+                                "encryption": "none"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "streamSettings": {
+                "network": "tcp",
+                "security": "reality",
+                "realitySettings": {
+                    "serverName": "taxi.yandex.ru",
+                    "publicKey": "odjjb5Z5YcoCrTOquVNfsjvyipJk6RG1CJy8vp3T81k",
+                    "shortId": "d22e9a1bf69e43be",
+                    "fingerprint": "chrome"
+                }
+            }
+        },
+        {
+            "tag": "block",
+            "protocol": "blackhole"
+        }
+    ],
+    "routing": {
+        "domainStrategy": "IPIfNonMatch",
+        "rules": [
+            {
+                "type": "field",
+                "outboundTag": "direct",
+                "domain": [
+                    "domain:ya.ru",
+                    "domain:yandex.ru",
+                    "domain:taxi.yandex.ru",
+                    "domain:vk.com",
+                    "domain:mail.ru",
+                    "domain:ok.ru",
+                    "domain:gosuslugi.ru",
+                    "domain:sberbank.ru",
+                    "domain:tinkoff.ru",
+                    "domain:wildberries.ru",
+                    "domain:ozon.ru",
+                    "domain:2ip.ru",
+                    "domain:2ip.io",
+                    "domain:2ip.ua",
+                    "domain:speedtest.net"
+                ]
+            },
+            {
+                "type": "field",
+                "outboundTag": "direct",
+                "ip": [
+                    "geoip:ru",
+                    "geoip:private"
+                ]
+            },
+            {
+                "type": "field",
+                "inboundTag": [
+                    "VLESS_RELAY_IN"
+                ],
+                "outboundTag": "to-main-vps-tyumen"
+            },
+            {
+                "type": "field",
+                "inboundTag": [
+                    "VLESS_WS_BYPASS"
+                ],
+                "outboundTag": "to-main-vps-tyumen"
+            }
+        ]
+    }
+}
