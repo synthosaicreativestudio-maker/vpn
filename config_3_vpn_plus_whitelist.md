@@ -5,7 +5,7 @@
 
 ## Ссылка для подключения (Hiddify / v2rayNG)
 ```
-vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@89.169.176.108:8443?type=ws&security=none&fp=chrome&path=%2Fyandex2026#VPN-Yandex-VM-Bypass
+vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@yandexvmproxy.duckdns.org:443?type=ws&security=tls&sni=yandexvmproxy.duckdns.org&fp=chrome&host=yandexvmproxy.duckdns.org&path=%2Fyandex2026#VPN-Yandex-TLS-Bypass
 ```
 
 ## Что делает
