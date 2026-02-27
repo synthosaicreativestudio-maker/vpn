@@ -1,0 +1,24 @@
+# Конфиг 2: Обход белых списков (без VPN)
+
+**Протокол:** VLESS + XHTTP через Cloudflare CDN  
+**Когда использовать:** Мобильный интернет в центре, где работают только 2ГИС и Яндекс Go
+
+## Ссылка для подключения (Hiddify / v2rayNG)
+```
+vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@sapphire-wash-pieces-rangers.trycloudflare.com:443?type=xhttp&security=tls&sni=sapphire-wash-pieces-rangers.trycloudflare.com&fp=chrome&path=/secretpath2026&mode=auto#Bypass-Whitelist
+```
+
+## Что делает
+- ✅ Работает при белых списках ТСПУ (трафик через IP Cloudflare)
+- ✅ Даёт доступ в интернет (все сайты)
+- ⚠️ Заблокированные сайты видят IP VPS (37.1.212.51, США)
+- ⚠️ Российские сайты тоже через VPS
+
+## Как подключить
+1. Скопируйте ссылку выше
+2. Hiddify/v2rayNG → Добавить сервер → Из буфера обмена
+3. Подключитесь
+
+## Примечание
+> URL `trycloudflare.com` может меняться при перезапуске сервера.
+> В этом случае нужно обновить ссылку.
