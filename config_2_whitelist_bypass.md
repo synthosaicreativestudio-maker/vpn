@@ -5,7 +5,7 @@
 
 ## Ссылка для подключения (Hiddify / v2rayNG)
 ```
-vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@sapphire-wash-pieces-rangers.trycloudflare.com:443?type=xhttp&security=tls&sni=sapphire-wash-pieces-rangers.trycloudflare.com&fp=chrome&path=/secretpath2026&mode=auto#Bypass-Whitelist
+vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@sapphire-wash-pieces-rangers.trycloudflare.com:443?type=ws&security=tls&sni=sapphire-wash-pieces-rangers.trycloudflare.com&fp=chrome&path=%2Fsecretpath2026#Bypass-Whitelist
 ```
 
 ## Что делает
