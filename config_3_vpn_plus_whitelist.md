@@ -5,7 +5,7 @@
 
 ## Ссылка для подключения (Hiddify / v2rayNG)
 ```
-vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@ensemble-sunny-tender-console.trycloudflare.com:443?type=ws&security=tls&sni=ensemble-sunny-tender-console.trycloudflare.com&fp=chrome&path=%2Fsecretpath2026#VPN-Bypass-Whitelist
+vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@d5d0lho2jtj1prft4f03.aqkd4clz.apigw.yandexcloud.net:443?type=splithttp&security=tls&sni=d5d0lho2jtj1prft4f03.aqkd4clz.apigw.yandexcloud.net&fp=chrome&host=d5d0lho2jtj1prft4f03.aqkd4clz.apigw.yandexcloud.net&path=%2Fycpath2026#VPN-Yandex-API-Bypass
 ```
 
 ## Что делает

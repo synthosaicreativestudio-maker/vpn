@@ -1,0 +1,31 @@
+openapi: 3.0.0
+info:
+  title: vpn-proxy
+  version: 1.0.0
+paths:
+  /secretpath2026:
+    get:
+      x-yc-apigateway-integration:
+        type: http
+        url: http://37.1.212.51.sslip.io/secretpath2026
+    post:
+      x-yc-apigateway-integration:
+        type: http
+        url: http://37.1.212.51.sslip.io/secretpath2026
+    put:
+      x-yc-apigateway-integration:
+        type: http
+        url: http://37.1.212.51.sslip.io/secretpath2026
+  /secretpath2026/{proxy+}:
+    get:
+      x-yc-apigateway-integration:
+        type: http
+        url: http://37.1.212.51.sslip.io/secretpath2026/{proxy}
+    post:
+      x-yc-apigateway-integration:
+        type: http
+        url: http://37.1.212.51.sslip.io/secretpath2026/{proxy}
+    put:
+      x-yc-apigateway-integration:
+        type: http
+        url: http://37.1.212.51.sslip.io/secretpath2026/{proxy}

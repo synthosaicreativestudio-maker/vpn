@@ -1,0 +1,23 @@
+openapi: 3.0.0
+info:
+  title: vless-xhttp-gateway
+  version: 1.0.0
+paths:
+  /ycpath2026:
+    x-yc-apigateway-any-method:
+      x-yc-apigateway-integration:
+        type: http
+        url: http://37.1.212.51.sslip.io/ycpath2026
+        method: '*'
+  /ycpath2026/{proxy+}:
+    parameters:
+      - in: path
+        name: proxy
+        required: true
+        schema:
+          type: string
+    x-yc-apigateway-any-method:
+      x-yc-apigateway-integration:
+        type: http
+        url: http://37.1.212.51.sslip.io/ycpath2026/{proxy}
+        method: '*'
