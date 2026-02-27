@@ -36,19 +36,20 @@ vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@yandexvmproxy.duckdns.org:443?type=
 
 ---
 
-## Конфиг 3: Обход белых списков — REALITY с SNI taxi.yandex.ru через Yandex VM
+## Конфиг 3: Обход белых списков — REALITY с SNI taxi.yandex.ru через Yandex VM (ПОРТ 443)
 
-**Для чего:** Лучший шанс на обход белых списков. SNI показывает `taxi.yandex.ru` — именно тот домен, который в белом списке.
+**Для чего:** Лучший шанс на обход белых списков. SNI показывает `taxi.yandex.ru` — именно тот домен, который в белом списке. **Порт 443** — стандартный HTTPS.
 
-**Приложения:** Hiddify, v2rayNG
+**Приложения:** Hiddify, v2rayNG, Amnezia VPN
 
 ```
-vless://7221cad9-11e4-43c0-879d-df1f7eae1894@89.169.176.108:2443?type=tcp&security=reality&sni=taxi.yandex.ru&pbk=EMtCkgnk8HQL-Iv-Qk95Wyi9ltRM9-A2P-t5OP0xdEU&fp=chrome&flow=xtls-rprx-vision#YandexVM-Reality-Taxi
+vless://7221cad9-11e4-43c0-879d-df1f7eae1894@89.169.176.108:443?type=tcp&security=reality&sni=taxi.yandex.ru&pbk=EMtCkgnk8HQL-Iv-Qk95Wyi9ltRM9-A2P-t5OP0xdEU&fp=chrome&flow=xtls-rprx-vision#YandexVM-Reality-Taxi-443
 ```
 
-**Цепочка:** Телефон → Яндекс VM (89.169.176.108) → VPS → Интернет  
-**Маскировка:** REALITY — DPI видит TLS к taxi.yandex.ru  
-**⚠️ Ограничение:** Порт 2443 нестандартный (может быть заблокирован в белых списках). IP не совпадает с реальным IP taxi.yandex.ru (37.9.112.5).
+**Цепочка:** Телефон → Яндекс VM (89.169.176.108:443) → VPS → Интернет  
+**Маскировка:** REALITY — DPI видит TLS к taxi.yandex.ru (сертификат YANDEX LLC)  
+**Технология:** Nginx stream proxy маршрутизирует по SNI  
+**⚠️ Ограничение:** IP Yandex Cloud не совпадает с реальным IP taxi.yandex.ru. Но ТСПУ может проверять только SNI.
 
 ---
 
@@ -72,7 +73,7 @@ vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:443?type=tcp&security=r
 | Сервер | IP | Роль | Порты |
 |--------|----|------|-------|
 | **Основной VPS** | 37.1.212.51 | VPN-выход в интернет | 443 (REALITY), 62050 (relay) |
-| **Yandex VM** | 89.169.176.108 | Relay через IP Яндекса | 443 (Nginx TLS), 2443 (REALITY), 8444 (WS) |
+| **Yandex VM** | 89.169.176.108 | Relay через IP Яндекса | 443 (Nginx stream → SNI routing), 4443 (Nginx TLS), 3443 (Xray REALITY), 8444 (Xray WS) |
 
 ---
 
