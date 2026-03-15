@@ -11,7 +11,7 @@
 **Приложения:** Hiddify, v2rayNG, Amnezia VPN
 
 ```
-vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:443?type=tcp&security=reality&sni=www.microsoft.com&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&flow=xtls-rprx-vision&seed=happ-vpn-premium-2026#VPN-Smart-Main
+vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:443?type=tcp&security=reality&sni=www.microsoft.com&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&flow=xtls-rprx-vision#VPN-Smart-Main
 ```
 
 **Цепочка:** Телефон → VPS (37.1.212.51, США) → Интернет  
