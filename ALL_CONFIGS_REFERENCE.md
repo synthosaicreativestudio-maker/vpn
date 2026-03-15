@@ -1,111 +1,57 @@
-# 📋 Все конфигурации VPN — Актуальное состояние
+# 📋 VPN — Актуальная конфигурация
 
-**Дата:** 28 февраля 2026
+**Дата:** 15 марта 2026
 
 ---
 
-## Конфиг 1: Основной VPN (REALITY)
+## Основной VPN (VLESS + REALITY)
 
-**Для чего:** Обычный VPN — обход блокировок сайтов, когда интернет работает нормально (не белые списки).
+**Для чего:** Обход блокировок (YouTube, Instagram, Google, Telegram). Российские сайты идут напрямую.
 
 **Приложения:** Hiddify, v2rayNG, Amnezia VPN
 
 ```
-vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:443?type=tcp&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&flow=xtls-rprx-vision#VPN-Reality-Main
+vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:443?type=tcp&security=reality&sni=www.microsoft.com&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&flow=xtls-rprx-vision&seed=happ-vpn-premium-2026#VPN-Smart-Main
 ```
 
-**Цепочка:** Телефон → VPS (37.1.212.51, Нидерланды) → Интернет  
-**Маскировка:** Трафик выглядит как HTTPS к taxi.yandex.ru  
-**Статус:** ✅ Работает
+**Цепочка:** Телефон → VPS (37.1.212.51, США) → Интернет  
+**Маскировка:** REALITY — DPI видит TLS к www.microsoft.com  
+**DNS:** Зашифрован (DNS-over-HTTPS через 1.1.1.1 + 8.8.8.8)  
+**Smart-маршрутизация:**
+- ✅ YouTube, Instagram, Google, Telegram — через VPN
+- ✅ Яндекс, VK, Госуслуги, Сбербанк, Ozon, WB — напрямую (без VPN)
 
 ---
 
-## Конфиг 2: Обход белых списков — WebSocket через Yandex VM
+## Запасной VPN (AmneziaWG)
 
-**Для чего:** Попытка обхода белых списков. Трафик идёт через IP Яндекс Облака, зашифрован TLS, выглядит как обычный HTTPS.
+**Для чего:** Тот же VPN, но другой протокол. Используйте, если VLESS заблокируют.
 
-**Приложения:** Hiddify, v2rayNG
+**Приложение:** Amnezia VPN (уже настроен на Mac/iPhone)
 
-```
-vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@yandexvmproxy.duckdns.org:443?type=ws&security=tls&sni=yandexvmproxy.duckdns.org&fp=chrome&host=yandexvmproxy.duckdns.org&path=%2Fyandex2026#Yandex-VM-TLS-Bypass
-```
-
-**Цепочка:** Телефон → Яндекс VM (89.169.176.108) → VPS → Интернет  
-**Маскировка:** HTTPS с валидным TLS-сертификатом Let's Encrypt  
-**⚠️ Ограничение:** IP Yandex Cloud может НЕ быть в белом списке ТСПУ (отличается от IP Яндекс GO). Нужен тест в зоне белого списка.
-
----
-
-## Конфиг 3: Обход белых списков — REALITY с SNI taxi.yandex.ru через Yandex VM (ПОРТ 443)
-
-**Для чего:** Лучший шанс на обход белых списков. SNI показывает `taxi.yandex.ru` — именно тот домен, который в белом списке. **Порт 443** — стандартный HTTPS.
-
-**Приложения:** Hiddify, v2rayNG, Amnezia VPN
-
-```
-vless://7221cad9-11e4-43c0-879d-df1f7eae1894@89.169.176.108:443?type=tcp&security=reality&sni=taxi.yandex.ru&pbk=EMtCkgnk8HQL-Iv-Qk95Wyi9ltRM9-A2P-t5OP0xdEU&fp=chrome&flow=xtls-rprx-vision#YandexVM-Reality-Taxi-443
-```
-
-**Цепочка:** Телефон → Яндекс VM (89.169.176.108:443) → VPS → Интернет  
-**Маскировка:** REALITY — DPI видит TLS к taxi.yandex.ru (сертификат YANDEX LLC)  
-**Технология:** Nginx stream proxy маршрутизирует по SNI  
-**⚠️ Ограничение:** IP Yandex Cloud не совпадает с реальным IP taxi.yandex.ru. Но ТСПУ может проверять только SNI.
-
----
-
-## Конфиг 4: Amnezia VPN (VLESS через приложение)
-
-**Для чего:** Тот же VPN что и Конфиг 1, но через приложение Amnezia VPN. AmneziaWG (WireGuard) отдельно не настроен.
-
-**Приложения:** Amnezia VPN
-
-Вставьте ту же ссылку из **Конфига 1** в Amnezia:
-```
-vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:443?type=tcp&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&flow=xtls-rprx-vision#VPN-Reality-Main
-```
-
-Или импортируйте файл `client_config_smart_routing_ru.json` для умной маршрутизации (российские сайты напрямую, остальные через VPN).
+**Примечание:** Конфиг хранится внутри приложения Amnezia. Для переноса на новое устройство используйте кнопку «Поделиться» в приложении.
 
 ---
 
 ## Серверная инфраструктура
 
-| Сервер | IP | Роль | Порты |
-|--------|----|------|-------|
-| **Основной VPS** | 37.1.212.51 | VPN-выход в интернет | 443 (REALITY), 62050 (relay) |
-| **Yandex VM** | 89.169.176.108 | Relay через IP Яндекса | 443 (Nginx stream → SNI routing), 4443 (Nginx TLS), 3443 (Xray REALITY), 8444 (Xray WS) |
+| Компонент | Значение |
+|-----------|----------|
+| **Сервер** | 37.1.212.51 (США, Chicago) |
+| **Порт** | 443 (стандартный HTTPS) |
+| **Панель** | Marzban |
+| **Xray версия** | 26.2.6 |
+| **DNS** | DNS-over-HTTPS (1.1.1.1 + 8.8.8.8) |
+| **SNI** | www.microsoft.com |
+| **Flow** | xtls-rprx-vision + Seed |
+| **WARP** | ❌ Отключён (экономия RAM) |
 
 ---
 
-## Что нужно протестировать в зоне белого списка
+## Улучшения от 15.03.2026
 
-1. **Конфиг 2** (WS+TLS) — если ТСПУ пропускает любой трафик к IP Яндекс Облака
-2. **Конфиг 3** (REALITY taxi.yandex.ru) — если ТСПУ фильтрует по SNI, а не по IP
-3. **Оба конфига** — для понимания, по IP или по SNI фильтрует ТСПУ
-
----
-
-## Нестандартные методы обхода белых списков (исследование)
-
-### Метод 1: DNS Tunneling (iodine)
-**Суть:** DNS-запросы почти всегда проходят, даже в белых списках. `iodine` упаковывает весь трафик внутрь DNS-запросов.  
-**Плюс:** Работает если DNS-резолвинг не заблокирован.  
-**Минус:** Очень медленно (5-10 кбит/с). Нужен свой DNS-сервер.  
-**Реализуемо?** Да — можно развернуть iodine-сервер на основном VPS.
-
-### Метод 2: Подмена SNI + IP из диапазона Яндекса
-**Суть:** Наш REALITY на Yandex VM (89.169.176.108) показывает SNI=taxi.yandex.ru. Если ТСПУ проверяет только SNI но не сверяет IP — пройдёт.  
-**Реализовано?** ✅ Да — Конфиг 3.
-
-### Метод 3: REALITY на порту 443 (вместо 2443)
-**Суть:** Перенести REALITY с порта 2443 на 443 (стандартный HTTPS). ТСПУ может блокировать нестандартные порты.  
-**Минус:** Нужно решить конфликт с Nginx (который тоже на 443).  
-**Решение:** Nginx как stream proxy — раздавать трафик по SNI (taxi.yandex.ru → Xray REALITY, yandexvmproxy.duckdns.org → Xray WS).
-
-### Метод 4: Маскировка трафика под HTTP-запросы к API Яндекс GO
-**Суть:** Исследовать API-эндпоинты Яндекс GO, создать прокси который имитирует запросы к этим эндпоинтам.  
-**Сложность:** Высокая — нужен reverse engineering API приложения.
-
-### Метод 5: Перенос REALITY на IP из подсети Яндекса (37.9.112.0/24)
-**Суть:** Арендовать VPS с IP из тех же подсетей, что и taxi.yandex.ru.  
-**Реальность:** Невозможно — это внутренняя инфраструктура Яндекса, аренда недоступна.
+1. ✅ **DNS-over-HTTPS** — сайты больше не определяют страну через утечку DNS
+2. ✅ **SNI сменён** с taxi.yandex.ru на www.microsoft.com — меньше подозрений у DPI
+3. ✅ **Seed + Padding** — рандомный шум в пакетах, труднее распознать VPN
+4. ✅ **WARP отключён** — освобождено 146 MB RAM, сервер стабильнее
+5. ✅ **Yandex VM relay** — убран (больше не используется)
