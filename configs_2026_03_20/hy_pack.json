@@ -86,6 +86,7 @@
       "private_key": "KCPdIbxRcuamG4oDoZd3v/Yv9UHA3YjZLsUCgg1aeHs=",
       "peer_public_key": "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=",
       "mtu": 1280,
+      "detour": "proxy",
       "udp_over_tcp": {
         "enabled": true,
         "version": 2
@@ -177,16 +178,6 @@
         "outbound": "block"
       },
       {
-        "geosite": [
-          "telegram",
-          "whatsapp",
-          "youtube",
-          "netflix",
-          "disney"
-        ],
-        "outbound": "proxy"
-      },
-      {
         "domain": [
           "gemini.google.com",
           "bard.google.com",
@@ -195,7 +186,21 @@
           "ai.google.dev",
           "googleusercontent.com",
           "googleapis.com",
-          "gstatic.com",
+          "gstatic.com"
+        ],
+        "outbound": "proxy"
+      },
+      {
+        "geosite": [
+          "telegram",
+          "whatsapp",
+          "youtube",
+          "google"
+        ],
+        "outbound": "proxy"
+      },
+      {
+        "domain": [
           "chatgpt.com",
           "openai.com",
           "anthropic.com",
@@ -205,7 +210,6 @@
       },
       {
         "geosite": [
-          "google",
           "openai",
           "anthropic",
           "netflix",
@@ -239,3 +243,4 @@
     "final": "proxy"
   }
 }
+

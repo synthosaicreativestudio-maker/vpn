@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/Users/verakoroleva/Desktop/vpn/bot/main.py", line 7, in <module>
+    from bot.config import BOT_TOKEN, PAYMENT_TOKEN
+ModuleNotFoundError: No module named 'bot'
