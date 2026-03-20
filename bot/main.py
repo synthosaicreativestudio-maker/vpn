@@ -99,7 +99,8 @@ async def process_trial(callback: types.CallbackQuery):
 @dp.callback_query(F.data.startswith("buy_"))
 async def process_buy(callback: types.CallbackQuery):
     tariff_key = callback.data.split("_", 1)[1]
-    if tariff_key == "trial": return
+    if tariff_key == "trial":
+        return
     
     tariff = TARIFFS.get(tariff_key)
     
