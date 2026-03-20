@@ -24,13 +24,22 @@
       },
       {
         "geosite": [
-          "ru", "yandex", "vk", "mailru", "category-gov-ru", "category-bank-ru"
+          "ru",
+          "yandex",
+          "vk",
+          "mailru",
+          "category-gov-ru",
+          "category-bank-ru"
         ],
         "server": "dns-local"
       },
       {
         "domain_suffix": [
-          ".ru", ".su", ".xn--p1ai", "etagi.com", "cian.ru"
+          ".ru",
+          ".su",
+          ".xn--p1ai",
+          "etagi.com",
+          "cian.ru"
         ],
         "server": "dns-local"
       }
@@ -53,7 +62,7 @@
       "outbounds": [
         "auto",
         "vless-main",
-        "vless-xhttp",
+        "vless-grpc",
         "hysteria"
       ]
     },
@@ -62,7 +71,7 @@
       "tag": "auto",
       "outbounds": [
         "vless-main",
-        "vless-xhttp",
+        "vless-grpc",
         "hysteria"
       ],
       "url": "https://www.gstatic.com/generate_204",
@@ -93,26 +102,26 @@
     },
     {
       "type": "vless",
-      "tag": "vless-xhttp",
+      "tag": "vless-grpc",
       "server": "37.1.212.51",
-      "server_port": 443,
+      "server_port": 8443,
       "uuid": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
       "tls": {
         "enabled": true,
-        "server_name": "37.1.212.51.sslip.io",
-        "insecure": true,
+        "server_name": "taxi.yandex.ru",
         "utls": {
           "enabled": true,
           "fingerprint": "chrome"
+        },
+        "reality": {
+          "enabled": true,
+          "public_key": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4",
+          "short_id": ""
         }
       },
       "transport": {
-        "type": "http",
-        "path": "/secretpath2026",
-        "method": "PUT",
-        "headers": {
-          "Host": ["37.1.212.51.sslip.io"]
-        }
+        "type": "grpc",
+        "service_name": "taxi_grpc_service"
       }
     },
     {
@@ -123,7 +132,7 @@
       "password": "HysteriaPassword2026",
       "tls": {
         "enabled": true,
-        "server_name": "www.microsoft.com",
+        "server_name": "ya.ru",
         "insecure": true
       }
     },
@@ -151,19 +160,50 @@
         "outbound": "block"
       },
       {
-        "geosite": ["ru", "category-gov-ru", "category-bank-ru", "yandex", "vk", "mailru"],
+        "geosite": [
+          "ru",
+          "category-gov-ru",
+          "category-bank-ru",
+          "yandex",
+          "vk",
+          "mailru"
+        ],
         "outbound": "direct"
       },
       {
-        "domain_suffix": [".ru", ".su", ".xn--p1ai", "etagi.com", "cian.ru"],
+        "domain_suffix": [
+          ".ru",
+          ".su",
+          ".xn--p1ai",
+          "etagi.com",
+          "cian.ru"
+        ],
         "outbound": "direct"
       },
       {
-        "domain_keyword": ["gosuslugi", "yandex", "sberbank", "tinkoff", "tbank", "wildberries", "ozon", "avito", "2gis", "megafon", "beeline", "mts", "ries", "etagi"],
+        "domain_keyword": [
+          "gosuslugi",
+          "yandex",
+          "sberbank",
+          "tinkoff",
+          "tbank",
+          "wildberries",
+          "ozon",
+          "avito",
+          "2gis",
+          "megafon",
+          "beeline",
+          "mts",
+          "ries",
+          "etagi"
+        ],
         "outbound": "direct"
       },
       {
-        "geoip": ["ru", "private"],
+        "geoip": [
+          "ru",
+          "private"
+        ],
         "outbound": "direct"
       }
     ],

@@ -1,95 +1,32 @@
-# 🔐 Smart VPN — VLESS + REALITY
+# 🛡️ Premium Multiprotocol VPN
 
-**Обновлено:** 28 января 2026  
-**Сервер:** 37.1.212.51 (США)
+Современный, устойчивый к блокировкам VPN на март 2026 года. 
+Основан на **Sing-Box** и **Xray-core** с поддержкой 4-х разных протоколов для обхода DPI.
 
----
+## 🌟 Как это работает
 
-## 🔗 Подключение
+Проект использует **Умную Маршрутизацию (Split-Routing)**:
+1. Системы, сайты РФ (Госуслуги, Сбербанк, Яндекс) и приложение RIES (Этажи) работают **напрямую** — быстро и без блокировок.
+2. Весь остальной мир (YouTube, Instagram, Google) — через **VPN**.
+3. Рекламные сети — **блокируются**.
 
-### Ссылка для Amnezia / Hiddify / v2rayNG:
-```
-vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:443?type=tcp&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&flow=xtls-rprx-vision#Smart-VPN-Yandex
-```
+## 🚀 Как начать работу (Клиент)
 
-### Как подключиться:
-1. Скопируйте ссылку выше
-2. Откройте VPN-клиент → Добавить сервер → Импорт из буфера
-3. Подключитесь
+Мы рекомендуем использовать клиент **Hiddify** на iOS/Android/Windows/Mac.
 
----
+В корне лежат 4 файла конфигурации `.json`. Импортируйте их в Hiddify по одному с помощью "Import from File" (Добавить из файла):
 
-## 📊 Параметры подключения
+1. `hiddify_smart_routing_v2.json` — **Основной канал**. Идеален для Wi-Fi и домашнего интернета. Работает через протокол VLESS + REALITY.
+2. `hiddify_xhttp_cdn.json` — **Канал для мобильного интернета**. Использует новейшую технологию XHTTP (SplitHTTP), которая пробивает строгие DPI мобильных операторов (МТС, Теле2, Мегафон). Если на мобильном не грузит YouTube — включайте этот канал.
+3. `hiddify_hysteria2.json` — **Скоростной канал**. Протокол Hysteria2 (UDP), отлично подходит для стриминга и тяжелых загрузок, если UDP-трафик не шейпится провайдером.
+4. `hiddify_shadowsocks.json` — **Универсальный резерв**. Работает по протоколу Shadowsocks-2022 с маскировкой Shadow-TLS. Самый трудноблокируемый запасной вариант.
 
-| Параметр | Значение |
-|----------|----------|
-| Сервер | `37.1.212.51` |
-| Порт | `443` |
-| UUID | `eb4a1cf2-4235-4b0a-83b2-0e5a298389ed` |
-| SNI | `taxi.yandex.ru` |
-| Public Key | `n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4` |
-| Flow | `xtls-rprx-vision` |
-| Fingerprint | `chrome` |
+### 🛡️ AmneziaWG (5-й резерв)
+На сервере также работает новейший **AmneziaWG**. Рекомендуется настраивать и обновлять его исключительно из официального приложения **Amnezia VPN** (с помощью мастера настройки сервера по IP и паролю).
 
----
-
-## 📁 Структура проекта
-
-```
-vpn/
-├── README.md                           # Этот файл
-├── ALL_CREDENTIALS.md                  # Все доступы и пароли
-├── vless_connection_link.txt           # Ссылка подключения
-├── routing_rules_explained.md          # Правила маршрутизации
-├── TROUBLESHOOTING.md                  # Решение проблем
-├── TROUBLESHOOTING_NO_INTERNET.md      # Проблемы с интернетом
-├── AMNEZIA_IMPORT_GUIDE.md             # Инструкция для Amnezia
-│
-├── amnezia_vless_config.json           # Конфиг для Amnezia
-├── happ_config.json                    # Конфиг для Happ/Sing-box
-├── client_config_smart_routing_ru.json # Конфиг для v2rayN/Nekoray
-├── xray_config_yandex.json             # Эталон серверного конфига
-│
-├── auto_setup_reality.sh               # Скрипт автонастройки
-├── diagnose_server.sh                  # Диагностика сервера
-├── generate_keys.sh                    # Генерация ключей
-│
-├── _archive/                           # Архив старых файлов
-└── _backup_configs/                    # Бэкап JSON конфигов
-```
-
----
-
-## 🛡️ Smart-маршрутизация
-
-| Категория | Действие | Примеры |
-|-----------|----------|---------|
-| **Напрямую** | Без VPN | .ru, .рф, Яндекс, VK, банки, Госуслуги |
-| **Через VPN** | Proxy | YouTube, Instagram, Google |
-| **Блокировка** | Block | Реклама |
-
----
-
-## 🖥️ Доступ к серверу
-
-```bash
-ssh root@37.1.212.51
-# Пароль: LEJ6U5chSK
-```
-
-**HTTP Прокси:** `http://root:LEJ6U5chSK@37.1.212.51:8080`
-
----
-
-## ✅ Проверка работы
-
-- **ipleak.net** → IP 37.1.212.51 (США)  
-- **2ip.ru** → Ваш реальный IP (при smart-роутинге)
-
----
-
-## 📚 Документация
-
-- [ALL_CREDENTIALS.md](ALL_CREDENTIALS.md) — Все пароли и доступы
-- [routing_rules_explained.md](routing_rules_explained.md) — Объяснение правил
-- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) — Решение проблем
+## 🛠️ Содержимое проекта
+- `ALL_CREDENTIALS.md` — все пароли, порты и ключи серверов.
+- `SECURITY_ANALYSIS_REPORT.md` — аудит безопасности сервера (закрыт TinyProxy).
+- `GEMINI.md` — системные инструкции проекта.
+- `docker-compose.yml`, `Caddyfile` — старая серверная инфраструктура (сохранена).
+- `_archive/` — склад устаревших конфигов, скриптов настройки `warp` и старой документации.
