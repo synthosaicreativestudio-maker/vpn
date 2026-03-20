@@ -1,68 +1,10 @@
-# 🔀 Сценарий 3: Гибридный режим (Clash Meta)
+# 🔀 Сценарий 3
 
-## ⚠️ Важно:
+Этот сценарий переведен в legacy.
 
-Clash Meta использует **YAML формат**, а не ссылки `vless://`. Для этого сценария нужно использовать готовый файл конфигурации.
+Используйте:
+- `client_config_global.json`
+- `client_config_smart_routing_ru.json`
 
-## 📁 Используйте файл:
-
-**`client_config_clash_meta.yaml`**
-
-Этот файл содержит:
-- ✅ VLESS + REALITY прокси
-- ✅ HTTP Proxy (TinyProxy)
-- ✅ Группы прокси (Select, Auto, Fallback)
-- ✅ Умную маршрутизацию
-
-## 📱 Как использовать:
-
-### 1. Установите Clash Meta
-
-**Windows:**
-- Скачайте: https://github.com/MetaCubeX/mihomo/releases
-- Или: https://github.com/MetaCubeX/mihomo-windows/releases
-
-**macOS:**
-```bash
-brew install mihomo
-```
-
-**Android:**
-- Clash Meta for Android (из GitHub)
-
-**iOS:**
-- Stash (App Store) - поддерживает Clash Meta
-
-### 2. Загрузите конфигурацию
-
-1. Откройте Clash Meta
-2. Импортируйте файл `client_config_clash_meta.yaml`
-3. Или скопируйте содержимое в конфигурацию
-
-### 3. Выберите группу прокси
-
-В Clash Meta вы можете выбрать:
-- **🚀 Прокси (Select)** - ручной выбор между VLESS и HTTP Proxy
-- **⚡ Автовыбор** - автоматический выбор самого быстрого
-- **🔄 Fallback** - резервный режим
-
----
-
-## 🔗 Если нужна только ссылка VLESS:
-
-Для VLESS используйте стандартную ссылку:
-```
-vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:443?type=tcp&security=reality&sni=www.microsoft.com&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&flow=xtls-rprx-vision#VLESS-Reality
-```
-
-Но для гибкости (выбор между VLESS и HTTP Proxy) нужен Clash Meta с YAML конфигурацией.
-
----
-
-## 💡 Рекомендация:
-
-**Используйте готовый файл `client_config_clash_meta.yaml`** - он обеспечивает максимальную гибкость!
-
----
-
-**Для гибридного режима используйте Clash Meta с YAML конфигурацией! 🚀**
+Не используйте:
+- `client_config_clash_meta.yaml`

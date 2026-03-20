@@ -1,57 +1,25 @@
 # 🔗 Универсальная ссылка для всех клиентов
 
-## ✅ Ваша конфигурация работает на ЛЮБОМ клиенте!
-
-Не только Amnezia VPN, но и:
-- v2rayNG (Android)
-- Shadowrocket (iOS)
-- v2rayN (Windows)
-- V2rayU (macOS)
-- Qv2ray (Linux)
-- И многих других!
-
-## 📋 Универсальная ссылка:
+## ✅ Основная ссылка
 
 ```
 vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:443?type=tcp&security=reality&sni=www.microsoft.com&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&flow=xtls-rprx-vision#VLESS-Reality
 ```
 
-**Эта ссылка работает везде!**
+## Как использовать
 
-## 🎯 Как использовать в других клиентах:
-
-### Общий принцип:
 1. Откройте клиент
-2. Нажмите "Импорт" или "Добавить"
-3. Выберите "Из ссылки" или "Из буфера обмена"
-4. Вставьте ссылку выше
-5. Подключитесь
+2. Нажмите `Import` или `Add`
+3. Вставьте ссылку
+4. Подключитесь
 
-### Примеры:
+## Ручной ввод
 
-**v2rayNG (Android):**
-- "+" → "Импорт из буфера обмена" → Вставить ссылку
-
-**Shadowrocket (iOS):**
-- "+" → "Тип: VLESS" → Вставить ссылку или заполнить вручную
-
-**v2rayN (Windows):**
-- "Сервер" → "Импорт серверов из буфера обмена" → Вставить ссылку
-
-## 📝 Параметры для ручного ввода (если нужно):
-
-Если клиент не поддерживает импорт ссылки, заполните вручную:
-
-- **Тип протокола**: VLESS
-- **Адрес**: 37.1.212.51
-- **Порт**: 443
-- **UUID/ID**: eb4a1cf2-4235-4b0a-83b2-0e5a298389ed
-- **Flow**: xtls-rprx-vision
-- **Безопасность**: REALITY
-- **Public Key**: n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4
-- **Server Name (SNI)**: www.microsoft.com
-- **Fingerprint**: chrome
-
----
-
-**Ваша конфигурация универсальна! Используйте её в любом клиенте! 🚀**
+- **Protocol:** VLESS
+- **Address:** `37.1.212.51`
+- **Port:** `443`
+- **UUID:** `eb4a1cf2-4235-4b0a-83b2-0e5a298389ed`
+- **Security:** `REALITY`
+- **SNI:** `www.microsoft.com`
+- **Flow:** `xtls-rprx-vision`
+- **Fingerprint:** `chrome`

@@ -1,153 +1,16 @@
-# 📱 Как использовать конфигурации в Amnezia VPN
+# 📱 Amnezia import guide
 
-## ✅ Да, файлы нужно импортировать в Amnezia!
+Amnezia использует только две рабочие схемы:
 
-Amnezia VPN поддерживает импорт JSON конфигураций.
+- `client_config_global.json`
+- `client_config_smart_routing_ru.json`
 
----
+## Как подключать
 
-## 🎯 Сценарий 1: Global VPN (только ссылка)
+- Через ссылку: вставить `vless://...`
+- Через файл: импортировать JSON
 
-### Вариант A: Через ссылку (проще)
-1. Скопируйте ссылку:
-   ```
-   vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:443?type=tcp&security=reality&sni=www.microsoft.com&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&flow=xtls-rprx-vision#VLESS-Reality
-   ```
-2. В Amnezia VPN:
-   - Нажмите на поле "Insert key"
-   - Нажмите кнопку "Insert"
-   - Вставьте ссылку
-   - Подключитесь
-3. В настройках Amnezia выберите: **"Глобальный режим"** или **"Global"**
+## Что не использовать
 
-### Вариант B: Через файл
-1. Используйте файл: `client_config_global.json`
-2. См. инструкцию ниже для Сценария 2
-
----
-
-## 🧠 Сценарий 2: Умный обход для РФ (нужен файл)
-
-### Шаги для импорта в Amnezia:
-
-1. **Передайте файл на телефон:**
-   - Отправьте `client_config_smart_routing_ru.json` себе:
-     - Через Telegram
-     - Через Email
-     - Через AirDrop (если iPhone)
-     - Через любой мессенджер
-
-2. **В Amnezia VPN на телефоне:**
-   - Откройте приложение
-   - Нажмите **"File with connection settings"** (Файл с настройками подключения)
-   - Выберите файл `client_config_smart_routing_ru.json`
-   - Подключитесь
-
-3. **Готово!** Все правила маршрутизации уже настроены:
-   - ✅ Российские сайты → напрямую
-   - ✅ Зарубежные сайты → через VPN
-   - ✅ Банки, госуслуги → напрямую
-   - ✅ Yandex, VK, Mail.ru → напрямую
-
-### Что будет работать автоматически:
-
-**Напрямую (без VPN):**
-- sberbank.ru, tinkoff.ru (банки)
-- gosuslugi.ru (госуслуги)
-- yandex.ru, mail.ru, vk.com
-- Все .ru домены
-- Российские IP адреса
-
-**Через VPN:**
-- google.com, facebook.com, twitter.com
-- Заблокированные сайты
-- Зарубежные сервисы
-
----
-
-## 🔀 Сценарий 3: Гибридный режим (Clash Meta)
-
-### ⚠️ Важно: Amnezia НЕ поддерживает Clash формат!
-
-**Clash Meta** - это отдельный клиент, не Amnezia.
-
-### Если нужен Clash Meta:
-
-1. **Установите Clash Meta:**
-   - **Android:** Clash Meta for Android (из GitHub)
-   - **iOS:** Stash (App Store)
-   - **Windows:** mihomo (из GitHub)
-   - **macOS:** `brew install mihomo`
-
-2. **Используйте файл:** `client_config_clash_meta.yaml`
-
-3. **Импортируйте в Clash Meta:**
-   - Откройте Clash Meta
-   - Импортируйте YAML файл
-   - Выберите группу прокси
-
-### Если хотите остаться в Amnezia:
-
-Используйте **Сценарий 1** или **Сценарий 2** - они работают в Amnezia!
-
----
-
-## 📋 Сравнение для Amnezia:
-
-| Сценарий | Работает в Amnezia? | Как использовать |
-|----------|---------------------|------------------|
-| **1. Global VPN** | ✅ Да | Ссылка + "Глобальный режим" |
-| **2. Smart Routing** | ✅ Да | Файл `client_config_smart_routing_ru.json` |
-| **3. Hybrid (Clash)** | ❌ Нет | Нужен отдельный клиент Clash Meta |
-
----
-
-## 🚀 Рекомендация для Amnezia:
-
-### Если нужна простота:
-→ **Сценарий 1** (ссылка + глобальный режим)
-
-### Если нужна умная маршрутизация:
-→ **Сценарий 2** (файл `client_config_smart_routing_ru.json`)
-
----
-
-## 📱 Пошаговая инструкция для Сценария 2 в Amnezia:
-
-### Шаг 1: Получите файл на телефон
-
-**С компьютера:**
-- Откройте файл `client_config_smart_routing_ru.json`
-- Отправьте себе через Telegram/Email/AirDrop
-
-**Или прямо на телефоне:**
-- Скачайте файл из облака
-- Сохраните в доступном месте
-
-### Шаг 2: Импортируйте в Amnezia
-
-1. Откройте **Amnezia VPN** на телефоне
-2. Нажмите **"File with connection settings"**
-3. Выберите файл `client_config_smart_routing_ru.json`
-4. Amnezia автоматически распознает конфигурацию
-5. Нажмите **Подключиться**
-
-### Шаг 3: Проверьте работу
-
-**Российские сайты (должны идти напрямую):**
-- Откройте yandex.ru
-- Проверьте IP на 2ip.ru → должен быть ваш реальный IP
-
-**Зарубежные сайты (должны идти через VPN):**
-- Откройте google.com
-- Проверьте IP на ip-api.com → должен быть 37.1.212.51
-
----
-
-## ✅ Итог:
-
-- **Сценарий 1:** Можно через ссылку в Amnezia
-- **Сценарий 2:** Нужен файл `client_config_smart_routing_ru.json` в Amnezia
-- **Сценарий 3:** НЕ работает в Amnezia (нужен Clash Meta)
-
-**Для Amnezia используйте Сценарии 1 или 2! 🚀**
+- `client_config_clash_meta.yaml`
+- любые гибридные схемы

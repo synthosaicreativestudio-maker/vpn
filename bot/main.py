@@ -42,7 +42,7 @@ async def cmd_start(message: types.Message):
     db.add_user(message.from_user.id, message.from_user.username)
     await message.answer(
         "<b>👋 Привет! Я твой VPN-бот.</b>\n\n"
-        "Здесь ты можешь купить подписку и получить доступ к быстрому интернету без ограничений.\n\n"
+        "Здесь ты можешь купить подписку и получить доступ к рабочему VPN-профилю.\n\n"
         "👇 <b>Выберите подходящий тариф:</b>",
         reply_markup=get_tariffs_keyboard()
     )
@@ -74,16 +74,16 @@ async def process_trial(callback: types.CallbackQuery):
             vless_link = links[0] if links else ""
             
             builder = InlineKeyboardBuilder()
-            builder.row(types.InlineKeyboardButton(text="🍎 Скачать для iPhone (Happ)", url="https://apps.apple.com/us/app/happ-proxy-utility/id6504287215?l=ru"))
-            builder.row(types.InlineKeyboardButton(text="🤖 Скачать для Android (Happ)", url="https://play.google.com/store/apps/details?id=com.happproxy&pcampaignid=web_share"))
+            builder.row(types.InlineKeyboardButton(text="🍎 Hiddify для iPhone", url="https://apps.apple.com"))
+            builder.row(types.InlineKeyboardButton(text="🤖 Hiddify для Android", url="https://github.com/hiddify/hiddify-app/releases"))
 
             text = (
                 "✅ <b>Доступ на 3 дня готов!</b>\n\n"
                 "<b>1. Установите приложение:</b>\n"
-                "Нажмите кнопки ниже для установки (рекомендуем <b>Happ</b>).\n\n"
+                "Нажмите кнопки ниже для установки. Для iPhone и Android лучше использовать <b>Hiddify</b>.\n\n"
                 "<b>2. Как подключиться:</b>\n"
                 "• Скопируйте <b>VLESS-ссылку</b> ниже (нажмите на неё).\n"
-                "• В приложении нажмите <b>+</b> ➡ <b>Import from Clipboard</b>.\n"
+                "• В приложении нажмите <b>+</b> ➡ <b>Import from Clipboard</b> или <b>Import from File</b>.\n"
                 "• Выберите добавленный сервер и нажмите <b>Connect</b>.\n\n"
                 "👇 <b>Ваш ключ (нажмите, чтобы скопировать):</b>\n"
                 f"<code>{vless_link}</code>"
@@ -145,7 +145,7 @@ async def process_successful_payment(message: types.Message):
             new_expire = int((datetime.datetime.now() + datetime.timedelta(days=days)).timestamp())
         
         res = await marzban.create_user(username=username, expire=new_expire)
-        
+
         if res:
             sub_url = res.get("subscription_url")
             db.update_subscription(user_id, datetime.datetime.fromtimestamp(new_expire).isoformat(), sub_url)
@@ -154,14 +154,14 @@ async def process_successful_payment(message: types.Message):
             vless_link = links[0] if links else ""
 
             builder = InlineKeyboardBuilder()
-            builder.row(types.InlineKeyboardButton(text="🍎 Скачать для iPhone", url="https://apps.apple.com/us/app/happ-proxy-utility/id6504287215?l=ru"))
-            builder.row(types.InlineKeyboardButton(text="🤖 Скачать для Android", url="https://play.google.com/store/apps/details?id=com.happproxy&pcampaignid=web_share"))
+            builder.row(types.InlineKeyboardButton(text="🍎 Hiddify для iPhone", url="https://apps.apple.com"))
+            builder.row(types.InlineKeyboardButton(text="🤖 Hiddify для Android", url="https://github.com/hiddify/hiddify-app/releases"))
 
             text = (
                 f"✨ <b>Подписка успешно оформлена до {datetime.datetime.fromtimestamp(new_expire).strftime('%d.%m.%Y')}!</b>\n\n"
                 "<b>Инструкция:</b>\n"
-                "1. Скачайте приложение Happ по кнопкам ниже.\n"
-                "2. Скопируйте ключ и импортируйте через <b>+</b> ➡ <b>Import from Clipboard</b>.\n\n"
+                "1. Скачайте приложение Hiddify по кнопкам ниже.\n"
+                "2. Скопируйте ключ и импортируйте через <b>+</b> ➡ <b>Import from Clipboard</b> или <b>Import from File</b>.\n\n"
                 "👇 <b>Ваш новый ключ:</b>\n"
                 f"<code>{vless_link}</code>"
             )
@@ -178,7 +178,7 @@ async def cmd_status(message: types.Message):
     token = await marzban.get_token()
     user_data = db.get_user(message.from_user.id)
     
-    status_text = "<b>✅ Связь с сервером Marzban:</b> OK\n" if token else "<b>❌ Связь с сервером Marzban:</b> Error\n"
+    status_text = "<b>✅ Связь с сервером:</b> OK\n" if token else "<b>❌ Связь с сервером:</b> Error\n"
     if user_data and user_data[2]:
         status_text += f"📅 <b>Подписка до:</b> {user_data[2]}"
     else:

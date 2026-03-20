@@ -1,7 +1,6 @@
 import requests
 import json
 import subprocess
-import base64
 
 def register():
     # 1. Generate keys

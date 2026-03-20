@@ -1,0 +1,36 @@
+#!/usr/bin/expect -f
+
+set timeout 20
+set password "LEJ6U5chSK"
+set host "root@37.1.212.51"
+set local_file "configs_2026_03_20/xray_config_yandex.json"
+
+spawn scp $local_file $host:/tmp/xray_config_yandex.json
+expect {
+    "yes/no" {
+        send "yes\r"
+        exp_continue
+    }
+    "password:" {
+        send "$password\r"
+    }
+}
+expect eof
+
+spawn ssh $host
+expect {
+    "yes/no" {
+        send "yes\r"
+        exp_continue
+    }
+    "password:" {
+        send "$password\r"
+    }
+}
+expect "#"
+send "mv /tmp/xray_config_yandex.json /opt/marzban/xray_config.json || mv /tmp/xray_config_yandex.json /var/lib/marzban/xray_config.json\r"
+expect "#"
+send "cd /opt/marzban && docker compose restart marzban || marzban restart\r"
+expect "#"
+send "exit\r"
+expect eof

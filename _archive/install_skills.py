@@ -3,7 +3,6 @@
 Global AI Skills Installation Script
 Installs 50 AI agent skills to ~/.agent/skills/ for permanent, automatic access
 """
-import os
 from pathlib import Path
 
 # Skills definition based on agent_skills_top50.md

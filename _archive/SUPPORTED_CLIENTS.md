@@ -1,152 +1,44 @@
 # 📱 Поддерживаемые клиенты для VLESS + REALITY
 
-## ✅ Работает на любом клиенте, который поддерживает VLESS + REALITY!
+## ✅ Работает на клиентах, которые понимают VLESS + REALITY
 
-Ваша конфигурация использует стандартные протоколы:
-- **VLESS** - протокол передачи данных
-- **REALITY** - маскировка трафика
-- **Flow: xtls-rprx-vision** - обход блокировок
+### Android
+- v2rayNG
+- Amnezia VPN
 
-## 📱 Мобильные клиенты:
+### iOS
+- Shadowrocket
+- Stash
+- SingBox
 
-### Android:
-1. **v2rayNG** ⭐ (рекомендуется)
-   - Поддержка: VLESS + REALITY
-   - Ссылка: https://github.com/2dust/v2rayNG
-   - Использование: Вставьте ссылку `vless://...` или загрузите JSON
+### Windows
+- v2rayN
+- Nekoray
 
-2. **Amnezia VPN** ✅ (уже используете)
-   - Полная поддержка
-   - Работает отлично
+### macOS
+- V2rayU
+- V2rayX
 
-3. **SagerNet**
-   - Поддержка: VLESS + REALITY
-   - Ссылка: https://github.com/SagerNet/SagerNet
+### Linux
+- Qv2ray
+- v2rayA
 
-4. **V2rayGO**
-   - Поддержка: VLESS + REALITY
+## 🔗 Основной способ подключения
 
-### iOS:
-1. **Shadowrocket** ⭐ (платный, но лучший)
-   - Полная поддержка VLESS + REALITY
-   - App Store: Shadowrocket
+Используйте ссылку из `vless_connection_link.txt`:
 
-2. **Quantumult X** (платный)
-   - Поддержка VLESS + REALITY
-   - App Store: Quantumult X
-
-3. **Stash** (платный)
-   - Поддержка VLESS + REALITY
-   - App Store: Stash
-
-4. **SingBox** (бесплатный)
-   - Поддержка VLESS + REALITY
-   - App Store: SingBox
-
-## 💻 Десктопные клиенты:
-
-### Windows:
-1. **v2rayN** ⭐ (рекомендуется)
-   - Поддержка: VLESS + REALITY
-   - Ссылка: https://github.com/2dust/v2rayN
-   - Использование: Вставьте ссылку или загрузите JSON
-
-2. **Nekoray**
-   - Поддержка: VLESS + REALITY
-   - Ссылка: https://github.com/MatsuriDayo/nekoray
-
-3. **Qv2ray**
-   - Поддержка: VLESS + REALITY
-   - Ссылка: https://github.com/Qv2ray/Qv2ray
-
-### macOS:
-1. **V2rayU**
-   - Поддержка: VLESS + REALITY
-   - Ссылка: https://github.com/yanue/V2rayU
-
-2. **V2rayX**
-   - Поддержка: VLESS + REALITY
-   - Ссылка: https://github.com/Cenmrev/V2RayX
-
-3. **ClashX Pro** (с плагином)
-   - Поддержка через плагины
-
-### Linux:
-1. **Qv2ray**
-   - Поддержка: VLESS + REALITY
-   - Кроссплатформенный
-
-2. **v2rayA**
-   - Поддержка: VLESS + REALITY
-   - Веб-интерфейс
-
-## 🔗 Как использовать в других клиентах:
-
-### Вариант 1: Ссылка vless:// (универсальный)
-
-Скопируйте ссылку из `vless_connection_link.txt`:
 ```
 vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:443?type=tcp&security=reality&sni=www.microsoft.com&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&flow=xtls-rprx-vision#VLESS-Reality
 ```
 
-**В большинстве клиентов:**
-- Нажмите "Импорт" или "Добавить"
-- Выберите "Из ссылки" или "Из буфера обмена"
-- Вставьте ссылку
-- Готово!
+## 📝 Ручной ввод
 
-### Вариант 2: JSON конфигурация
-
-Используйте файл `amnezia_config.json` или `v2ray_config.json`
-
-**В клиентах:**
-- Импорт → Из файла
-- Выберите JSON файл
-- Готово!
-
-## 📋 Специфические инструкции:
-
-### v2rayNG (Android):
-1. Откройте приложение
-2. Нажмите **"+"** (добавить)
-3. Выберите **"Импорт из буфера обмена"** или **"Импорт из ссылки"**
-4. Вставьте ссылку `vless://...`
-5. Сохраните и подключитесь
-
-### Shadowrocket (iOS):
-1. Откройте приложение
-2. Нажмите **"+"** в правом верхнем углу
-3. Выберите **"Тип: VLESS"**
-4. Вставьте ссылку или заполните вручную:
-   - Адрес: `37.1.212.51`
-   - Порт: `443`
-   - UUID: `eb4a1cf2-4235-4b0a-83b2-0e5a298389ed`
-   - Flow: `xtls-rprx-vision`
-   - REALITY: включить
-   - Public Key: `n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4`
-   - Server Name: `www.microsoft.com`
-
-### v2rayN (Windows):
-1. Откройте приложение
-2. Нажмите **"Сервер"** → **"Импорт серверов из буфера обмена"**
-3. Вставьте ссылку `vless://...`
-4. Готово!
-
-## ⚠️ Важно:
-
-- **Ссылка `vless://`** работает в большинстве клиентов
-- **JSON конфигурация** может потребовать небольших изменений под конкретный клиент
-- **REALITY** должен быть включен в настройках клиента
-- **Flow: xtls-rprx-vision** обязателен для обхода блокировок
-
-## 🎯 Рекомендации:
-
-- **Android**: v2rayNG или Amnezia VPN
-- **iOS**: Shadowrocket (если готовы платить) или SingBox (бесплатный)
-- **Windows**: v2rayN
-- **macOS**: V2rayU
-- **Linux**: Qv2ray
-
----
-
-**Ваша конфигурация универсальна и работает на любом клиенте, поддерживающем VLESS + REALITY! 🚀**
+- **Protocol:** VLESS
+- **Address:** `37.1.212.51`
+- **Port:** `443`
+- **UUID:** `eb4a1cf2-4235-4b0a-83b2-0e5a298389ed`
+- **Flow:** `xtls-rprx-vision`
+- **Security:** `REALITY`
+- **Public Key:** `n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4`
+- **SNI:** `www.microsoft.com`
+- **Fingerprint:** `chrome`

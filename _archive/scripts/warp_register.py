@@ -1,7 +1,4 @@
 import requests
-import json
-import base64
-import os
 
 def register_warp():
     url = "https://api.cloudflareclient.com/v0a2158/reg"

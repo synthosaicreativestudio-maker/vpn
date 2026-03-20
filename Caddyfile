@@ -1,22 +1,25 @@
 {
-    # Отключаем автоматический редирект с 80 на 443, так как мы управляем портами вручную
     auto_https disable_redirects
 }
 
 http://37.1.212.51.sslip.io {
-    # Caddy автоматически обработает ACME HTTP-01 challenge на порту 80
-    # Редирект на HTTPS порт (который проксируется через Xray)
-    redir https://37.1.212.51.sslip.io{uri}
+    handle /configs/* {
+        file_server {
+            root /config
+        }
+    }
+    handle {
+        respond "Not Found" 404
+    }
 }
 
 https://37.1.212.51.sslip.io:8443 {
     bind 127.0.0.1
-    
-    # Проксирование на Marzban
-    reverse_proxy localhost:8000
-    
-    # Логирование для отладки
-    log {
-        output file /var/log/caddy/access.log
+
+    handle /secretpath2026* {
+        reverse_proxy 127.0.0.1:8444
+    }
+    handle {
+        respond "Not Found" 404
     }
 }

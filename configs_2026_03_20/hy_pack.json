@@ -1,0 +1,241 @@
+{
+  "log": {
+    "level": "warn",
+    "timestamp": true
+  },
+  "dns": {
+    "servers": [
+      {
+        "tag": "google-dns",
+        "address": "https://8.8.8.8/dns-query",
+        "detour": "proxy"
+      },
+      {
+        "tag": "cloudflare-dns",
+        "address": "https://1.1.1.1/dns-query",
+        "detour": "warp"
+      },
+      {
+        "tag": "local-dns",
+        "address": "local",
+        "detour": "direct"
+      }
+    ],
+    "rules": [
+      {
+        "outbound": "any",
+        "server": "local-dns"
+      },
+      {
+        "domain": [
+          "gemini.google.com",
+          "bard.google.com",
+          "aistudio.google.com",
+          "chatgpt.com",
+          "openai.com"
+        ],
+        "server": "google-dns"
+      },
+      {
+        "geosite": "google",
+        "server": "google-dns"
+      },
+      {
+        "geosite": [
+          "ru",
+          "yandex",
+          "vk",
+          "mailru",
+          "category-gov-ru"
+        ],
+        "server": "local-dns"
+      }
+    ],
+    "final": "google-dns",
+    "strategy": "ipv4_only"
+  },
+  "inbounds": [
+    {
+      "type": "tun",
+      "inet4_address": "172.19.0.1/30",
+      "auto_route": true,
+      "strict_route": true,
+      "mtu": 1280,
+      "sniff": true,
+      "sniff_override_destination": true
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "selector",
+      "tag": "proxy",
+      "outbounds": [
+        "vless-main",
+        "vless-grpc",
+        "hysteria"
+      ]
+    },
+    {
+      "type": "wireguard",
+      "tag": "warp",
+      "server": "162.159.192.1",
+      "server_port": 2408,
+      "local_address": [
+        "172.16.0.2/32"
+      ],
+      "private_key": "KCPdIbxRcuamG4oDoZd3v/Yv9UHA3YjZLsUCgg1aeHs=",
+      "peer_public_key": "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=",
+      "mtu": 1280,
+      "udp_over_tcp": {
+        "enabled": true,
+        "version": 2
+      }
+    },
+    {
+      "type": "vless",
+      "tag": "vless-main",
+      "server": "37.1.212.51",
+      "server_port": 443,
+      "uuid": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
+      "flow": "xtls-rprx-vision",
+      "packet_encoding": "xudp",
+      "tls": {
+        "enabled": true,
+        "server_name": "taxi.yandex.ru",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        },
+        "reality": {
+          "enabled": true,
+          "public_key": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4",
+          "short_id": ""
+        }
+      },
+      "multiplex": {
+        "enabled": true,
+        "padding": true
+      }
+    },
+    {
+      "type": "vless",
+      "tag": "vless-grpc",
+      "server": "37.1.212.51",
+      "server_port": 8443,
+      "uuid": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
+      "tls": {
+        "enabled": true,
+        "server_name": "taxi.yandex.ru",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        },
+        "reality": {
+          "enabled": true,
+          "public_key": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4",
+          "short_id": ""
+        }
+      },
+      "transport": {
+        "type": "grpc",
+        "service_name": "taxi_grpc_service"
+      }
+    },
+    {
+      "type": "hysteria2",
+      "tag": "hysteria",
+      "server": "37.1.212.51",
+      "server_port": 10443,
+      "password": "HysteriaPassword2026",
+      "tls": {
+        "enabled": true,
+        "server_name": "ya.ru",
+        "insecure": true
+      }
+    },
+    {
+      "type": "direct",
+      "tag": "direct"
+    },
+    {
+      "type": "block",
+      "tag": "block"
+    },
+    {
+      "type": "dns",
+      "tag": "dns-out"
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "protocol": "dns",
+        "outbound": "dns-out"
+      },
+      {
+        "geosite": "category-ads-all",
+        "outbound": "block"
+      },
+      {
+        "geosite": [
+          "telegram",
+          "whatsapp",
+          "youtube",
+          "netflix",
+          "disney"
+        ],
+        "outbound": "proxy"
+      },
+      {
+        "domain": [
+          "gemini.google.com",
+          "bard.google.com",
+          "aistudio.google.com",
+          "generativelanguage.googleapis.com",
+          "ai.google.dev",
+          "googleusercontent.com",
+          "googleapis.com",
+          "gstatic.com",
+          "chatgpt.com",
+          "openai.com",
+          "anthropic.com",
+          "claude.ai"
+        ],
+        "outbound": "warp"
+      },
+      {
+        "geosite": [
+          "google",
+          "openai",
+          "anthropic",
+          "netflix",
+          "disney"
+        ],
+        "outbound": "warp"
+      },
+      {
+        "geosite": [
+          "ru",
+          "yandex",
+          "vk",
+          "mailru",
+          "category-gov-ru",
+          "category-bank-ru",
+          "ozon",
+          "wildberries",
+          "avito"
+        ],
+        "outbound": "direct"
+      },
+      {
+        "geoip": [
+          "ru",
+          "private"
+        ],
+        "outbound": "direct"
+      }
+    ],
+    "auto_detect_interface": true,
+    "final": "proxy"
+  }
+}
