@@ -102,7 +102,7 @@
       "packet_encoding": "xudp",
       "tls": {
         "enabled": true,
-        "server_name": "taxi.yandex.ru",
+        "server_name": "www.microsoft.com",
         "utls": {
           "enabled": true,
           "fingerprint": "chrome"
@@ -112,10 +112,6 @@
           "public_key": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4",
           "short_id": ""
         }
-      },
-      "multiplex": {
-        "enabled": true,
-        "padding": true
       }
     },
     {
@@ -126,7 +122,7 @@
       "uuid": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
       "tls": {
         "enabled": true,
-        "server_name": "taxi.yandex.ru",
+        "server_name": "www.microsoft.com",
         "utls": {
           "enabled": true,
           "fingerprint": "chrome"
