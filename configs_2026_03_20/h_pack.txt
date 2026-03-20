@@ -1,3 +1,0 @@
-vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:443?type=tcp&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&flow=xtls-rprx-vision#Hiddify-VLESS-Main
-vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:8443?type=grpc&serviceName=taxi_grpc_service&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome#Hiddify-VLESS-gRPC
-hysteria2://HysteriaPassword2026@37.1.212.51:10443?sni=ya.ru&insecure=1#Hiddify-Hysteria2
