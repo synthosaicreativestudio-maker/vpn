@@ -102,7 +102,7 @@
       "packet_encoding": "xudp",
       "tls": {
         "enabled": true,
-        "server_name": "www.microsoft.com",
+        "server_name": "taxi.yandex.ru",
         "utls": {
           "enabled": true,
           "fingerprint": "chrome"
@@ -122,7 +122,7 @@
       "uuid": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
       "tls": {
         "enabled": true,
-        "server_name": "www.microsoft.com",
+        "server_name": "taxi.yandex.ru",
         "utls": {
           "enabled": true,
           "fingerprint": "chrome"
