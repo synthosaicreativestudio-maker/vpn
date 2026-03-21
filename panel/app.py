@@ -366,6 +366,42 @@ async def subscription_endpoint(request: Request, token: str):
 
 
 @app.get(
+    "/sub/happ/{token}",
+    tags=["Подписки"],
+    summary="Подписка для Happ (Base64)",
+    description="Закодированный в Base64 список ссылок для iOS-клиентов вроде Happ",
+)
+@limiter.limit("30/minute")
+async def subscription_happ_endpoint(request: Request, token: str):
+    """Специальный endpoint для Happ (Sing-Box), требующего Base64 формат."""
+    import base64
+
+    user = db.get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+
+    if not user["is_active"]:
+        raise HTTPException(status_code=403, detail="Subscription expired")
+
+    text = LinkGenerator.subscription_text(user["uuid"], user["email"])
+    b64_text = base64.b64encode(text.encode("utf-8")).decode("utf-8")
+    
+    profile_title = base64.b64encode(
+        f"🛡 Happ VPN {user['email']}".encode()
+    ).decode()
+    
+    return Response(
+        content=b64_text,
+        media_type="text/plain",
+        headers={
+            "Content-Disposition": f'attachment; filename="{user["email"]}_happ.txt"',
+            "Profile-Title": profile_title,
+            "Profile-Update-Interval": "12",
+        },
+    )
+
+
+@app.get(
     "/users/{email}/ips",
     dependencies=[Depends(verify_api_key)],
     tags=["Система"],

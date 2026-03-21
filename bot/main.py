@@ -137,7 +137,7 @@ async def cb_register(callback: types.CallbackQuery):
             sub_url = user_data[3] if user_data and user_data[3] else ""
 
         if sub_url:
-            sub_url_happ = sub_url.replace(PANEL_PUBLIC_URL, "https://37.1.212.51.sslip.io:8086")
+            sub_url_happ = sub_url.replace(f"{PANEL_PUBLIC_URL}/sub/", "https://37.1.212.51.sslip.io:8086/sub/happ/")
             text = (
                 "✅ <b>Ваш VPN готов!</b>\n\n"
                 "<b>📱 Инструкция:</b>\n"
@@ -180,7 +180,7 @@ async def cb_my_links(callback: types.CallbackQuery):
         )
         return
 
-    sub_url_happ = sub_url.replace(PANEL_PUBLIC_URL, "https://37.1.212.51.sslip.io:8086")
+    sub_url_happ = sub_url.replace(f"{PANEL_PUBLIC_URL}/sub/", "https://37.1.212.51.sslip.io:8086/sub/happ/")
     text = (
         "<b>🔗 Ваши ссылки подписки:</b>\n\n"
         "Скопируйте нужную ссылку для вашего приложения:\n\n"
