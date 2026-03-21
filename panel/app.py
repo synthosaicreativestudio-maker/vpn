@@ -398,6 +398,40 @@ async def subscription_happ_endpoint(request: Request, token: str):
 
 
 @app.get(
+    "/sub/amnezia/{token}",
+    tags=["Подписки"],
+    summary="Подписка для AmneziaVPN",
+    description="Список ссылок в чистом виде для парсера Amnezia",
+)
+@limiter.limit("30/minute")
+async def subscription_amnezia_endpoint(request: Request, token: str):
+    import base64
+
+    user = db.get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+
+    if not user["is_active"]:
+        raise HTTPException(status_code=403, detail="Subscription expired")
+
+    text = LinkGenerator.subscription_text(user["uuid"], user["email"])
+    
+    profile_title = base64.b64encode(
+        f"🛡 Amnezia VPN {user['email']}".encode()
+    ).decode()
+
+    return Response(
+        content=text,
+        media_type="text/plain",
+        headers={
+            "Content-Disposition": f'attachment; filename="{user["email"]}_amnezia.txt"',
+            "Profile-Title": profile_title,
+            "Profile-Update-Interval": "12",
+        },
+    )
+
+
+@app.get(
     "/users/{email}/ips",
     dependencies=[Depends(verify_api_key)],
     tags=["Система"],

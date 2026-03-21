@@ -16,6 +16,8 @@ from bot.config import BOT_TOKEN, PANEL_API_KEY, PANEL_PUBLIC_URL, PANEL_URL
 from bot.data.db_manager import DBManager
 from bot.utils.panel_api import PanelAPI
 
+AMNEZIA_VPN_LINK = "vpn://ewogICJjb250YWluZXJzIjogWwogICAgewogICAgICAiY29udGFpbmVyIjogImFtbmV6aWEtYXdnIiwKICAgICAgImluc3RhbGxfaWQiOiAiaW5zdGFsbF8yMDI2XzAzXzIxIiwKICAgICAgInBvcnQiOiAiMzA0NDMiLAogICAgICAicHJvdG9jb2wiOiAiYXdnIiwKICAgICAgInNldHRpbmdzIjogewogICAgICAgICJhZGRyZXNzIjogIjEwLjAuMC4yIiwKICAgICAgICAiaDEiOiAiMSIsCiAgICAgICAgImgyIjogIjIiLAogICAgICAgICJoMyI6ICIzIiwKICAgICAgICAiaDQiOiAiNCIsCiAgICAgICAgImpjIjogIjQiLAogICAgICAgICJqbWF4IjogIjcwIiwKICAgICAgICAiam1pbiI6ICI0MCIsCiAgICAgICAgImxhc3RfY29uZmlnIjogIiIsCiAgICAgICAgIm10dSI6ICIxMjgwIiwKICAgICAgICAicG9ydCI6ICIzMDQ0MyIsCiAgICAgICAgInByaXZhdGVfa2V5IjogIkVKTmlLQ2lBbVhzUThremZoZzQ4dXpSYVlFNWF4anpSbzBpK01OaTVGVVk9IiwKICAgICAgICAicHVibGljX2tleSI6ICJZL1lvalk3Q0lkcmhqdVFjazEwMHkwOERlUmYvWWRJL1R2dXlMMjF1WVZZPSIsCiAgICAgICAgInMxIjogIjUiLAogICAgICAgICJzMiI6ICIxMCIKICAgICAgfQogICAgfQogIF0sCiAgImRlc2NyaXB0aW9uIjogIlByZW1pdW0tVlBOLTIwMjYtQW1uZXppYVdHIiwKICAiaG9zdCI6ICIzNy4xLjIxMi41MSIKfQo="
+
 # ── Настройка ─────────────────────────────────────────────────
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -132,8 +134,12 @@ async def cb_register(callback: types.CallbackQuery):
             user_data = db.get_user(user.id)
             sub_url = user_data[3] if user_data and user_data[3] else ""
 
+        links = await panel.get_links(email)
+        vless_reality = links.get("vless_reality", "") if links else ""
+
         if sub_url:
             sub_url_happ = sub_url.replace(f"{PANEL_PUBLIC_URL}/sub/", "https://37.1.212.51.sslip.io:8086/sub/happ/")
+            sub_url_amnezia_sub = sub_url.replace(f"{PANEL_PUBLIC_URL}/sub/", "https://37.1.212.51.sslip.io:8086/sub/amnezia/")
             text = (
                 "✅ <b>Ваш VPN готов!</b>\n\n"
                 "<b>📱 Инструкция:</b>\n"
@@ -141,7 +147,14 @@ async def cb_register(callback: types.CallbackQuery):
                 "🤖/🍏 <b>Для Hiddify:</b>\n"
                 f"<pre>{sub_url}</pre>\n\n"
                 "🍏 <b>Для Happ (iPhone/iPad):</b>\n"
-                f"<pre>{sub_url_happ}</pre>"
+                f"<pre>{sub_url_happ}</pre>\n\n"
+                "🛡 <b>Для AmneziaVPN:</b>\n"
+                "1️⃣ <i>Авто-подписка (VLESS HTTPS):</i>\n"
+                f"<pre>{sub_url_amnezia_sub}</pre>\n"
+                "2️⃣ <i>Прямая ссылка (VLESS Reality):</i>\n"
+                f"<pre>{vless_reality}</pre>\n"
+                "3️⃣ <i>Через AmneziaWG (Стабильный запасной):</i>\n"
+                f"<pre>{AMNEZIA_VPN_LINK}</pre>"
             )
         else:
             text = (
@@ -166,6 +179,7 @@ async def cb_register(callback: types.CallbackQuery):
 @dp.callback_query(F.data == "my_links")
 async def cb_my_links(callback: types.CallbackQuery):
     """Показать ссылку подписки пользователя."""
+    email = _email_from_tg(callback.from_user)
     user_data = db.get_user(callback.from_user.id)
     sub_url = user_data[3] if user_data and user_data[3] else None
 
@@ -176,14 +190,25 @@ async def cb_my_links(callback: types.CallbackQuery):
         )
         return
 
+    links = await panel.get_links(email)
+    vless_reality = links.get("vless_reality", "") if links else ""
+
     sub_url_happ = sub_url.replace(f"{PANEL_PUBLIC_URL}/sub/", "https://37.1.212.51.sslip.io:8086/sub/happ/")
+    sub_url_amnezia_sub = sub_url.replace(f"{PANEL_PUBLIC_URL}/sub/", "https://37.1.212.51.sslip.io:8086/sub/amnezia/")
     text = (
         "<b>🔗 Ваши ссылки подписки:</b>\n\n"
         "Скопируйте нужную ссылку для вашего приложения:\n\n"
         "🤖/🍏 <b>Для Hiddify:</b>\n"
         f"<pre>{sub_url}</pre>\n\n"
         "🍏 <b>Для Happ (iPhone/iPad):</b>\n"
-        f"<pre>{sub_url_happ}</pre>"
+        f"<pre>{sub_url_happ}</pre>\n\n"
+        "🛡 <b>Для AmneziaVPN:</b>\n"
+        "1️⃣ <i>Авто-подписка (VLESS HTTPS):</i>\n"
+        f"<pre>{sub_url_amnezia_sub}</pre>\n"
+        "2️⃣ <i>Прямая ссылка (VLESS Reality):</i>\n"
+        f"<pre>{vless_reality}</pre>\n"
+        "3️⃣ <i>Через AmneziaWG (Стабильный запасной):</i>\n"
+        f"<pre>{AMNEZIA_VPN_LINK}</pre>"
     )
 
     await callback.message.edit_text(
