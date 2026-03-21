@@ -1,0 +1,19 @@
+{
+  "containers": [
+    {
+      "container": "amnezia-awg",
+      "port": "30443",
+      "protocol": "awg",
+      "settings": {
+        "address": "10.0.0.2",
+        "h1": "1", "h2": "2", "h3": "3", "h4": "4",
+        "jc": "4", "jmax": "70", "jmin": "40",
+        "mtu": "1280",
+        "private_key": "EJNiKCiAmXsQ8kzfhg48uzRaYE5axjzRo0i+MNi5FUY=",
+        "public_key": "+K1x0KsIzca4NniWr6wBqYZl6gCi+D4x989Sf7zP9AQ=",
+        "s1": "5", "s2": "10"
+      }
+    }
+  ],
+  "host": "37.1.212.51"
+}
