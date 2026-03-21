@@ -1,0 +1,64 @@
+services:
+  # ── Xray Core (VPN-движок) ──────────────────────────────────
+  xray:
+    image: ghcr.io/xtls/xray-core:latest
+    container_name: xray-core
+    restart: always
+    network_mode: host
+    volumes:
+      - /var/lib/marzban/xray_config.json:/etc/xray/config.json:ro
+    command: run -config /etc/xray/config.json
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Subscription Panel (FastAPI, порт 8085) ─────────────────
+  panel:
+    build:
+      context: .
+      dockerfile: panel/Dockerfile
+    container_name: vpn-panel
+    restart: always
+    network_mode: host
+    volumes:
+      - panel-data:/app/data
+    environment:
+      - XRAY_GRPC_HOST=127.0.0.1:10085
+      - SERVER_IP=37.1.212.51
+      - PANEL_API_KEY=b534ef20bdea908d3b9b4f5388467d525ba88f7abaddcc5ca8b4c159b75335c3
+    depends_on:
+      - xray
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Telegram Bot ────────────────────────────────────────────
+  bot:
+    build:
+      context: .
+      dockerfile: bot/Dockerfile
+    container_name: vpn-bot
+    restart: always
+    network_mode: host
+    volumes:
+      - bot-data:/app/bot/data
+    environment:
+      - BOT_TOKEN=8784903598:AAFbs2HJtgVlkcQGX2V6D5V5SAlCXtlvd10
+      - PANEL_URL=http://127.0.0.1:8085
+      - PANEL_PUBLIC_URL=http://37.1.212.51:8085
+      - PANEL_API_KEY=b534ef20bdea908d3b9b4f5388467d525ba88f7abaddcc5ca8b4c159b75335c3
+    depends_on:
+      - panel
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  panel-data:
+  bot-data:
