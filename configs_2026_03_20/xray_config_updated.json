@@ -1,0 +1,145 @@
+{
+  "log": {
+    "loglevel": "warning"
+  },
+  "routing": {
+    "domainStrategy": "IPIfNonMatch",
+    "rules": [
+      {
+        "type": "field",
+        "outboundTag": "BLOCK",
+        "domain": [
+          "geosite:category-ads-all"
+        ]
+      },
+      {
+        "type": "field",
+        "outboundTag": "BLOCK",
+        "ip": [
+          "geoip:private"
+        ]
+      }
+    ]
+  },
+  "inbounds": [
+    {
+      "tag": "VLESS-Reality-Vision",
+      "protocol": "vless",
+      "listen": "0.0.0.0",
+      "port": 443,
+      "settings": {
+        "clients": [
+          {
+            "id": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
+            "flow": "xtls-rprx-vision"
+          }
+        ],
+        "decryption": "none",
+        "fallbacks": [
+          {
+            "dest": 8444
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "reality",
+        "realitySettings": {
+          "show": false,
+          "dest": "taxi.yandex.ru:443",
+          "xver": 0,
+          "serverNames": [
+            "taxi.yandex.ru",
+            "yandex.ru",
+            "ya.ru"
+          ],
+          "privateKey": "4PjME9JBUmV-Td9rZGS9l0147TXqMJtcU_f2iG-PVxA",
+          "shortIds": [
+            "",
+            "0123456789abcdef"
+          ],
+          "publicKey": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4"
+        }
+      },
+      "sniffing": {
+        "enabled": true,
+        "destOverride": [
+          "http",
+          "tls",
+          "quic"
+        ]
+      }
+    },
+    {
+      "tag": "VLESS-XHTTP-Fallback",
+      "protocol": "vless",
+      "listen": "127.0.0.1",
+      "port": 8444,
+      "settings": {
+        "clients": [
+          {
+            "id": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed"
+          }
+        ],
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "xhttp",
+        "xhttpSettings": {
+          "mode": "packet-up",
+          "path": "/secretpath2026",
+          "host": "37.1.212.51.sslip.io"
+        }
+      }
+    },
+    {
+      "tag": "VLESS-Reality-gRPC",
+      "protocol": "vless",
+      "listen": "0.0.0.0",
+      "port": 18443,
+      "settings": {
+        "clients": [
+          {
+            "id": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed"
+          }
+        ],
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "grpc",
+        "security": "reality",
+        "realitySettings": {
+          "show": false,
+          "dest": "taxi.yandex.ru:443",
+          "xver": 0,
+          "serverNames": [
+            "taxi.yandex.ru"
+          ],
+          "privateKey": "4PjME9JBUmV-Td9rZGS9l0147TXqMJtcU_f2iG-PVxA",
+          "publicKey": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4"
+        },
+        "grpcSettings": {
+          "serviceName": "taxi_grpc_service"
+        }
+      },
+      "sniffing": {
+        "enabled": true,
+        "destOverride": [
+          "http",
+          "tls",
+          "grpc"
+        ]
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "tag": "DIRECT"
+    },
+    {
+      "protocol": "blackhole",
+      "tag": "BLOCK"
+    }
+  ]
+}

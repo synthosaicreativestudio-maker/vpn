@@ -11,13 +11,8 @@
         "detour": "proxy"
       },
       {
-        "tag": "cloudflare-dns",
-        "address": "https://1.1.1.1/dns-query",
-        "detour": "warp"
-      },
-      {
         "tag": "local-dns",
-        "address": "local",
+        "address": "77.88.8.8",
         "detour": "direct"
       }
     ],
@@ -25,20 +20,6 @@
       {
         "outbound": "any",
         "server": "local-dns"
-      },
-      {
-        "domain": [
-          "gemini.google.com",
-          "bard.google.com",
-          "aistudio.google.com",
-          "chatgpt.com",
-          "openai.com"
-        ],
-        "server": "google-dns"
-      },
-      {
-        "geosite": "google",
-        "server": "google-dns"
       },
       {
         "geosite": [
@@ -70,31 +51,15 @@
       "type": "selector",
       "tag": "proxy",
       "outbounds": [
-        "vless-main",
+        "vless-vision",
+        "vless-xhttp",
         "vless-grpc",
         "hysteria"
       ]
     },
     {
-      "type": "wireguard",
-      "tag": "warp",
-      "server": "162.159.192.1",
-      "server_port": 2408,
-      "local_address": [
-        "172.16.0.2/32"
-      ],
-      "private_key": "KCPdIbxRcuamG4oDoZd3v/Yv9UHA3YjZLsUCgg1aeHs=",
-      "peer_public_key": "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=",
-      "mtu": 1280,
-      "detour": "proxy",
-      "udp_over_tcp": {
-        "enabled": true,
-        "version": 2
-      }
-    },
-    {
       "type": "vless",
-      "tag": "vless-main",
+      "tag": "vless-vision",
       "server": "37.1.212.51",
       "server_port": 443,
       "uuid": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
@@ -116,9 +81,30 @@
     },
     {
       "type": "vless",
+      "tag": "vless-xhttp",
+      "server": "37.1.212.51",
+      "server_port": 443,
+      "uuid": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
+      "tls": {
+        "enabled": true,
+        "server_name": "37.1.212.51.sslip.io",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "xhttp",
+        "mode": "packet-up",
+        "path": "/secretpath2026",
+        "host": "37.1.212.51.sslip.io"
+      }
+    },
+    {
+      "type": "vless",
       "tag": "vless-grpc",
       "server": "37.1.212.51",
-      "server_port": 8443,
+      "server_port": 18443,
       "uuid": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
       "tls": {
         "enabled": true,
@@ -174,56 +160,13 @@
         "outbound": "block"
       },
       {
-        "domain": [
-          "gemini.google.com",
-          "bard.google.com",
-          "aistudio.google.com",
-          "generativelanguage.googleapis.com",
-          "ai.google.dev",
-          "googleusercontent.com",
-          "googleapis.com",
-          "gstatic.com"
-        ],
-        "outbound": "proxy"
-      },
-      {
-        "geosite": [
-          "telegram",
-          "whatsapp",
-          "youtube",
-          "google"
-        ],
-        "outbound": "proxy"
-      },
-      {
-        "domain": [
-          "chatgpt.com",
-          "openai.com",
-          "anthropic.com",
-          "claude.ai"
-        ],
-        "outbound": "warp"
-      },
-      {
-        "geosite": [
-          "openai",
-          "anthropic",
-          "netflix",
-          "disney"
-        ],
-        "outbound": "warp"
-      },
-      {
         "geosite": [
           "ru",
           "yandex",
           "vk",
           "mailru",
           "category-gov-ru",
-          "category-bank-ru",
-          "ozon",
-          "wildberries",
-          "avito"
+          "category-bank-ru"
         ],
         "outbound": "direct"
       },
@@ -239,4 +182,3 @@
     "final": "proxy"
   }
 }
-
