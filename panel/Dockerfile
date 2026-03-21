@@ -6,14 +6,14 @@ RUN adduser --disabled-password --no-create-home panel
 WORKDIR /app
 
 # Зависимости (кэшируются отдельно)
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY panel/requirements.txt panel/requirements.txt
+RUN pip install --no-cache-dir -r panel/requirements.txt
 
-# Код
-COPY . .
+# Код панели
+COPY panel/ panel/
 
 # Генерация gRPC stubs
-RUN cd proto && bash generate.sh
+RUN cd panel/proto && bash generate.sh
 
 # Создание директории для БД
 RUN mkdir -p /app/data && chown panel:panel /app/data
