@@ -188,8 +188,9 @@
         "decryption": "none"
       },
       "streamSettings": {
-        "network": "http",
-        "httpSettings": {
+        "network": "xhttp",
+        "xhttpSettings": {
+          "mode": "stream-one",
           "path": "/h2-tunnel"
         }
       },
