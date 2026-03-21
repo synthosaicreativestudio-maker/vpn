@@ -28,6 +28,7 @@ services:
       - XRAY_GRPC_HOST=127.0.0.1:10085
       - SERVER_IP=37.1.212.51
       - PANEL_API_KEY=b534ef20bdea908d3b9b4f5388467d525ba88f7abaddcc5ca8b4c159b75335c3
+      - PANEL_DB_PATH=/app/data/database.db
     depends_on:
       - xray
     logging:
@@ -51,6 +52,7 @@ services:
       - PANEL_URL=http://127.0.0.1:8085
       - PANEL_PUBLIC_URL=http://37.1.212.51:8085
       - PANEL_API_KEY=b534ef20bdea908d3b9b4f5388467d525ba88f7abaddcc5ca8b4c159b75335c3
+      - BOT_DB_PATH=/app/bot/data/bot_database.db
     depends_on:
       - panel
     logging:
