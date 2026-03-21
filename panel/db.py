@@ -113,6 +113,48 @@ class PanelDB:
             conn.commit()
             return cursor.rowcount > 0
 
+    def update_user(self, email: str, **fields) -> Optional[dict]:
+        """Обновить произвольные поля пользователя."""
+        allowed = {"ip_limit", "expires_at", "is_active", "description"}
+        updates = {k: v for k, v in fields.items() if k in allowed}
+        if not updates:
+            return self.get_user(email)
+        set_clause = ", ".join(f"{k} = ?" for k in updates)
+        values = list(updates.values()) + [email]
+        with self._get_conn() as conn:
+            conn.execute(
+                f"UPDATE users SET {set_clause} WHERE email = ?", values
+            )
+            conn.commit()
+        return self.get_user(email)
+
+    def get_users_with_tg_info(self, bot_db_path: str) -> list[dict]:
+        """Список всех пользователей с Telegram-данными из ботовой БД."""
+        users = self.list_users()
+        tg_map: dict = {}
+        try:
+            import sqlite3 as _sqlite3
+            bot_conn = _sqlite3.connect(bot_db_path)
+            bot_conn.row_factory = _sqlite3.Row
+            rows = bot_conn.execute(
+                "SELECT tg_id, username FROM users"
+            ).fetchall()
+            bot_conn.close()
+            for row in rows:
+                tg_map[str(row["tg_id"])] = {
+                    "tg_id": row["tg_id"],
+                    "tg_username": row["username"] or "",
+                }
+        except Exception:
+            logger.warning("Bot DB not accessible at %s", bot_db_path)
+
+        result = []
+        for u in users:
+            tg_id = u["email"].removeprefix("tg_")
+            tg_info = tg_map.get(tg_id, {"tg_id": None, "tg_username": ""})
+            result.append({**u, **tg_info})
+        return result
+
     def get_stats(self) -> dict:
         with self._get_conn() as conn:
             total = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]

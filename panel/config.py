@@ -47,6 +47,7 @@ INBOUND_TAG_GRPC = os.getenv("INBOUND_TAG_GRPC", "VLESS-Reality-gRPC")
 # ── Paths ─────────────────────────────────────────────────────
 XRAY_ACCESS_LOG = os.getenv("XRAY_ACCESS_LOG", "/var/lib/marzban/access.log")
 DB_PATH = os.getenv("PANEL_DB_PATH", "panel/data/panel.db")
+BOT_DB_PATH = os.getenv("BOT_DB_PATH", "bot/data/bot.db")
 
 # ── IP Limit ──────────────────────────────────────────────────
 DEFAULT_IP_LIMIT = int(os.getenv("DEFAULT_IP_LIMIT", "2"))

@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VPN Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0d0f1a;
+      --surface: #151929;
+      --surface2: #1c2240;
+      --border: #252d4a;
+      --accent: #5b8ef0;
+      --accent2: #7c5bf0;
+      --green: #22d3a6;
+      --red: #f05b5b;
+      --yellow: #f0c05b;
+      --text: #e2e8ff;
+      --muted: #7286b0;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* ── Sidebar ─────────────────────────────────────────── */
+    .sidebar {
+      width: 220px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 16px;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 100;
+    }
+    .sidebar-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 17px;
+      color: var(--accent);
+      margin-bottom: 32px;
+      padding: 0 8px;
+    }
+    .sidebar-logo span { font-size: 22px; }
+    .nav-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 1px;
+      color: var(--muted); text-transform: uppercase;
+      padding: 0 8px; margin-bottom: 8px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 8px;
+      cursor: pointer; color: var(--muted);
+      font-size: 14px; font-weight: 500;
+      transition: all .2s; text-decoration: none;
+      margin-bottom: 2px;
+    }
+    .nav-item:hover, .nav-item.active {
+      background: var(--surface2);
+      color: var(--text);
+    }
+    .nav-item.active { color: var(--accent); }
+    .nav-icon { font-size: 17px; width: 22px; text-align: center; }
+
+    .sidebar-bottom {
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .api-key-form { display: flex; flex-direction: column; gap: 8px; }
+    .api-key-form label { font-size: 11px; color: var(--muted); }
+    .api-key-form input {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text); border-radius: 6px; padding: 7px 10px;
+      font-size: 12px; font-family: monospace;
+      width: 100%;
+    }
+    .btn-small {
+      background: var(--accent); color: #fff;
+      border: none; border-radius: 6px;
+      padding: 7px 10px; font-size: 12px;
+      cursor: pointer; font-weight: 600;
+      transition: opacity .2s;
+    }
+    .btn-small:hover { opacity: .85; }
+
+    /* ── Main ────────────────────────────────────────────── */
+    .main {
+      margin-left: 220px;
+      flex: 1;
+      padding: 28px 28px;
+    }
+
+    /* ── Stats row ──────────────────────────────────────── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      transition: transform .2s;
+    }
+    .stat-card:hover { transform: translateY(-2px); }
+    .stat-value {
+      font-size: 32px; font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+    .stat-label { font-size: 13px; color: var(--muted); font-weight: 500; }
+
+    /* ── Table card ─────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-title { font-size: 16px; font-weight: 600; }
+    .btn {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; border: none; border-radius: 8px;
+      padding: 9px 18px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: opacity .2s;
+    }
+    .btn:hover { opacity: .85; }
+
+    /* ── Search ─────────────────────────────────────────── */
+    .search-bar {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .search-bar input {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text); border-radius: 8px;
+      padding: 9px 14px; font-size: 13px; width: 280px;
+    }
+    .search-bar input::placeholder { color: var(--muted); }
+
+    /* ── Table ──────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%; border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead th {
+      padding: 13px 16px;
+      text-align: left; color: var(--muted);
+      font-size: 11px; font-weight: 600;
+      letter-spacing: .5px; text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .15s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    td { padding: 12px 16px; vertical-align: middle; white-space: nowrap; }
+
+    /* ── Badges ─────────────────────────────────────────── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 12px; font-weight: 600;
+    }
+    .badge-green { background: rgba(34,211,166,.15); color: var(--green); }
+    .badge-red   { background: rgba(240, 91,91,.15); color: var(--red); }
+    .badge-yellow{ background: rgba(240,192,91,.15); color: var(--yellow); }
+    .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+    .dot-green { background: var(--green); }
+    .dot-red { background: var(--red); }
+    .dot-yellow { background: var(--yellow); }
+
+    /* ── Action buttons ─────────────────────────────────── */
+    .actions { display: flex; gap: 6px; }
+    .icon-btn {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--muted); border-radius: 7px;
+      padding: 6px 10px; font-size: 14px;
+      cursor: pointer; transition: all .2s;
+      line-height: 1;
+    }
+    .icon-btn:hover { color: var(--text); border-color: var(--accent); }
+    .icon-btn.danger:hover { color: var(--red); border-color: var(--red); }
+
+    /* ── TG link ────────────────────────────────────────── */
+    .tg-link { color: var(--accent); text-decoration: none; font-weight: 500; }
+    .tg-link:hover { text-decoration: underline; }
+    .mono { font-family: monospace; font-size: 12px; color: var(--muted); }
+
+    /* ── Empty / Loading ────────────────────────────────── */
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: var(--muted);
+    }
+    .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+    .spinner {
+      width: 32px; height: 32px; border: 3px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin .7s linear infinite; margin: 40px auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Modal ──────────────────────────────────────────── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.65); backdrop-filter: blur(4px);
+      z-index: 1000; align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px;
+      width: 420px; max-width: 95vw;
+      animation: modalIn .2s ease;
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(.95); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .modal-title {
+      font-size: 17px; font-weight: 700;
+      margin-bottom: 20px;
+    }
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block; font-size: 12px;
+      font-weight: 600; color: var(--muted);
+      margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; background: var(--surface2);
+      border: 1px solid var(--border); color: var(--text);
+      border-radius: 8px; padding: 9px 12px; font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      transition: border-color .2s;
+    }
+    .form-group input:focus, .form-group select:focus {
+      outline: none; border-color: var(--accent);
+    }
+    .form-group select option { background: var(--surface2); }
+    .modal-actions {
+      display: flex; gap: 10px; justify-content: flex-end;
+      margin-top: 22px;
+    }
+    .btn-cancel {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text); border-radius: 8px;
+      padding: 9px 18px; font-size: 13px;
+      cursor: pointer; font-weight: 600;
+    }
+
+    /* ── Links modal ────────────────────────────────────── */
+    .link-item {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 12px; margin-bottom: 10px;
+    }
+    .link-label { font-size: 11px; color: var(--muted); margin-bottom: 5px; font-weight: 600; }
+    .link-value {
+      font-family: monospace; font-size: 11px; color: var(--text);
+      word-break: break-all; cursor: pointer;
+      user-select: all;
+    }
+    .link-value:hover { color: var(--accent); }
+
+    /* ── Toast ──────────────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 18px;
+      font-size: 14px; z-index: 9999;
+      animation: toastIn .3s ease;
+      display: none;
+    }
+    .toast.show { display: block; }
+    .toast.success { border-color: var(--green); color: var(--green); }
+    .toast.error { border-color: var(--red); color: var(--red); }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── Status indicator ───────────────────────────────── */
+    .status-indicator {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--muted);
+    }
+    .xray-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--red);
+    }
+    .xray-dot.ok { background: var(--green); animation: pulse 2s infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; } 50% { opacity: .4; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span>🛡</span> VPN Panel
+  </div>
+
+  <div class="nav-label">Навигация</div>
+  <a class="nav-item active" onclick="showSection('users')">
+    <span class="nav-icon">👥</span> Пользователи
+  </a>
+  <a class="nav-item" href="/docs" target="_blank">
+    <span class="nav-icon">📑</span> API Docs
+  </a>
+  <a class="nav-item" onclick="refreshData()">
+    <span class="nav-icon">🔄</span> Обновить
+  </a>
+
+  <div style="flex:1"></div>
+
+  <div class="sidebar-bottom">
+    <div class="api-key-form">
+      <label>API Key</label>
+      <input type="password" id="apiKeyInput" placeholder="Введите ключ..." />
+      <button class="btn-small" onclick="saveApiKey()">Сохранить</button>
+    </div>
+  </div>
+</aside>
+
+<!-- ── Main ───────────────────────────────────────────── -->
+<main class="main">
+
+  <!-- Header -->
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+    <div>
+      <h1 style="font-size:22px; font-weight:700;">Панель управления</h1>
+      <div class="status-indicator" style="margin-top:5px;">
+        <div class="xray-dot" id="xrayDot"></div>
+        <span id="xrayStatus">Xray: проверка...</span>
+      </div>
+    </div>
+    <button class="btn" onclick="openCreateModal()">+ Добавить пользователя</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-value" id="statTotal">—</div>
+      <div class="stat-label">Всего пользователей</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statActive">—</div>
+      <div class="stat-label">Активных</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statExpired">—</div>
+      <div class="stat-label">Истёкших</div>
+    </div>
+  </div>
+
+  <!-- Users Table -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">👥 Пользователи</span>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="🔍  Поиск по TG ID, имени, email..." oninput="filterTable()" />
+    </div>
+    <div class="table-wrap">
+      <div id="tableContainer">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ── Edit Modal ─────────────────────────────────────── -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-title">✏️ Редактировать пользователя</div>
+    <input type="hidden" id="editEmail" />
+    <div class="form-group">
+      <label>Telegram</label>
+      <input type="text" id="editTgInfo" readonly style="color: var(--muted);" />
+    </div>
+    <div class="form-group">
+      <label>IP лимит</label>
+      <input type="number" id="editIpLimit" min="1" max="10" />
+    </div>
+    <div class="form-group">
+      <label>Статус</label>
+      <select id="editActive">
+        <option value="true">✅ Активен</option>
+        <option value="false">❌ Отключён</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Продлить на (дней)</label>
+      <input type="number" id="editExpireDays" min="1" placeholder="Напр.: 30 — добавит 30 дней" />
+    </div>
+    <div class="form-group">
+      <label>Срок действия (ISO дата, необязательно)</label>
+      <input type="text" id="editExpiresAt" placeholder="2026-06-01T00:00:00" />
+    </div>
+    <div class="form-group">
+      <label>Заметка</label>
+      <input type="text" id="editDescription" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('editModal')">Отмена</button>
+      <button class="btn" onclick="saveEdit()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Links Modal ────────────────────────────────────── -->
+<div class="modal-overlay" id="linksModal">
+  <div class="modal">
+    <div class="modal-title">🔗 VPN ссылки</div>
+    <div id="linksContainer"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('linksModal')">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Create Modal ───────────────────────────────────── -->
+<div class="modal-overlay" id="createModal">
+  <div class="modal">
+    <div class="modal-title">➕ Новый пользователь</div>
+    <div class="form-group">
+      <label>Email / имя (уникальный ID)</label>
+      <input type="text" id="createEmail" placeholder="Напр.: tg_123456789" />
+    </div>
+    <div class="form-group">
+      <label>IP лимит</label>
+      <input type="number" id="createIpLimit" value="2" min="1" max="10" />
+    </div>
+    <div class="form-group">
+      <label>Срок действия (дней)</label>
+      <input type="number" id="createExpireDays" value="30" min="1" />
+    </div>
+    <div class="form-group">
+      <label>Заметка</label>
+      <input type="text" id="createDescription" placeholder="Необязательно" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('createModal')">Отмена</button>
+      <button class="btn" onclick="createUser()">Создать</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ──────────────────────────────────────────── -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── Config ────────────────────────────────────────────
+  const SERVER_IP   = "{{ server_ip }}";
+  const API_HEADER  = "{{ api_key_header }}";
+  const BASE_URL    = `http://${SERVER_IP}:8085`;
+
+  let apiKey = localStorage.getItem('vpn_api_key') || '';
+  let allUsers = [];
+
+  // Init
+  document.addEventListener('DOMContentLoaded', () => {
+    if (apiKey) document.getElementById('apiKeyInput').value = apiKey;
+    loadData();
+  });
+
+  function saveApiKey() {
+    apiKey = document.getElementById('apiKeyInput').value.trim();
+    localStorage.setItem('vpn_api_key', apiKey);
+    showToast('API ключ сохранён ✓', 'success');
+    loadData();
+  }
+
+  // ── API helpers ───────────────────────────────────────
+  async function apiFetch(path, method = 'GET', body = null) {
+    const opts = {
+      method,
+      headers: { 'Content-Type': 'application/json', [API_HEADER]: apiKey },
+    };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(BASE_URL + path, opts);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return res.json();
+  }
+
+  // ── Load data ─────────────────────────────────────────
+  async function loadData() {
+    document.getElementById('tableContainer').innerHTML = '<div class="spinner"></div>';
+    try {
+      const data = await apiFetch('/admin/users-data');
+      allUsers = data.users || [];
+      updateStats(data.stats || {});
+      updateXrayStatus(data.xray_connected);
+      renderTable(allUsers);
+    } catch(e) {
+      document.getElementById('tableContainer').innerHTML =
+        `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p><p style="margin-top:8px;font-size:12px;">Проверьте API ключ</p></div>`;
+    }
+  }
+
+  function refreshData() { loadData(); }
+
+  function updateStats(s) {
+    document.getElementById('statTotal').textContent   = s.total_users   ?? '—';
+    document.getElementById('statActive').textContent  = s.active_users  ?? '—';
+    document.getElementById('statExpired').textContent = s.expired_users ?? '—';
+  }
+
+  function updateXrayStatus(ok) {
+    const dot = document.getElementById('xrayDot');
+    const txt = document.getElementById('xrayStatus');
+    dot.className = 'xray-dot' + (ok ? ' ok' : '');
+    txt.textContent = ok ? 'Xray: работает' : 'Xray: недоступен';
+  }
+
+  // ── Render table ──────────────────────────────────────
+  function renderTable(users) {
+    if (!users.length) {
+      document.getElementById('tableContainer').innerHTML =
+        '<div class="empty-state"><div class="icon">👤</div><p>Нет пользователей</p></div>';
+      return;
+    }
+
+    let html = `<table>
+      <thead><tr>
+        <th>TG ID</th><th>Username</th><th>Email</th>
+        <th>Статус</th><th>Срок действия</th>
+        <th>IP лимит</th><th>Создан</th><th>Действия</th>
+      </tr></thead><tbody>`;
+
+    for (const u of users) {
+      const tgId    = u.tg_id   ?? '-';
+      const tgUser  = u.tg_username ? `@${u.tg_username}` : '—';
+      const tgLink  = u.tg_id ? `<a class="tg-link" href="tg://user?id=${u.tg_id}" target="_blank">${u.tg_id}</a>` : '—';
+      const email   = u.email ?? '';
+      const active  = Boolean(u.is_active);
+      const created = fmtDate(u.created_at);
+      const { label, cls } = expiryStatus(u.expires_at, active);
+
+      html += `<tr>
+        <td>${tgLink}</td>
+        <td>${tgUser}</td>
+        <td><span class="mono">${email}</span></td>
+        <td>
+          <span class="badge ${active ? 'badge-green' : 'badge-red'}">
+            <span class="dot ${active ? 'dot-green' : 'dot-red'}"></span>
+            ${active ? 'Активен' : 'Выкл'}
+          </span>
+        </td>
+        <td><span class="badge ${cls}">${label}</span></td>
+        <td style="text-align:center">${u.ip_limit ?? 2}</td>
+        <td class="mono">${created}</td>
+        <td>
+          <div class="actions">
+            <button class="icon-btn" onclick='openEditModal(${JSON.stringify(u)})' title="Редактировать">✏️</button>
+            <button class="icon-btn" onclick="openLinksModal('${email}')" title="Ссылки">🔗</button>
+            <button class="icon-btn danger" onclick="deleteUser('${email}')" title="Удалить">🗑</button>
+          </div>
+        </td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    document.getElementById('tableContainer').innerHTML = html;
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    return iso.slice(0, 10);
+  }
+
+  function expiryStatus(expiresAt, isActive) {
+    if (!isActive) return { label: 'Отключён', cls: 'badge-red' };
+    if (!expiresAt) return { label: '∞ Бессрочно', cls: 'badge-green' };
+    const diff = (new Date(expiresAt) - Date.now()) / 86400000;
+    if (diff < 0)  return { label: `Истёк ${Math.abs(Math.round(diff))}д назад`, cls: 'badge-red' };
+    if (diff < 5)  return { label: `Ещё ${Math.round(diff)}д`, cls: 'badge-yellow' };
+    return { label: fmtDate(expiresAt), cls: 'badge-green' };
+  }
+
+  // ── Search ─────────────────────────────────────────────
+  function filterTable() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const filtered = allUsers.filter(u =>
+      (u.tg_id   && String(u.tg_id).includes(q)) ||
+      (u.tg_username && u.tg_username.toLowerCase().includes(q)) ||
+      (u.email  && u.email.toLowerCase().includes(q))
+    );
+    renderTable(filtered);
+  }
+
+  // ── Edit modal ─────────────────────────────────────────
+  function openEditModal(u) {
+    document.getElementById('editEmail').value       = u.email;
+    document.getElementById('editTgInfo').value      = u.tg_id ? `${u.tg_id}${u.tg_username ? ' — @' + u.tg_username : ''}` : 'нет данных';
+    document.getElementById('editIpLimit').value     = u.ip_limit ?? 2;
+    document.getElementById('editActive').value      = u.is_active ? 'true' : 'false';
+    document.getElementById('editExpiresAt').value   = u.expires_at ?? '';
+    document.getElementById('editExpireDays').value  = '';
+    document.getElementById('editDescription').value = u.description ?? '';
+    document.getElementById('editModal').classList.add('open');
+  }
+
+  async function saveEdit() {
+    const email     = document.getElementById('editEmail').value;
+    const ipLimit   = parseInt(document.getElementById('editIpLimit').value) || null;
+    const isActive  = document.getElementById('editActive').value === 'true';
+    const expiresAt = document.getElementById('editExpiresAt').value.trim() || null;
+    const expireDays = parseInt(document.getElementById('editExpireDays').value) || null;
+    const desc      = document.getElementById('editDescription').value.trim() || null;
+
+    const body = { ip_limit: ipLimit, is_active: isActive, description: desc };
+    if (expireDays) body.expire_days = expireDays;
+    else if (expiresAt) body.expires_at = expiresAt;
+
+    try {
+      await apiFetch(`/users/${encodeURIComponent(email)}`, 'PATCH', body);
+      closeModal('editModal');
+      showToast('Сохранено ✓', 'success');
+      await loadData();
+    } catch(e) {
+      showToast('Ошибка: ' + e.message, 'error');
+    }
+  }
+
+  // ── Links modal ────────────────────────────────────────
+  const LINK_LABELS = {
+    vless_reality: '🔌 VLESS Reality',
+    vless_xhttp:   '🕵️ VLESS xHTTP',
+    vless_grpc:    '📡 VLESS gRPC',
+    shadow_tls:    '🔐 Shadow-TLS',
+    tuic:          '⚡ TUIC',
+    hysteria2:     '🚀 Hysteria2',
+  };
+
+  async function openLinksModal(email) {
+    document.getElementById('linksContainer').innerHTML = '<div class="spinner"></div>';
+    document.getElementById('linksModal').classList.add('open');
+    try {
+      const data = await apiFetch(`/users/${encodeURIComponent(email)}/links`);
+      let html = '';
+      for (const [key, label] of Object.entries(LINK_LABELS)) {
+        const val = data[key] || '';
+        if (val) {
+          html += `<div class="link-item">
+            <div class="link-label">${label}</div>
+            <div class="link-value" onclick="copyText('${val.replace(/'/g,"\\'")}', this)">${val}</div>
+          </div>`;
+        }
+      }
+      if (data.sub_token) {
+        const subUrl = `${BASE_URL}/sub/${data.sub_token || ''}`;
+        // sub_token не в /links — получаем отдельно
+      }
+      document.getElementById('linksContainer').innerHTML = html || '<p style="color:var(--muted)">Ссылок нет</p>';
+    } catch(e) {
+      document.getElementById('linksContainer').innerHTML = `<p style="color:var(--red)">${e.message}</p>`;
+    }
+  }
+
+  // ── Create modal ───────────────────────────────────────
+  function openCreateModal() {
+    document.getElementById('createModal').classList.add('open');
+  }
+
+  async function createUser() {
+    const email       = document.getElementById('createEmail').value.trim();
+    const ipLimit     = parseInt(document.getElementById('createIpLimit').value) || 2;
+    const expireDays  = parseInt(document.getElementById('createExpireDays').value) || 30;
+    const description = document.getElementById('createDescription').value.trim() || null;
+
+    if (!email) { showToast('Введите email/ID', 'error'); return; }
+    try {
+      await apiFetch('/users', 'POST', { email, ip_limit: ipLimit, expire_days: expireDays, description });
+      closeModal('createModal');
+      showToast('Пользователь создан ✓', 'success');
+      await loadData();
+    } catch(e) {
+      showToast('Ошибка: ' + e.message, 'error');
+    }
+  }
+
+  // ── Delete ─────────────────────────────────────────────
+  async function deleteUser(email) {
+    if (!confirm(`Удалить ${email}?`)) return;
+    try {
+      await apiFetch(`/users/${encodeURIComponent(email)}`, 'DELETE');
+      showToast('Удалён ✓', 'success');
+      await loadData();
+    } catch(e) {
+      showToast('Ошибка: ' + e.message, 'error');
+    }
+  }
+
+  // ── Helpers ────────────────────────────────────────────
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+
+  function copyText(text, el) {
+    navigator.clipboard.writeText(text).then(() => {
+      const orig = el.style.color;
+      el.style.color = 'var(--green)';
+      setTimeout(() => el.style.color = orig, 800);
+      showToast('Скопировано ✓', 'success');
+    });
+  }
+
+  function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast show ${type}`;
+    setTimeout(() => t.className = 'toast', 2500);
+  }
+
+  // Close modal on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', e => {
+      if (e.target === el) el.classList.remove('open');
+    });
+  });
+</script>
+</body>
+</html>

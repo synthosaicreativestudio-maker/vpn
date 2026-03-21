@@ -23,6 +23,16 @@ class UserCreate(BaseModel):
     description: Optional[str] = Field(None, description="Заметка о пользователе")
 
 
+class UserUpdate(BaseModel):
+    """Обновление данных пользователя (все поля опциональны)."""
+
+    ip_limit: Optional[int] = Field(None, ge=1, le=10, description="Лимит одновременных IP")
+    expires_at: Optional[str] = Field(None, description="Дата истечения (ISO 8601) или null для бессрочного")
+    is_active: Optional[bool] = Field(None, description="Активность подписки")
+    description: Optional[str] = Field(None, description="Заметка о пользователе")
+    expire_days: Optional[int] = Field(None, ge=1, description="Добавить N дней к сроку действия")
+
+
 class UserResponse(BaseModel):
     """Информация о пользователе."""
 

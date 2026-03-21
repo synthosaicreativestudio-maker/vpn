@@ -9,13 +9,17 @@
 
 import asyncio
 import logging
+import os
 import secrets
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, Security, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from fastapi.security.api_key import APIKeyHeader
+from fastapi.templating import Jinja2Templates
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -24,6 +28,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from panel.config import (
     API_KEY,
     API_KEY_HEADER,
+    BOT_DB_PATH,
     DB_PATH,
     DEFAULT_IP_LIMIT,
     INBOUND_TAG_GRPC,
@@ -41,7 +46,12 @@ from panel.models import (
     UserCreate,
     UserResponse,
     UserStats,
+    UserUpdate,
 )
+
+# ── Templates ─────────────────────────────────────────────────
+_TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "templates")
+templates = Jinja2Templates(directory=_TEMPLATES_DIR)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -359,3 +369,96 @@ async def get_user_ips(email: str):
         "count": len(ips),
         "exceeded": len(ips) > user["ip_limit"],
     }
+
+
+@app.patch(
+    "/users/{email}",
+    response_model=UserResponse,
+    dependencies=[Depends(verify_api_key)],
+    tags=["Пользователи"],
+    summary="Обновить данные пользователя",
+)
+async def update_user(email: str, data: UserUpdate):
+    """Обновить ip_limit, expires_at, is_active или description."""
+    user = db.get_user(email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    fields: dict = {}
+    if data.ip_limit is not None:
+        fields["ip_limit"] = data.ip_limit
+    if data.is_active is not None:
+        fields["is_active"] = 1 if data.is_active else 0
+    if data.description is not None:
+        fields["description"] = data.description
+    if data.expires_at is not None:
+        fields["expires_at"] = data.expires_at
+    if data.expire_days is not None:
+        # Продлить от текущего expires_at или от сегодня
+        base = user.get("expires_at")
+        if base:
+            try:
+                base_dt = datetime.fromisoformat(base)
+                # Если уже истёк — продлять от сегодня
+                if base_dt < datetime.utcnow():
+                    base_dt = datetime.utcnow()
+            except ValueError:
+                base_dt = datetime.utcnow()
+        else:
+            base_dt = datetime.utcnow()
+        fields["expires_at"] = (base_dt + timedelta(days=data.expire_days)).isoformat()
+
+    updated = db.update_user(email, **fields)
+    if not updated:
+        raise HTTPException(status_code=500, detail="Update failed")
+
+    return UserResponse(
+        email=updated["email"],
+        uuid=updated["uuid"],
+        ip_limit=updated["ip_limit"],
+        created_at=updated["created_at"],
+        expires_at=updated.get("expires_at"),
+        is_active=bool(updated["is_active"]),
+        sub_token=updated["sub_token"],
+    )
+
+
+# ── Admin UI ──────────────────────────────────────────────────
+
+
+@app.get(
+    "/admin/users-data",
+    dependencies=[Depends(verify_api_key)],
+    tags=["Система"],
+    summary="Данные пользователей для UI",
+)
+async def admin_users_data():
+    """JSON с объединёнными данными панели и Telegram-бота для дашборда."""
+    users = db.get_users_with_tg_info(BOT_DB_PATH)
+    health = {"xray_connected": False}
+    if xray_client:
+        health["xray_connected"] = xray_client.is_connected()
+    stats = db.get_stats()
+    return {
+        "users": users,
+        "stats": stats,
+        "xray_connected": health["xray_connected"],
+    }
+
+
+@app.get(
+    "/admin/ui",
+    response_class=HTMLResponse,
+    tags=["Система"],
+    summary="Веб-дашборд администратора",
+)
+async def admin_ui(request: Request):
+    """HTML-интерфейс управления пользователями."""
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "server_ip": SERVER_IP,
+            "api_key_header": API_KEY_HEADER,
+        },
+    )
