@@ -1,0 +1,21 @@
+{
+  "log": { "level": "info" },
+  "inbounds": [
+    {
+      "type": "tuic",
+      "tag": "tuic-in",
+      "listen": "::",
+      "listen_port": 20443,
+      "users": [
+        { "uuid": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed", "password": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed" }
+      ],
+      "congestion_control": "bbr",
+      "tls": {
+        "enabled": true,
+        "server_name": "taxi.yandex.ru",
+        "reality": { "enabled": true, "handshake": { "server": "taxi.yandex.ru", "server_port": 443 } }
+      }
+    }
+  ],
+  "outbounds": [{ "type": "direct", "tag": "direct" }]
+}

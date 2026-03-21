@@ -5,56 +5,59 @@
       { "tag": "google-dns", "address": "https://8.8.8.8/dns-query", "detour": "proxy" },
       { "tag": "local-dns", "address": "77.88.8.8", "detour": "direct" }
     ],
-    "rules": [
-      { "outbound": "any", "server": "local-dns" },
-      { "geosite": ["ru", "yandex", "vk"], "server": "local-dns" }
-    ],
-    "final": "google-dns",
-    "strategy": "ipv4_only"
+    "rules": [{ "domain": ["geosite:cn", "domain:taxi.yandex.ru"], "server": "local-dns" }]
   },
-  "inbounds": [{ "type": "tun", "inet4_address": "172.19.0.1/30", "auto_route": true, "strict_route": true, "mtu": 1280, "sniff": true }],
+  "inbounds": [{ "type": "mixed", "listen": "127.0.0.1", "listen_port": 2080 }],
   "outbounds": [
+    { "type": "selector", "tag": "proxy", "outbounds": ["auto-test", "Shadow-TLS-VLESS", "TUIC-v5", "AmneziaWG", "VLESS-Reality-Main", "Hysteria2-Main"] },
+    { "type": "urltest", "tag": "auto-test", "outbounds": ["Shadow-TLS-VLESS", "TUIC-v5", "AmneziaWG", "VLESS-Reality-Main", "Hysteria2-Main"], "interval": "10m" },
+    
     {
-      "type": "url-test",
-      "tag": "proxy",
-      "outbounds": ["vless-vision", "vless-xhttp", "vless-grpc", "hysteria"],
-      "url": "https://www.google.com/generate_204",
-      "interval": "1m",
-      "tolerance": 50
-    },
-    {
-      "type": "vless", "tag": "vless-vision", "server": "37.1.212.51", "server_port": 443,
-      "uuid": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed", "flow": "xtls-rprx-vision", "packet_encoding": "xudp",
-      "tls": { "enabled": true, "server_name": "taxi.yandex.ru", "utls": { "enabled": true, "fingerprint": "chrome" },
-               "reality": { "enabled": true, "public_key": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4", "short_id": "0123456789abcdef" } }
-    },
-    {
-      "type": "vless", "tag": "vless-xhttp", "server": "37.1.212.51", "server_port": 8444,
+      "type": "vless",
+      "tag": "Shadow-TLS-VLESS",
+      "server": "37.1.212.51",
+      "server_port": 443,
       "uuid": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
-      "tls": { "enabled": true, "server_name": "taxi.yandex.ru", "utls": { "enabled": true, "fingerprint": "chrome" },
-               "reality": { "enabled": true, "public_key": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4", "short_id": "00" } },
-      "transport": { "type": "xhttp", "mode": "packet-up", "path": "/secretpath2026" }
+      "flow": "xtls-rprx-vision",
+      "tls": { "enabled": true, "server_name": "taxi.yandex.ru" },
+      "multiplex": { "enabled": true, "protocol": "smux", "max_streams": 32 },
+      "shadow_tls": { "enabled": true, "version": 3, "password": "ShadowPassword2026", "sni": "taxi.yandex.ru" }
     },
+
     {
-      "type": "vless", "tag": "vless-grpc", "server": "37.1.212.51", "server_port": 18443,
+      "type": "tuic",
+      "tag": "TUIC-v5",
+      "server": "37.1.212.51",
+      "server_port": 20443,
       "uuid": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
-      "tls": { "enabled": true, "server_name": "taxi.yandex.ru", "utls": { "enabled": true, "fingerprint": "chrome" },
-               "reality": { "enabled": true, "public_key": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4", "short_id": "00" } },
-      "transport": { "type": "grpc", "service_name": "grpc" }
+      "password": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
+      "congestion_control": "bbr",
+      "tls": { "enabled": true, "server_name": "taxi.yandex.ru", "insecure": true }
     },
-    { "type": "hysteria2", "tag": "hysteria", "server": "37.1.212.51", "server_port": 10443, "password": "HysteriaPassword2026", "tls": { "enabled": true, "server_name": "ya.ru", "insecure": true } },
+
+    {
+      "type": "wireguard",
+      "tag": "AmneziaWG",
+      "server": "37.1.212.51",
+      "server_port": 30443,
+      "system_interface": false,
+      "interface_name": "awg0",
+      "local_address": ["10.0.0.2/32"],
+      "private_key": "EJNiKCiAmXsQ8kzfhg48uzRaYE5axjzRo0i+MNi5FUY=",
+      "peers": [{ "public_key": "Y/YojY7CIdrhjuQck100y08DeRf/YdI/TvuyL21uYVY=", "allowed_ips": ["0.0.0.0/0"] }],
+      "amnezia_wg": { "jc": 4, "jmin": 40, "jmax": 70, "s1": 5, "s2": 10, "h1": 1, "h2": 2, "h3": 3, "h4": 4 }
+    },
+
+    {
+      "type": "hysteria2",
+      "tag": "Hysteria2-Main",
+      "server": "37.1.212.51",
+      "server_port": 443,
+      "password": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
+      "tls": { "enabled": true, "server_name": "taxi.yandex.ru", "insecure": true }
+    },
+
     { "type": "direct", "tag": "direct" },
-    { "type": "block", "tag": "block" },
-    { "type": "dns", "tag": "dns-out" }
-  ],
-  "route": {
-    "rules": [
-      { "protocol": "dns", "outbound": "dns-out" },
-      { "geosite": "category-ads-all", "outbound": "block" },
-      { "geosite": ["google", "openai"], "outbound": "proxy" },
-      { "geosite": ["ru", "yandex", "vk"], "outbound": "direct" },
-      { "geoip": ["ru", "private"], "outbound": "direct" }
-    ],
-    "auto_detect_interface": true, "final": "proxy"
-  }
+    { "type": "block", "tag": "block" }
+  ]
 }

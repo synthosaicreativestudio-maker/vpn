@@ -15,11 +15,11 @@
 ### 🚀 VLESS-Main (Wi-Fi)
 `vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:443?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&flow=xtls-rprx-vision#🚀-VLESS-Main`
 
-### 🛡️ VLESS-XHTTP (Mobile)
-`vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:8444?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&sid=00&type=xhttp&path=/secretpath2026&mode=packet-up#🛡️-VLESS-XHTTP-Mobile`
+### 🛡️ VLESS-XHTTP (Mobile — Исправлено)
+`vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:8444?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&sid=00&type=xhttp&path=/secretpath2026&mode=packet-up&alpn=h2,http/1.1#🛡️-VLESS-XHTTP-Mobile`
 
 ### 📡 VLESS-gRPC (Backup)
-`vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:18443?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&sid=00&type=grpc&serviceName=grpc#📡-VLESS-gRPC`
+`vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:18443?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&sid=00&type=grpc&serviceName=grpc&alpn=h2#📡-VLESS-gRPC`
 
 ### ⚡ Hysteria2 (Fallback)
 `hysteria2://HysteriaPassword2026@37.1.212.51:10443?sni=ya.ru&insecure=1#⚡-Hysteria2-Fast`

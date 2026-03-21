@@ -1,0 +1,27 @@
+services:
+  shadow-tls:
+    image: ihciah/shadow-tls:v3
+    container_name: shadow-tls
+    restart: always
+    network_mode: host
+    command: server --listen 0.0.0.0:443 --server 127.0.0.1:10443 --tls taxi.yandex.ru --password ShadowPassword2026
+
+  tuic:
+    image: ghcr.io/sagernet/sing-box:latest
+    container_name: tuic-server
+    restart: always
+    network_mode: host
+    volumes:
+      - /var/lib/marzban/sing_box_config.json:/etc/sing-box/config.json
+    command: run -c /etc/sing-box/config.json
+
+  amnezia-wg:
+    image: amneziavpn/amnezia-wg-go:latest
+    container_name: amnezia-wg
+    restart: always
+    network_mode: host
+    environment:
+      - AWG_PORT=30443
+      - AWG_CONFIG=/etc/amnezia/awg0.conf
+    volumes:
+      - /var/lib/marzban/amnezia:/etc/amnezia
