@@ -145,11 +145,7 @@ app.add_middleware(
     allow_headers=[API_KEY_HEADER],
 )
 
-# 2. TrustedHost — защита от Host Header Injection
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=["*"],
-)
+# 2. TrustedHost отключен, так как мы за Caddy
 
 
 # 3. Security Headers
