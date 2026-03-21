@@ -9,7 +9,6 @@
   3. VLESS + Reality + gRPC    (H2, порт 2053)
   4. VLESS + Reality + WS      (WebSocket, порт 2083)
   5. Hysteria2                 (UDP/QUIC, порт 10443)
-  6. VLESS + Reality + H2      (HTTP/2, порт 2087)
 """
 
 from urllib.parse import quote
@@ -19,7 +18,6 @@ from panel.config import (
     HYSTERIA2_SNI,
     PORT_HYSTERIA2,
     PORT_VLESS_GRPC,
-    PORT_VLESS_H2,
     PORT_VLESS_REALITY,
     PORT_VLESS_WS,
     PORT_VLESS_XHTTP,
@@ -92,25 +90,14 @@ class LinkGenerator:
         )
 
     @classmethod
-    def vless_h2(cls, uuid: str, email: str) -> str:
-        """6. VLESS + Reality + HTTP/2 (порт 2087)."""
-        # H2 на этом сервере теперь без Reality для стабильности
-        return (
-            f"vless://{uuid}@{SERVER_IP}:{PORT_VLESS_H2}"
-            f"?encryption=none&security=none&type=http&path=/h2-tunnel"
-            + f"#{quote(f'🔒 {email} (H2)')}"
-        )
-
-    @classmethod
     def all_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Все ссылки для пользователя (6 каналов)."""
+        """Все ссылки для пользователя (5 каналов)."""
         return {
             "vless_reality": cls.vless_reality(uuid, email),
             "vless_xhttp": cls.vless_xhttp(uuid, email),
             "vless_grpc": cls.vless_grpc(uuid, email),
             "vless_ws": cls.vless_ws(uuid, email),
             "hysteria2": cls.hysteria2(email),
-            "vless_h2": cls.vless_h2(uuid, email),
         }
 
     @classmethod

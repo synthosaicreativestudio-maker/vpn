@@ -196,7 +196,6 @@ async def cb_my_links(callback: types.CallbackQuery):
         "vless_grpc": "📡 VLESS gRPC",
         "vless_ws": "🌐 VLESS WebSocket",
         "hysteria2": "🚀 Hysteria2",
-        "vless_h2": "🔒 VLESS H2",
     }
 
     for key, label in labels.items():

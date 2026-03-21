@@ -21,12 +21,11 @@ XRAY_GRPC_HOST = os.getenv("XRAY_GRPC_HOST", "127.0.0.1:10085")
 SERVER_IP = os.getenv("SERVER_IP", "37.1.212.51")
 
 # ── Protocol Ports ────────────────────────────────────────────
-# Xray VLESS+Reality (5 транспортов на разных портах)
+# Xray VLESS+Reality (4 транспорта на разных портах)
 PORT_VLESS_REALITY = int(os.getenv("PORT_VLESS_REALITY", "443"))
 PORT_VLESS_XHTTP = int(os.getenv("PORT_VLESS_XHTTP", "8443"))
 PORT_VLESS_GRPC = int(os.getenv("PORT_VLESS_GRPC", "2053"))
 PORT_VLESS_WS = int(os.getenv("PORT_VLESS_WS", "2083"))
-PORT_VLESS_H2 = int(os.getenv("PORT_VLESS_H2", "2087"))
 # Standalone Hysteria2 (UDP/QUIC)
 PORT_HYSTERIA2 = int(os.getenv("PORT_HYSTERIA2", "10443"))
 
@@ -47,7 +46,7 @@ INBOUND_TAG_VISION = os.getenv("INBOUND_TAG_VISION", "VLESS-Reality-Vision")
 INBOUND_TAG_XHTTP = os.getenv("INBOUND_TAG_XHTTP", "VLESS-Reality-XHTTP")
 INBOUND_TAG_GRPC = os.getenv("INBOUND_TAG_GRPC", "VLESS-Reality-gRPC")
 INBOUND_TAG_WS = os.getenv("INBOUND_TAG_WS", "VLESS-WS")
-INBOUND_TAG_H2 = os.getenv("INBOUND_TAG_H2", "VLESS-H2")
+
 
 # ── Paths ─────────────────────────────────────────────────────
 XRAY_ACCESS_LOG = os.getenv("XRAY_ACCESS_LOG", "/var/lib/marzban/access.log")

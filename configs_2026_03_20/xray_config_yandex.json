@@ -172,32 +172,6 @@
         "enabled": true,
         "destOverride": ["http", "tls"]
       }
-    },
-    {
-      "tag": "VLESS-H2",
-      "protocol": "vless",
-      "listen": "0.0.0.0",
-      "port": 2087,
-      "settings": {
-        "clients": [
-          {
-            "id": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
-            "email": "admin"
-          }
-        ],
-        "decryption": "none"
-      },
-      "streamSettings": {
-        "network": "xhttp",
-        "xhttpSettings": {
-          "mode": "stream-one",
-          "path": "/h2-tunnel"
-        }
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": ["http", "tls"]
-      }
     }
   ],
   "outbounds": [

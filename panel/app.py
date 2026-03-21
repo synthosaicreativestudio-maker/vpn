@@ -32,7 +32,6 @@ from panel.config import (
     DB_PATH,
     DEFAULT_IP_LIMIT,
     INBOUND_TAG_GRPC,
-    INBOUND_TAG_H2,
     INBOUND_TAG_VISION,
     INBOUND_TAG_WS,
     INBOUND_TAG_XHTTP,
@@ -70,7 +69,6 @@ ALL_INBOUND_TAGS = [
     INBOUND_TAG_XHTTP,
     INBOUND_TAG_GRPC,
     INBOUND_TAG_WS,
-    INBOUND_TAG_H2,
 ]
 
 # Xray клиент (может быть None если stubs ещё не сгенерированы)
