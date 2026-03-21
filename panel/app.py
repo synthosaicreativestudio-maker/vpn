@@ -32,7 +32,9 @@ from panel.config import (
     DB_PATH,
     DEFAULT_IP_LIMIT,
     INBOUND_TAG_GRPC,
+    INBOUND_TAG_H2,
     INBOUND_TAG_VISION,
+    INBOUND_TAG_WS,
     INBOUND_TAG_XHTTP,
     SERVER_IP,
     XRAY_GRPC_HOST,
@@ -63,7 +65,13 @@ logger = logging.getLogger("panel")
 db = PanelDB(DB_PATH)
 ip_limiter = IPLimiter(db)
 
-ALL_INBOUND_TAGS = [INBOUND_TAG_VISION, INBOUND_TAG_XHTTP, INBOUND_TAG_GRPC]
+ALL_INBOUND_TAGS = [
+    INBOUND_TAG_VISION,
+    INBOUND_TAG_XHTTP,
+    INBOUND_TAG_GRPC,
+    INBOUND_TAG_WS,
+    INBOUND_TAG_H2,
+]
 
 # Xray клиент (может быть None если stubs ещё не сгенерированы)
 xray_client: Optional[object] = None
@@ -333,6 +341,8 @@ async def subscription_endpoint(request: Request, token: str):
     Клиент (Hiddify/Happ) использует этот URL для автоматического
     обновления конфигурации.
     """
+    import base64
+
     user = db.get_user_by_token(token)
     if not user:
         raise HTTPException(status_code=404, detail="Subscription not found")
@@ -341,11 +351,15 @@ async def subscription_endpoint(request: Request, token: str):
         raise HTTPException(status_code=403, detail="Subscription expired")
 
     text = LinkGenerator.subscription_text(user["uuid"], user["email"])
+    profile_title = base64.b64encode(
+        f"🛡 VPN {user['email']}".encode()
+    ).decode()
     return Response(
         content=text,
         media_type="text/plain",
         headers={
             "Content-Disposition": f'attachment; filename="{user["email"]}.txt"',
+            "Profile-Title": profile_title,
             "Profile-Update-Interval": "12",
             "Subscription-UserInfo": "upload=0; download=0; total=0; expire=0",
         },

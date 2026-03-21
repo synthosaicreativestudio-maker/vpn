@@ -191,12 +191,12 @@ async def cb_my_links(callback: types.CallbackQuery):
     text = "<b>🔗 Ваши VPN-ссылки:</b>\n\n"
 
     labels = {
-        "vless_reality": "🔌 VLESS Direct",
+        "vless_reality": "🔌 VLESS Vision",
         "vless_xhttp": "🕵️ VLESS xHTTP",
         "vless_grpc": "📡 VLESS gRPC",
-        "shadow_tls": "🔐 Shadow-TLS",
-        "tuic": "⚡ TUIC",
+        "vless_ws": "🌐 VLESS WebSocket",
         "hysteria2": "🚀 Hysteria2",
+        "vless_h2": "🔒 VLESS H2",
     }
 
     for key, label in labels.items():

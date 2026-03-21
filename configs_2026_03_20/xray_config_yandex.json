@@ -2,15 +2,23 @@
   "log": {
     "loglevel": "warning"
   },
+  "api": {
+    "tag": "api",
+    "services": ["HandlerService", "StatsService"]
+  },
+  "stats": {},
   "routing": {
     "domainStrategy": "IPIfNonMatch",
     "rules": [
       {
         "type": "field",
+        "inboundTag": ["api"],
+        "outboundTag": "api"
+      },
+      {
+        "type": "field",
         "outboundTag": "BLOCK",
-        "domain": [
-          "geosite:category-ads-all"
-        ]
+        "domain": ["geosite:category-ads-all"]
       },
       {
         "type": "field",
@@ -25,13 +33,20 @@
       {
         "type": "field",
         "outboundTag": "BLOCK",
-        "ip": [
-          "geoip:private"
-        ]
+        "ip": ["geoip:private"]
       }
     ]
   },
   "inbounds": [
+    {
+      "tag": "api",
+      "protocol": "dokodemo-door",
+      "listen": "127.0.0.1",
+      "port": 10085,
+      "settings": {
+        "address": "127.0.0.1"
+      }
+    },
     {
       "tag": "VLESS-Reality-Vision",
       "protocol": "vless",
@@ -41,55 +56,39 @@
         "clients": [
           {
             "id": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
-            "flow": "xtls-rprx-vision"
+            "flow": "xtls-rprx-vision",
+            "email": "admin"
           }
         ],
-        "decryption": "none",
-        "fallbacks": [
-          {
-            "dest": "127.0.0.1:8443",
-            "xver": 0
-          }
-        ]
+        "decryption": "none"
       },
       "streamSettings": {
         "network": "tcp",
         "security": "reality",
         "realitySettings": {
           "show": false,
-          "dest": "taxi.yandex.ru:443",
+          "dest": "www.microsoft.com:443",
           "xver": 0,
-          "serverNames": [
-            "taxi.yandex.ru",
-            "yandex.ru",
-            "ya.ru"
-          ],
+          "serverNames": ["www.microsoft.com", "microsoft.com"],
           "privateKey": "4PjME9JBUmV-Td9rZGS9l0147TXqMJtcU_f2iG-PVxA",
-          "shortIds": [
-            "0123456789abcdef",
-            "00"
-          ],
-          "publicKey": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4"
+          "shortIds": ["0123456789abcdef", "00"]
         }
       },
       "sniffing": {
         "enabled": true,
-        "destOverride": [
-          "http",
-          "tls",
-          "quic"
-        ]
+        "destOverride": ["http", "tls", "quic"]
       }
     },
     {
-      "tag": "VLESS-Reality-XHTTP-Direct",
+      "tag": "VLESS-Reality-XHTTP",
       "protocol": "vless",
       "listen": "0.0.0.0",
-      "port": 8444,
+      "port": 8443,
       "settings": {
         "clients": [
           {
-            "id": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed"
+            "id": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
+            "email": "admin"
           }
         ],
         "decryption": "none"
@@ -99,40 +98,32 @@
         "security": "reality",
         "realitySettings": {
           "show": false,
-          "dest": "taxi.yandex.ru:443",
+          "dest": "www.microsoft.com:443",
           "xver": 0,
-          "serverNames": [
-            "taxi.yandex.ru"
-          ],
+          "serverNames": ["www.microsoft.com"],
           "privateKey": "4PjME9JBUmV-Td9rZGS9l0147TXqMJtcU_f2iG-PVxA",
-          "shortIds": [
-            "00",
-            "ff"
-          ],
-          "publicKey": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4"
+          "shortIds": ["0123456789abcdef", "00"]
         },
         "xhttpSettings": {
-          "mode": "packet-up",
+          "mode": "stream-up",
           "path": "/secretpath2026"
         }
       },
       "sniffing": {
         "enabled": true,
-        "destOverride": [
-          "http",
-          "tls"
-        ]
+        "destOverride": ["http", "tls"]
       }
     },
     {
       "tag": "VLESS-Reality-gRPC",
       "protocol": "vless",
       "listen": "0.0.0.0",
-      "port": 18443,
+      "port": 2053,
       "settings": {
         "clients": [
           {
-            "id": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed"
+            "id": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
+            "email": "admin"
           }
         ],
         "decryption": "none"
@@ -142,27 +133,88 @@
         "security": "reality",
         "realitySettings": {
           "show": false,
-          "dest": "taxi.yandex.ru:443",
+          "dest": "www.microsoft.com:443",
           "xver": 0,
-          "serverNames": [
-            "taxi.yandex.ru"
-          ],
+          "serverNames": ["www.microsoft.com"],
           "privateKey": "4PjME9JBUmV-Td9rZGS9l0147TXqMJtcU_f2iG-PVxA",
-          "shortIds": [
-            "00"
-          ],
-          "publicKey": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4"
+          "shortIds": ["0123456789abcdef", "00"]
         },
         "grpcSettings": {
-          "serviceName": "grpc"
+          "serviceName": "vpn-grpc"
         }
       },
       "sniffing": {
         "enabled": true,
-        "destOverride": [
-          "http",
-          "tls"
-        ]
+        "destOverride": ["http", "tls"]
+      }
+    },
+    {
+      "tag": "VLESS-Reality-WS",
+      "protocol": "vless",
+      "listen": "0.0.0.0",
+      "port": 2083,
+      "settings": {
+        "clients": [
+          {
+            "id": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
+            "email": "admin"
+          }
+        ],
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "ws",
+        "security": "reality",
+        "realitySettings": {
+          "show": false,
+          "dest": "www.microsoft.com:443",
+          "xver": 0,
+          "serverNames": ["www.microsoft.com"],
+          "privateKey": "4PjME9JBUmV-Td9rZGS9l0147TXqMJtcU_f2iG-PVxA",
+          "shortIds": ["0123456789abcdef", "00"]
+        },
+        "wsSettings": {
+          "path": "/ws-tunnel"
+        }
+      },
+      "sniffing": {
+        "enabled": true,
+        "destOverride": ["http", "tls"]
+      }
+    },
+    {
+      "tag": "VLESS-Reality-H2",
+      "protocol": "vless",
+      "listen": "0.0.0.0",
+      "port": 2087,
+      "settings": {
+        "clients": [
+          {
+            "id": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
+            "email": "admin"
+          }
+        ],
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "http",
+        "security": "reality",
+        "realitySettings": {
+          "show": false,
+          "dest": "www.microsoft.com:443",
+          "xver": 0,
+          "serverNames": ["www.microsoft.com"],
+          "privateKey": "4PjME9JBUmV-Td9rZGS9l0147TXqMJtcU_f2iG-PVxA",
+          "shortIds": ["0123456789abcdef", "00"]
+        },
+        "httpSettings": {
+          "path": "/h2-tunnel",
+          "host": ["www.microsoft.com"]
+        }
+      },
+      "sniffing": {
+        "enabled": true,
+        "destOverride": ["http", "tls"]
       }
     }
   ],
@@ -179,9 +231,7 @@
       "protocol": "wireguard",
       "settings": {
         "secretKey": "KCPdIbxRcuamG4oDoZd3v/Yv9UHA3YjZLsUCgg1aeHs=",
-        "address": [
-          "172.16.0.2/32"
-        ],
+        "address": ["172.16.0.2/32"],
         "peers": [
           {
             "publicKey": "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=",
@@ -194,6 +244,10 @@
     {
       "protocol": "blackhole",
       "tag": "BLOCK"
+    },
+    {
+      "protocol": "blackhole",
+      "tag": "api"
     }
   ]
 }

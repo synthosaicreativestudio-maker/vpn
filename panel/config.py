@@ -21,11 +21,13 @@ XRAY_GRPC_HOST = os.getenv("XRAY_GRPC_HOST", "127.0.0.1:10085")
 SERVER_IP = os.getenv("SERVER_IP", "37.1.212.51")
 
 # ── Protocol Ports ────────────────────────────────────────────
-PORT_VLESS_REALITY = int(os.getenv("PORT_VLESS_REALITY", "10443"))
-PORT_VLESS_XHTTP = int(os.getenv("PORT_VLESS_XHTTP", "10444"))
-PORT_VLESS_GRPC = int(os.getenv("PORT_VLESS_GRPC", "18443"))
-PORT_SHADOW_TLS = int(os.getenv("PORT_SHADOW_TLS", "443"))
-PORT_TUIC = int(os.getenv("PORT_TUIC", "30445"))
+# Xray VLESS+Reality (5 транспортов на разных портах)
+PORT_VLESS_REALITY = int(os.getenv("PORT_VLESS_REALITY", "443"))
+PORT_VLESS_XHTTP = int(os.getenv("PORT_VLESS_XHTTP", "8443"))
+PORT_VLESS_GRPC = int(os.getenv("PORT_VLESS_GRPC", "2053"))
+PORT_VLESS_WS = int(os.getenv("PORT_VLESS_WS", "2083"))
+PORT_VLESS_H2 = int(os.getenv("PORT_VLESS_H2", "2087"))
+# Standalone Hysteria2 (UDP/QUIC)
 PORT_HYSTERIA2 = int(os.getenv("PORT_HYSTERIA2", "10443"))
 
 # ── Reality Keys ──────────────────────────────────────────────
@@ -33,16 +35,19 @@ REALITY_PUBLIC_KEY = os.getenv(
     "REALITY_PUBLIC_KEY",
     "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4",
 )
-REALITY_SHORT_ID = os.getenv("REALITY_SHORT_ID", "00")
-REALITY_SNI = os.getenv("REALITY_SNI", "taxi.yandex.ru")
+REALITY_SHORT_ID = os.getenv("REALITY_SHORT_ID", "0123456789abcdef")
+REALITY_SNI = os.getenv("REALITY_SNI", "www.microsoft.com")
 
-# ── Shadow-TLS ────────────────────────────────────────────────
-SHADOW_TLS_PASSWORD = os.getenv("SHADOW_TLS_PASSWORD", "SecureShadow2026V3")
+# ── Hysteria2 ─────────────────────────────────────────────────
+HYSTERIA2_PASSWORD = os.getenv("HYSTERIA2_PASSWORD", "HysteriaPassword2026")
+HYSTERIA2_SNI = os.getenv("HYSTERIA2_SNI", "www.microsoft.com")
 
 # ── Xray Inbound Tags ────────────────────────────────────────
 INBOUND_TAG_VISION = os.getenv("INBOUND_TAG_VISION", "VLESS-Reality-Vision")
 INBOUND_TAG_XHTTP = os.getenv("INBOUND_TAG_XHTTP", "VLESS-Reality-XHTTP")
 INBOUND_TAG_GRPC = os.getenv("INBOUND_TAG_GRPC", "VLESS-Reality-gRPC")
+INBOUND_TAG_WS = os.getenv("INBOUND_TAG_WS", "VLESS-Reality-WS")
+INBOUND_TAG_H2 = os.getenv("INBOUND_TAG_H2", "VLESS-Reality-H2")
 
 # ── Paths ─────────────────────────────────────────────────────
 XRAY_ACCESS_LOG = os.getenv("XRAY_ACCESS_LOG", "/var/lib/marzban/access.log")

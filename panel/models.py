@@ -58,9 +58,9 @@ class SubscriptionLinks(BaseModel):
     vless_reality: str
     vless_xhttp: str
     vless_grpc: str
-    shadow_tls: str
-    tuic: str
+    vless_ws: str
     hysteria2: str
+    vless_h2: str
     all_links: List[str]
 
 
