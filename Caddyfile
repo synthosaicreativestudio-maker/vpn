@@ -23,3 +23,7 @@ https://37.1.212.51.sslip.io:8443 {
         respond "Not Found" 404
     }
 }
+
+https://37.1.212.51.sslip.io:8086 {
+    reverse_proxy 127.0.0.1:8085
+}

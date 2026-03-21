@@ -123,7 +123,6 @@ async def cb_register(callback: types.CallbackQuery):
             )
             return
 
-        # Если есть sub_token — новый юзер, сохраняем
         sub_token = result.get("sub_token", "")
         if sub_token:
             sub_url = f"{PANEL_PUBLIC_URL}/sub/{sub_token}"
@@ -138,14 +137,15 @@ async def cb_register(callback: types.CallbackQuery):
             sub_url = user_data[3] if user_data and user_data[3] else ""
 
         if sub_url:
+            sub_url_happ = sub_url.replace(PANEL_PUBLIC_URL, "https://37.1.212.51.sslip.io:8086")
             text = (
                 "✅ <b>Ваш VPN готов!</b>\n\n"
                 "<b>📱 Инструкция:</b>\n"
-                "1. Установите Hiddify (кнопки ниже)\n"
-                "2. Скопируйте ссылку ниже\n"
-                "3. В Hiddify: <b>+</b> → <b>Добавить из буфера</b>\n\n"
-                "👇 <b>Ваша ссылка (нажмите чтобы скопировать):</b>\n"
-                f"<code>{sub_url}</code>"
+                "Скопируйте нужную ссылку ниже и добавьте её в приложение (обычно через <b>+</b> → <b>Добавить из буфера</b>).\n\n"
+                "🤖/🍏 <b>Для Hiddify:</b>\n"
+                f"<code>{sub_url}</code>\n\n"
+                "🍏 <b>Для Happ (iPhone/iPad):</b>\n"
+                f"<code>{sub_url_happ}</code>"
             )
         else:
             text = (
@@ -180,10 +180,14 @@ async def cb_my_links(callback: types.CallbackQuery):
         )
         return
 
+    sub_url_happ = sub_url.replace(PANEL_PUBLIC_URL, "https://37.1.212.51.sslip.io:8086")
     text = (
-        "<b>🔗 Ваша ссылка подписки:</b>\n\n"
-        "Скопируйте и добавьте в Hiddify:\n"
-        f"<code>{sub_url}</code>"
+        "<b>🔗 Ваши ссылки подписки:</b>\n\n"
+        "Скопируйте нужную ссылку для вашего приложения:\n\n"
+        "🤖/🍏 <b>Для Hiddify:</b>\n"
+        f"<code>{sub_url}</code>\n\n"
+        "🍏 <b>Для Happ (iPhone/iPad):</b>\n"
+        f"<code>{sub_url_happ}</code>"
     )
 
     await callback.message.edit_text(
