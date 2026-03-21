@@ -1,96 +1,36 @@
 {
-  "log": {
-    "level": "warn",
-    "timestamp": true
-  },
+  "log": { "level": "warn", "timestamp": true },
   "dns": {
     "servers": [
-      {
-        "tag": "google-dns",
-        "address": "https://8.8.8.8/dns-query",
-        "detour": "proxy"
-      },
-      {
-        "tag": "local-dns",
-        "address": "local",
-        "detour": "direct"
-      }
+      { "tag": "google-dns", "address": "https://8.8.8.8/dns-query", "detour": "proxy" },
+      { "tag": "local-dns", "address": "local", "detour": "direct" }
     ],
     "rules": [
-      {
-        "outbound": "any",
-        "server": "local-dns"
-      },
-      {
-        "geosite": ["ru", "yandex", "vk", "mailru"],
-        "server": "local-dns"
-      }
+      { "outbound": "any", "server": "local-dns" },
+      { "geosite": ["ru", "yandex", "vk"], "server": "local-dns" }
     ],
     "final": "google-dns",
     "strategy": "ipv4_only"
   },
-  "inbounds": [
-    {
-      "type": "tun",
-      "inet4_address": "172.19.0.1/30",
-      "auto_route": true,
-      "strict_route": true,
-      "mtu": 1280,
-      "sniff": true
-    }
-  ],
+  "inbounds": [{ "type": "tun", "inet4_address": "172.19.0.1/30", "auto_route": true, "strict_route": true, "mtu": 1280, "sniff": true }],
   "outbounds": [
     {
-      "type": "vless",
-      "tag": "proxy",
-      "server": "37.1.212.51",
-      "server_port": 443,
+      "type": "vless", "tag": "proxy", "server": "37.1.212.51", "server_port": 8444,
       "uuid": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
-      "flow": "xtls-rprx-vision",
-      "packet_encoding": "xudp",
-      "tls": {
-        "enabled": true,
-        "server_name": "taxi.yandex.ru",
-        "utls": {
-          "enabled": true,
-          "fingerprint": "chrome"
-        },
-        "reality": {
-          "enabled": true,
-          "public_key": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4",
-          "short_id": ""
-        }
-      }
+      "tls": { "enabled": true, "server_name": "taxi.yandex.ru", "utls": { "enabled": true, "fingerprint": "chrome" },
+               "reality": { "enabled": true, "public_key": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4", "short_id": "00" } },
+      "transport": { "type": "xhttp", "mode": "packet-up", "path": "/secretpath2026" }
     },
-    {
-      "type": "direct",
-      "tag": "direct"
-    },
-    {
-      "type": "block",
-      "tag": "block"
-    },
-    {
-      "type": "dns",
-      "tag": "dns-out"
-    }
+    { "type": "direct", "tag": "direct" },
+    { "type": "block", "tag": "block" },
+    { "type": "dns", "tag": "dns-out" }
   ],
   "route": {
     "rules": [
-      {
-        "protocol": "dns",
-        "outbound": "dns-out"
-      },
-      {
-        "geosite": ["ru", "yandex", "vk", "sberbank", "ozon"],
-        "outbound": "direct"
-      },
-      {
-        "geoip": ["ru", "private"],
-        "outbound": "direct"
-      }
+      { "protocol": "dns", "outbound": "dns-out" },
+      { "geosite": ["ru", "yandex", "vk"], "outbound": "direct" },
+      { "geoip": ["ru", "private"], "outbound": "direct" }
     ],
-    "auto_detect_interface": true,
-    "final": "proxy"
+    "auto_detect_interface": true, "final": "proxy"
   }
 }
