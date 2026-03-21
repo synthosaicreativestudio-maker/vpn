@@ -25,5 +25,7 @@ https://37.1.212.51.sslip.io:8443 {
 }
 
 https://37.1.212.51.sslip.io:8086 {
-    reverse_proxy 127.0.0.1:8085
+    reverse_proxy 127.0.0.1:8085 {
+        header_up Host {upstream_hostport}
+    }
 }
