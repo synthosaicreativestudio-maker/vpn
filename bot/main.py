@@ -143,9 +143,9 @@ async def cb_register(callback: types.CallbackQuery):
                 "<b>📱 Инструкция:</b>\n"
                 "Скопируйте нужную ссылку ниже и добавьте её в приложение (обычно через <b>+</b> → <b>Добавить из буфера</b>).\n\n"
                 "🤖/🍏 <b>Для Hiddify:</b>\n"
-                f"<code>{sub_url}</code>\n\n"
+                f"<pre>{sub_url}</pre>\n\n"
                 "🍏 <b>Для Happ (iPhone/iPad):</b>\n"
-                f"<code>{sub_url_happ}</code>"
+                f"<pre>{sub_url_happ}</pre>"
             )
         else:
             text = (
@@ -185,9 +185,9 @@ async def cb_my_links(callback: types.CallbackQuery):
         "<b>🔗 Ваши ссылки подписки:</b>\n\n"
         "Скопируйте нужную ссылку для вашего приложения:\n\n"
         "🤖/🍏 <b>Для Hiddify:</b>\n"
-        f"<code>{sub_url}</code>\n\n"
+        f"<pre>{sub_url}</pre>\n\n"
         "🍏 <b>Для Happ (iPhone/iPad):</b>\n"
-        f"<code>{sub_url_happ}</code>"
+        f"<pre>{sub_url_happ}</pre>"
     )
 
     await callback.message.edit_text(
