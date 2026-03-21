@@ -12,9 +12,9 @@
 
 ## Коротко по клиентам
 
-- Hiddify: импортируйте `hiddify_ALL_IN_ONE.json`
+- Hiddify: используйте HTTP ссылку-подписку из бота
 - Amnezia: используйте `client_config_global.json` или `client_config_smart_routing_ru.json`
-- Happ: используйте только обычный `vless://` из подписки
+- Happ: используйте HTTPS Base64 ссылку-подписку из бота
 
 ## Что не считать активным
 
