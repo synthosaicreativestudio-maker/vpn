@@ -107,6 +107,7 @@ async def cb_register(callback: types.CallbackQuery):
     await callback.message.edit_text("⏳ <b>Создаю ваш VPN-профиль...</b>")
 
     try:
+        # Попытка создать нового юзера
         result = await panel.create_user(
             email=email,
             ip_limit=2,
@@ -122,19 +123,22 @@ async def cb_register(callback: types.CallbackQuery):
             )
             return
 
-        # Получаем sub_token для ссылки подписки
+        # Если есть sub_token — новый юзер, сохраняем
         sub_token = result.get("sub_token", "")
-        sub_url = f"{PANEL_PUBLIC_URL}/sub/{sub_token}" if sub_token else ""
+        if sub_token:
+            sub_url = f"{PANEL_PUBLIC_URL}/sub/{sub_token}"
+            db.update_subscription(
+                user.id,
+                result.get("expires_at", ""),
+                sub_url,
+            )
+        else:
+            # Юзер уже существовал — берём sub_url из локальной БД
+            user_data = db.get_user(user.id)
+            sub_url = user_data[3] if user_data and user_data[3] else ""
 
-        # Сохраняем в локальную БД бота
-        db.update_subscription(
-            user.id,
-            result.get("expires_at", ""),
-            sub_url,
-        )
-
-        # Получаем ссылки
-        links_data = await panel.get_links(email)
+        # Получаем ссылки (гарантированно есть для обоих случаев)
+        links_data = result if "vless_reality" in result else await panel.get_links(email)
 
         if links_data:
             vless_link = links_data.get("vless_reality", "")
