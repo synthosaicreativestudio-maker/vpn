@@ -53,16 +53,12 @@ def _apps_keyboard() -> types.InlineKeyboardMarkup:
     """Кнопки для скачивания приложений."""
     builder = InlineKeyboardBuilder()
     builder.row(
-        types.InlineKeyboardButton(
-            text="🍎 Hiddify (iPhone)",
-            url="https://apps.apple.com/app/hiddify-proxy-vpn/id6596777532",
-        )
+        types.InlineKeyboardButton(text="🍎 Hiddify (iOS)", url="https://apps.apple.com/app/hiddify-proxy-vpn/id6596777532"),
+        types.InlineKeyboardButton(text="🤖 Hiddify (Android)", url="https://play.google.com/store/apps/details?id=app.hiddify.com")
     )
     builder.row(
-        types.InlineKeyboardButton(
-            text="🤖 Hiddify (Android)",
-            url="https://play.google.com/store/apps/details?id=app.hiddify.com",
-        )
+        types.InlineKeyboardButton(text="🍏 Happ (iOS)", url="https://apps.apple.com/app/happ-proxy-utility/id6553971216"),
+        types.InlineKeyboardButton(text="👽 Happ (Android)", url="https://play.google.com/store/apps/details?id=com.happ.proxy")
     )
     builder.row(
         types.InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")
