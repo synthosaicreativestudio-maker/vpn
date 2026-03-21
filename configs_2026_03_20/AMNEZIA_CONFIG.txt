@@ -10,7 +10,7 @@
         "jc": "4", "jmax": "70", "jmin": "40",
         "mtu": "1280",
         "private_key": "EJNiKCiAmXsQ8kzfhg48uzRaYE5axjzRo0i+MNi5FUY=",
-        "public_key": "+K1x0KsIzca4NniWr6wBqYZl6gCi+D4x989Sf7zP9AQ=",
+        "public_key": "M6dhItaSN2LYHnFKMgU6v2dNv9BomzFFDFPwiHUwpGo=",
         "s1": "5", "s2": "10"
       }
     }
