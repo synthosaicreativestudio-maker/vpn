@@ -148,7 +148,7 @@ app.add_middleware(
 # 2. TrustedHost — защита от Host Header Injection
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=[SERVER_IP, "localhost", "127.0.0.1"],
+    allowed_hosts=[SERVER_IP, "localhost", "127.0.0.1", f"{SERVER_IP}.sslip.io"],
 )
 
 
