@@ -14,7 +14,14 @@
   },
   "inbounds": [{ "type": "tun", "inet4_address": "172.19.0.1/30", "auto_route": true, "strict_route": true, "mtu": 1280, "sniff": true }],
   "outbounds": [
-    { "type": "selector", "tag": "proxy", "outbounds": ["vless-vision", "vless-xhttp", "vless-grpc", "hysteria"] },
+    {
+      "type": "url-test",
+      "tag": "proxy",
+      "outbounds": ["vless-vision", "vless-xhttp", "vless-grpc", "hysteria"],
+      "url": "https://www.google.com/generate_204",
+      "interval": "1m",
+      "tolerance": 50
+    },
     {
       "type": "vless", "tag": "vless-vision", "server": "37.1.212.51", "server_port": 443,
       "uuid": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed", "flow": "xtls-rprx-vision", "packet_encoding": "xudp",
