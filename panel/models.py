@@ -9,13 +9,18 @@ from pydantic import BaseModel, Field
 class UserCreate(BaseModel):
     """Создание нового пользователя."""
 
-    email: str = Field(..., description="Уникальный email / имя пользователя")
-    uuid: str = Field(default_factory=lambda: str(uuid_lib.uuid4()))
-    ip_limit: int = Field(default=2, ge=1, le=10)
-    expire_days: Optional[int] = Field(
-        default=None, description="Срок действия в днях (None = бессрочно)"
+    email: str = Field(..., description="Уникальный email или имя пользователя")
+    uuid: str = Field(
+        default_factory=lambda: str(uuid_lib.uuid4()),
+        description="UUID пользователя (VLESS/Reality)",
     )
-    description: Optional[str] = None
+    ip_limit: int = Field(
+        default=2, ge=1, le=10, description="Лимит одновременных IP"
+    )
+    expire_days: Optional[int] = Field(
+        default=None, description="Срок действия в днях (пропустить для бессрочного)"
+    )
+    description: Optional[str] = Field(None, description="Заметка о пользователе")
 
 
 class UserResponse(BaseModel):

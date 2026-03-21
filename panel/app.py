@@ -92,11 +92,28 @@ async def lifespan(application: FastAPI):
 # ── Rate Limiter ──────────────────────────────────────────────
 limiter = Limiter(key_func=get_remote_address)
 
+# ── Группировка эндпоинтов (Tags) ─────────────────────────────
+tags_metadata = [
+    {
+        "name": "Система",
+        "description": "Проверка статуса и здоровья сервиса.",
+    },
+    {
+        "name": "Пользователи",
+        "description": "Управление пользователями: создание, удаление, список.",
+    },
+    {
+        "name": "Подписки",
+        "description": "Генерация ссылок для клиентов (Hiddify, и др.).",
+    },
+]
+
 app = FastAPI(
-    title="Subscription Manager",
-    description="Панель управления VPN-подписками через Xray gRPC",
+    title="Менеджер Подписок",
+    description="Панель управления VPN-подписками через Xray gRPC (Март 2026)",
     version="2026.1.0",
     lifespan=lifespan,
+    openapi_tags=tags_metadata,
 )
 
 app.state.limiter = limiter
@@ -150,7 +167,12 @@ async def verify_api_key(
 # ── Endpoints ─────────────────────────────────────────────────
 
 
-@app.get("/health", response_model=HealthResponse)
+@app.get(
+    "/health",
+    response_model=HealthResponse,
+    tags=["Система"],
+    summary="Состояние сервиса",
+)
 @limiter.limit("30/minute")
 async def health_check(request: Request):
     """Статус сервиса и подключения к Xray."""
@@ -164,13 +186,24 @@ async def health_check(request: Request):
     )
 
 
-@app.get("/stats", response_model=UserStats, dependencies=[Depends(verify_api_key)])
+@app.get(
+    "/stats",
+    response_model=UserStats,
+    dependencies=[Depends(verify_api_key)],
+    tags=["Система"],
+    summary="Статистика базы",
+)
 async def get_stats():
     """Статистика по пользователям."""
     return db.get_stats()
 
 
-@app.get("/users", dependencies=[Depends(verify_api_key)])
+@app.get(
+    "/users",
+    dependencies=[Depends(verify_api_key)],
+    tags=["Пользователи"],
+    summary="Список всех пользователей",
+)
 async def list_users():
     """Список всех пользователей."""
     users = db.list_users()
@@ -182,6 +215,8 @@ async def list_users():
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(verify_api_key)],
+    tags=["Пользователи"],
+    summary="Создать пользователя",
 )
 @limiter.limit("10/minute")
 async def create_user(request: Request, data: UserCreate):
@@ -228,7 +263,12 @@ async def create_user(request: Request, data: UserCreate):
     )
 
 
-@app.delete("/users/{email}", dependencies=[Depends(verify_api_key)])
+@app.delete(
+    "/users/{email}",
+    dependencies=[Depends(verify_api_key)],
+    tags=["Пользователи"],
+    summary="Удалить пользователя",
+)
 @limiter.limit("10/minute")
 async def delete_user(request: Request, email: str):
     """Удалить пользователя из Xray и БД."""
@@ -250,6 +290,8 @@ async def delete_user(request: Request, email: str):
     "/users/{email}/links",
     response_model=SubscriptionLinks,
     dependencies=[Depends(verify_api_key)],
+    tags=["Подписки"],
+    summary="Получить все ссылки",
 )
 async def get_user_links(email: str):
     """Получить все ссылки подписки для пользователя."""
@@ -265,7 +307,12 @@ async def get_user_links(email: str):
     )
 
 
-@app.get("/sub/{token}")
+@app.get(
+    "/sub/{token}",
+    tags=["Подписки"],
+    summary="Публичная подписка",
+    description="Текстовый список ссылок для Hiddify/Happ (без ключа API)",
+)
 @limiter.limit("30/minute")
 async def subscription_endpoint(request: Request, token: str):
     """Публичный endpoint подписки (без API key).
@@ -295,6 +342,8 @@ async def subscription_endpoint(request: Request, token: str):
 @app.get(
     "/users/{email}/ips",
     dependencies=[Depends(verify_api_key)],
+    tags=["Система"],
+    summary="Активные IP",
 )
 async def get_user_ips(email: str):
     """Получить активные IP-адреса пользователя."""
