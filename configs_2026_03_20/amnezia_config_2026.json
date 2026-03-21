@@ -1,0 +1,29 @@
+{
+  "containers": [
+    {
+      "container": "amnezia-awg",
+      "install_id": "install_2026_03_21",
+      "port": "30443",
+      "protocol": "awg",
+      "settings": {
+        "address": "10.0.0.2",
+        "h1": "1",
+        "h2": "2",
+        "h3": "3",
+        "h4": "4",
+        "jc": "4",
+        "jmax": "70",
+        "jmin": "40",
+        "last_config": "",
+        "mtu": "1280",
+        "port": "30443",
+        "private_key": "EJNiKCiAmXsQ8kzfhg48uzRaYE5axjzRo0i+MNi5FUY=",
+        "public_key": "Y/YojY7CIdrhjuQck100y08DeRf/YdI/TvuyL21uYVY=",
+        "s1": "5",
+        "s2": "10"
+      }
+    }
+  ],
+  "description": "Premium-VPN-2026-AmneziaWG",
+  "host": "37.1.212.51"
+}
