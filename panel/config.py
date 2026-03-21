@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ── API Security ──────────────────────────────────────────────
-API_KEY = os.getenv("PANEL_API_KEY", "change_me_in_production_2026")
+API_KEY = os.getenv("PANEL_API_KEY", "b534ef20bdea908d3b9b4f5388467d525ba88f7abaddcc5ca8b4c159b75335c3")
 API_KEY_HEADER = "X-API-KEY"
 
 # ── Xray gRPC ─────────────────────────────────────────────────
