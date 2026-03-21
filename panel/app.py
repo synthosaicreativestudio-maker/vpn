@@ -321,6 +321,7 @@ async def get_user_links(email: str):
     links = LinkGenerator.all_links(user["uuid"], email)
     return SubscriptionLinks(
         email=email,
+        sub_url=f"http://{SERVER_IP}:8085/sub/{user['sub_token']}",
         **links,
         all_links=list(links.values()),
     )

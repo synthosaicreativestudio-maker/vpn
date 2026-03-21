@@ -55,6 +55,7 @@ class SubscriptionLinks(BaseModel):
     """Ссылки подписки для всех протоколов."""
 
     email: str
+    sub_url: str
     vless_reality: str
     vless_xhttp: str
     vless_grpc: str
