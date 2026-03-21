@@ -12,7 +12,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from bot.config import BOT_TOKEN, PANEL_API_KEY, PANEL_URL
+from bot.config import BOT_TOKEN, PANEL_API_KEY, PANEL_PUBLIC_URL, PANEL_URL
 from bot.data.db_manager import DBManager
 from bot.utils.panel_api import PanelAPI
 
@@ -124,7 +124,7 @@ async def cb_register(callback: types.CallbackQuery):
 
         # Получаем sub_token для ссылки подписки
         sub_token = result.get("sub_token", "")
-        sub_url = f"{PANEL_URL}/sub/{sub_token}" if sub_token else ""
+        sub_url = f"{PANEL_PUBLIC_URL}/sub/{sub_token}" if sub_token else ""
 
         # Сохраняем в локальную БД бота
         db.update_subscription(
