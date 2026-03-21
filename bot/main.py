@@ -1,194 +1,257 @@
+"""VPN Subscription Bot — Telegram-бот для управления подписками.
+
+Работает через Subscription Manager Panel API.
+Без оплаты (тестовый режим).
+"""
+
 import asyncio
 import logging
-from aiogram import Bot, Dispatcher, types, F
+
+from aiogram import Bot, Dispatcher, F, types
 from aiogram.client.default import DefaultBotProperties
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from bot.config import BOT_TOKEN, PAYMENT_TOKEN
-from bot.utils.marzban_api import MarzbanAPI
-from bot.data.db_manager import DBManager
-import datetime
 
-# Настройка логирования
+from bot.config import BOT_TOKEN, PANEL_API_KEY, PANEL_URL
+from bot.data.db_manager import DBManager
+from bot.utils.panel_api import PanelAPI
+
+# ── Настройка ─────────────────────────────────────────────────
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Инициализация бота, диспетчера и менеджеров
-bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode='HTML'))
+bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
 dp = Dispatcher()
-marzban = MarzbanAPI()
+panel = PanelAPI(base_url=PANEL_URL, api_key=PANEL_API_KEY)
 db = DBManager()
 
-# Тарифы
-TARIFFS = {
-    "trial": {"name": "🎁 Тест (3 дня)", "days": 3, "price": 0},
-    "1_month": {"name": "📅 1 месяц", "days": 30, "price": 199},
-    "3_months": {"name": "📅 3 месяца", "days": 90, "price": 549},
-    "6_months": {"name": "📅 6 месяцев", "days": 180, "price": 999},
-    "12_months": {"name": "📅 12 месяцев", "days": 365, "price": 1499},
-}
 
-def get_tariffs_keyboard():
+# ── Helpers ───────────────────────────────────────────────────
+
+
+def _email_from_tg(user: types.User) -> str:
+    """Генерирует уникальный email-идентификатор из Telegram ID."""
+    return f"tg_{user.id}"
+
+
+def _main_keyboard() -> types.InlineKeyboardMarkup:
+    """Главное меню бота."""
     builder = InlineKeyboardBuilder()
-    for key, data in TARIFFS.items():
-        builder.row(types.InlineKeyboardButton(
-            text=f"{data['name']} — {data['price']}₽",
-            callback_data=f"buy_{key}"
-        ))
+    builder.row(
+        types.InlineKeyboardButton(text="🚀 Получить VPN", callback_data="register")
+    )
+    builder.row(
+        types.InlineKeyboardButton(text="🔗 Мои ссылки", callback_data="my_links")
+    )
+    builder.row(
+        types.InlineKeyboardButton(text="📊 Статус", callback_data="status")
+    )
     return builder.as_markup()
+
+
+def _apps_keyboard() -> types.InlineKeyboardMarkup:
+    """Кнопки для скачивания приложений."""
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        types.InlineKeyboardButton(
+            text="🍎 Hiddify (iPhone)",
+            url="https://apps.apple.com/app/hiddify-proxy-vpn/id6596777532",
+        )
+    )
+    builder.row(
+        types.InlineKeyboardButton(
+            text="🤖 Hiddify (Android)",
+            url="https://play.google.com/store/apps/details?id=app.hiddify.com",
+        )
+    )
+    builder.row(
+        types.InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")
+    )
+    return builder.as_markup()
+
+
+# ── Команды ───────────────────────────────────────────────────
+
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
+    """Приветствие и главное меню."""
     db.add_user(message.from_user.id, message.from_user.username)
     await message.answer(
-        "<b>👋 Привет! Я твой VPN-бот.</b>\n\n"
-        "Здесь ты можешь купить подписку и получить доступ к рабочему VPN-профилю.\n\n"
-        "👇 <b>Выберите подходящий тариф:</b>",
-        reply_markup=get_tariffs_keyboard()
+        "<b>👋 Привет! Я VPN-бот.</b>\n\n"
+        "Я помогу тебе получить доступ к быстрому и безопасному VPN.\n\n"
+        "👇 <b>Выберите действие:</b>",
+        reply_markup=_main_keyboard(),
     )
 
-@dp.callback_query(F.data == "buy_trial")
-async def process_trial(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    user_data = db.get_user(user_id)
-    
-    # Проверка, был ли уже использован тест
-    if user_data and user_data[2]: # индекс 2 - subscription_expires
-        await callback.answer("❌ Вы уже использовали тестовый период или имеете подписку.", show_alert=True)
-        return
 
-    await callback.message.edit_text("⏳ <b>Создаю ваш тестовый доступ...</b>")
-    
-    # Создание юзера в Marzban
-    username = f"user_{user_id}"
-    expire_timestamp = int((datetime.datetime.now() + datetime.timedelta(days=3)).timestamp())
-    
-    try:
-        res = await marzban.create_user(username=username, expire=expire_timestamp)
-        
-        if res:
-            sub_url = res.get("subscription_url")
-            db.update_subscription(user_id, datetime.datetime.fromtimestamp(expire_timestamp).isoformat(), sub_url)
-            
-            links = res.get("links", [])
-            vless_link = links[0] if links else ""
-            
-            builder = InlineKeyboardBuilder()
-            builder.row(types.InlineKeyboardButton(text="🍎 Hiddify для iPhone", url="https://apps.apple.com"))
-            builder.row(types.InlineKeyboardButton(text="🤖 Hiddify для Android", url="https://github.com/hiddify/hiddify-app/releases"))
-
-            text = (
-                "✅ <b>Доступ на 3 дня готов!</b>\n\n"
-                "<b>1. Установите приложение:</b>\n"
-                "Нажмите кнопки ниже для установки. Для iPhone и Android лучше использовать <b>Hiddify</b>.\n\n"
-                "<b>2. Как подключиться:</b>\n"
-                "• Скопируйте <b>VLESS-ссылку</b> ниже (нажмите на неё).\n"
-                "• В приложении нажмите <b>+</b> ➡ <b>Import from Clipboard</b> или <b>Import from File</b>.\n"
-                "• Выберите добавленный сервер и нажмите <b>Connect</b>.\n\n"
-                "👇 <b>Ваш ключ (нажмите, чтобы скопировать):</b>\n"
-                f"<code>{vless_link}</code>"
-            )
-            
-            await callback.message.edit_text(text, reply_markup=builder.as_markup())
-        else:
-            await callback.message.edit_text("❌ <b>Ошибка при создании доступа.</b> Попробуйте позже.")
-    except Exception as e:
-        logger.error(f"Error in process_trial: {e}")
-        await callback.message.edit_text("❌ <b>Произошла ошибка.</b> Пожалуйста, попробуйте еще раз.")
-
-@dp.callback_query(F.data.startswith("buy_"))
-async def process_buy(callback: types.CallbackQuery):
-    tariff_key = callback.data.split("_", 1)[1]
-    if tariff_key == "trial":
-        return
-    
-    tariff = TARIFFS.get(tariff_key)
-    
-    if not PAYMENT_TOKEN:
-        await callback.answer("❌ Оплата временно недоступна.", show_alert=True)
-        return
-
-    await bot.send_invoice(
-        chat_id=callback.message.chat.id,
-        title=f"Подписка: {tariff['name']}",
-        description=f"Доступ к VPN на {tariff['days']} дней",
-        payload=tariff_key,
-        provider_token=PAYMENT_TOKEN,
-        currency="RUB",
-        prices=[
-            types.LabeledPrice(label=tariff['name'], amount=tariff['price'] * 100)
-        ],
-        start_parameter="vpn_subscription",
+@dp.callback_query(F.data == "menu")
+async def cb_menu(callback: types.CallbackQuery):
+    """Возврат в главное меню."""
+    await callback.message.edit_text(
+        "<b>🏠 Главное меню</b>\n\nВыберите действие:",
+        reply_markup=_main_keyboard(),
     )
     await callback.answer()
 
-@dp.pre_checkout_query()
-async def process_pre_checkout(pre_checkout_query: types.PreCheckoutQuery):
-    await bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
 
-@dp.message(F.successful_payment)
-async def process_successful_payment(message: types.Message):
-    user_id = message.from_user.id
-    tariff_key = message.successful_payment.invoice_payload
-    tariff = TARIFFS.get(tariff_key)
-    
-    # Логика продления/создания в Marzban
-    username = f"user_{user_id}"
-    days = tariff['days']
-    
+# ── Регистрация ───────────────────────────────────────────────
+
+
+@dp.callback_query(F.data == "register")
+async def cb_register(callback: types.CallbackQuery):
+    """Регистрация пользователя в панели и выдача ссылок."""
+    user = callback.from_user
+    email = _email_from_tg(user)
+
+    await callback.message.edit_text("⏳ <b>Создаю ваш VPN-профиль...</b>")
+
     try:
-        current_user = await marzban.get_user(username)
-        if current_user and current_user.get("expire"):
-            current_expire = current_user.get("expire")
-            new_expire = int(current_expire + (days * 24 * 60 * 60))
-        else:
-            new_expire = int((datetime.datetime.now() + datetime.timedelta(days=days)).timestamp())
-        
-        res = await marzban.create_user(username=username, expire=new_expire)
+        result = await panel.create_user(
+            email=email,
+            ip_limit=2,
+            expire_days=30,
+            description=f"Telegram: @{user.username or user.id}",
+        )
 
-        if res:
-            sub_url = res.get("subscription_url")
-            db.update_subscription(user_id, datetime.datetime.fromtimestamp(new_expire).isoformat(), sub_url)
-            
-            links = res.get("links", [])
-            vless_link = links[0] if links else ""
+        if not result:
+            await callback.message.edit_text(
+                "❌ <b>Ошибка при создании профиля.</b>\n"
+                "Попробуйте позже или напишите в поддержку.",
+                reply_markup=_main_keyboard(),
+            )
+            return
 
-            builder = InlineKeyboardBuilder()
-            builder.row(types.InlineKeyboardButton(text="🍎 Hiddify для iPhone", url="https://apps.apple.com"))
-            builder.row(types.InlineKeyboardButton(text="🤖 Hiddify для Android", url="https://github.com/hiddify/hiddify-app/releases"))
+        # Получаем sub_token для ссылки подписки
+        sub_token = result.get("sub_token", "")
+        sub_url = f"{PANEL_URL}/sub/{sub_token}" if sub_token else ""
 
+        # Сохраняем в локальную БД бота
+        db.update_subscription(
+            user.id,
+            result.get("expires_at", ""),
+            sub_url,
+        )
+
+        # Получаем ссылки
+        links_data = await panel.get_links(email)
+
+        if links_data:
+            vless_link = links_data.get("vless_reality", "")
             text = (
-                f"✨ <b>Подписка успешно оформлена до {datetime.datetime.fromtimestamp(new_expire).strftime('%d.%m.%Y')}!</b>\n\n"
-                "<b>Инструкция:</b>\n"
-                "1. Скачайте приложение Hiddify по кнопкам ниже.\n"
-                "2. Скопируйте ключ и импортируйте через <b>+</b> ➡ <b>Import from Clipboard</b> или <b>Import from File</b>.\n\n"
-                "👇 <b>Ваш новый ключ:</b>\n"
-                f"<code>{vless_link}</code>"
+                "✅ <b>Ваш VPN-профиль готов!</b>\n\n"
+                "<b>📱 Инструкция:</b>\n"
+                "1. Установите приложение Hiddify (кнопки ниже)\n"
+                "2. Скопируйте ссылку ниже\n"
+                "3. В Hiddify нажмите <b>+</b> → <b>Добавить из буфера</b>\n\n"
+                "👇 <b>Ваш ключ (нажмите чтобы скопировать):</b>\n"
+                f"<code>{vless_link}</code>\n\n"
+            )
+            if sub_url:
+                text += (
+                    "🔄 <b>Ссылка подписки</b> (авто-обновление):\n"
+                    f"<code>{sub_url}</code>"
+                )
+        else:
+            text = (
+                "✅ <b>Профиль создан!</b>\n\n"
+                "Нажмите <b>🔗 Мои ссылки</b> для получения ключей."
             )
 
-            await message.answer(text, reply_markup=builder.as_markup())
-        else:
-            await message.answer("❌ <b>Ошибка при обновлении подписки.</b> Напишите в поддержку.")
-    except Exception as e:
-        logger.error(f"Error in process_successful_payment: {e}")
-        await message.answer("❌ <b>Произошла критическая ошибка.</b>")
+        await callback.message.edit_text(text, reply_markup=_apps_keyboard())
 
-@dp.message(Command("status"))
-async def cmd_status(message: types.Message):
-    token = await marzban.get_token()
-    user_data = db.get_user(message.from_user.id)
-    
-    status_text = "<b>✅ Связь с сервером:</b> OK\n" if token else "<b>❌ Связь с сервером:</b> Error\n"
+    except Exception as e:
+        logger.error("Registration error: %s", e)
+        await callback.message.edit_text(
+            "❌ <b>Произошла ошибка.</b> Попробуйте ещё раз.",
+            reply_markup=_main_keyboard(),
+        )
+
+
+# ── Мои ссылки ────────────────────────────────────────────────
+
+
+@dp.callback_query(F.data == "my_links")
+async def cb_my_links(callback: types.CallbackQuery):
+    """Показать все VPN-ссылки пользователя."""
+    email = _email_from_tg(callback.from_user)
+
+    links_data = await panel.get_links(email)
+    if not links_data:
+        await callback.answer(
+            "❌ Профиль не найден. Нажмите «Получить VPN» сначала.",
+            show_alert=True,
+        )
+        return
+
+    text = "<b>🔗 Ваши VPN-ссылки:</b>\n\n"
+
+    labels = {
+        "vless_reality": "🔌 VLESS Direct",
+        "vless_xhttp": "🕵️ VLESS xHTTP",
+        "vless_grpc": "📡 VLESS gRPC",
+        "shadow_tls": "🔐 Shadow-TLS",
+        "tuic": "⚡ TUIC",
+        "hysteria2": "🚀 Hysteria2",
+    }
+
+    for key, label in labels.items():
+        link = links_data.get(key, "")
+        if link:
+            text += f"<b>{label}:</b>\n<code>{link}</code>\n\n"
+
+    await callback.message.edit_text(
+        text,
+        reply_markup=_apps_keyboard(),
+    )
+
+
+# ── Статус ────────────────────────────────────────────────────
+
+
+@dp.callback_query(F.data == "status")
+async def cb_status(callback: types.CallbackQuery):
+    """Статус подписки и подключения."""
+    email = _email_from_tg(callback.from_user)
+
+    # Проверяем связь с панелью
+    health = await panel.health()
+    panel_ok = health and health.get("status") == "online"
+    xray_ok = health.get("xray_connected", False) if health else False
+
+    text = "<b>📊 Статус:</b>\n\n"
+    text += f"🖥 Панель: {'✅ Онлайн' if panel_ok else '❌ Оффлайн'}\n"
+    text += f"🛡 VPN-сервер: {'✅ Работает' if xray_ok else '❌ Недоступен'}\n\n"
+
+    # Проверяем подписку
+    user_data = db.get_user(callback.from_user.id)
     if user_data and user_data[2]:
-        status_text += f"📅 <b>Подписка до:</b> {user_data[2]}"
+        text += f"📅 <b>Подписка до:</b> {user_data[2]}\n"
     else:
-        status_text += "🔴 <b>Подписка не активна</b>"
-        
-    await message.answer(status_text)
+        text += "🔴 <b>Подписка не активна</b>\n"
+
+    # Проверяем IP
+    ips_data = await panel.get_user_ips(email)
+    if ips_data:
+        count = ips_data.get("count", 0)
+        limit = ips_data.get("ip_limit", 2)
+        text += f"📱 <b>Устройства:</b> {count}/{limit}\n"
+
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        types.InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")
+    )
+    await callback.message.edit_text(text, reply_markup=builder.as_markup())
+    await callback.answer()
+
+
+# ── Запуск ────────────────────────────────────────────────────
+
 
 async def main():
-    logger.info("Starting bot...")
+    logger.info("🤖 VPN Bot starting...")
     await dp.start_polling(bot)
+
 
 if __name__ == "__main__":
     try:
