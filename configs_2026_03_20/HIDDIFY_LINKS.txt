@@ -2,6 +2,6 @@ vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:443?encryption=none&sec
 vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:10443?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&flow=xtls-rprx-vision#🔌-VLESS-Direct
 shadow-tls://ShadowPassword2026@37.1.212.51:443?sni=taxi.yandex.ru&version=3#🔐-ShadowTLS-v3
 tuic://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed:eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:20443?congestion_control=bbr&sni=taxi.yandex.ru&alpn=h3&insecure=1#⚡-TUIC-v5
-hysteria2://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:443?sni=taxi.yandex.ru&insecure=1#🚀-Hysteria2
+hysteria2://HysteriaPassword2026@37.1.212.51:10443?sni=www.microsoft.com&insecure=1#🚀-Hysteria2
 
 SUBSCRIPTION_URL: http://37.1.212.51/configs/sub.txt

@@ -12,6 +12,7 @@
 **2. Резервные прямые ссылки (Добавить из буфера)**
 - `shadow-tls://ShadowPassword2026@37.1.212.51:443?sni=taxi.yandex.ru&version=3#🔐-ShadowTLS-v3`
 - `tuic://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed:eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:20443?congestion_control=bbr&sni=taxi.yandex.ru&alpn=h3&insecure=1#⚡-TUIC-v5`
+- `hysteria2://HysteriaPassword2026@37.1.212.51:10443?sni=www.microsoft.com&insecure=1#🚀-Hysteria2`
 - `vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:10443?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&flow=xtls-rprx-vision#🔌-VLESS-Direct`
 
 ---
@@ -32,7 +33,7 @@
         "jc": "4", "jmax": "70", "jmin": "40",
         "mtu": "1280",
         "private_key": "EJNiKCiAmXsQ8kzfhg48uzRaYE5axjzRo0i+MNi5FUY=",
-        "public_key": "M6dhItaSN2LYHnFKMgU6v2dNv9BomzFFDFPwiHUwpGo=",
+        "public_key": "+K1x0KsIzca4NniWr6wBqYZl6gCi+D4x989Sf7zP9AQ=",
         "s1": "5", "s2": "10"
       }
     }
