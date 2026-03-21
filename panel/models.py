@@ -31,6 +31,9 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = Field(None, description="Активность подписки")
     description: Optional[str] = Field(None, description="Заметка о пользователе")
     expire_days: Optional[int] = Field(None, ge=1, description="Добавить N дней к сроку действия")
+    phone: Optional[str] = Field(None, description="Номер телефона пользователя")
+    total_gb: Optional[float] = Field(None, ge=0, description="Лимит трафика в Гб")
+    used_gb: Optional[float] = Field(None, ge=0, description="Использованный трафик в Гб")
 
 
 class UserResponse(BaseModel):
@@ -43,6 +46,9 @@ class UserResponse(BaseModel):
     expires_at: Optional[str]
     is_active: bool
     sub_token: str
+    phone: Optional[str] = None
+    total_gb: float = 0
+    used_gb: float = 0
 
 
 class SubscriptionLinks(BaseModel):

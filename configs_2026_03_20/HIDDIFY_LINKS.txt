@@ -1,9 +1,21 @@
-vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:443?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&flow=xtls-rprx-vision#🚀-VLESS-Main
-vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:10443?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&flow=xtls-rprx-vision#🔌-VLESS-Direct
-shadow-tls://ShadowPassword2026@37.1.212.51:443?sni=taxi.yandex.ru&version=3#🔐-ShadowTLS-v3
-tuic://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed:eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:20443?congestion_control=bbr&sni=taxi.yandex.ru&alpn=h3&insecure=1#⚡-TUIC-v5
-hysteria2://HysteriaPassword2026@37.1.212.51:10443?sni=www.microsoft.com&insecure=1#🚀-Hysteria2
-vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:8444?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&type=xhttp&mode=packet-up&path=/secretpath2026#🕵️-VLESS-xHTTP(Stealth)
-vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:18443?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&type=grpc&serviceName=grpc#📡-VLESS-gRPC(Stealth)
+# 👑 АКТУАЛЬНЫЕ ССЫЛКИ ДЛЯ HIDDIFY (МАРТ 2026)
+# Сервер: 37.1.212.51
 
-SUBSCRIPTION_URL: http://37.1.212.51/configs/sub.txt
+## ОСНОВНОЕ (Shadow-TLS v3)
+# Самая сильная маскировка. Порт 443.
+# Пароль: SecureShadow2026V3
+shadow-tls://SecureShadow2026V3@37.1.212.51:443?sni=taxi.yandex.ru&version=3#🔐-VLESS-Main(ShadowTLS)
+
+## ПРЯМОЕ (Reality Direct)
+vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:10443?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&flow=xtls-rprx-vision#🔌-VLESS-Direct
+
+## СКРЫТНОЕ (xHTTP / gRPC)
+vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:10444?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&type=xhttp&mode=packet-up&path=/secretpath2026#🕵️-VLESS-xHTTP
+vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:18443?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&type=grpc&serviceName=grpc#📡-VLESS-gRPC
+
+## СКОРОСТНОЕ (TUIC / Hysteria)
+tuic://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed:eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:30445?congestion_control=bbr&sni=taxi.yandex.ru&alpn=h3&insecure=1#⚡-TUIC-v5
+hysteria2://HysteriaPassword2026@37.1.212.51:10443?sni=www.microsoft.com&insecure=1#🚀-Hysteria2
+
+## ПОДПИСКА (ALL-IN-ONE)
+http://37.1.212.51/configs/sub.txt

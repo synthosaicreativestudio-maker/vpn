@@ -34,10 +34,20 @@ class PanelDB:
                     created_at  TEXT NOT NULL,
                     expires_at  TEXT,
                     description TEXT,
-                    is_active   INTEGER DEFAULT 1
+                    is_active   INTEGER DEFAULT 1,
+                    phone       TEXT,
+                    total_gb    REAL DEFAULT 0,
+                    used_gb     REAL DEFAULT 0
                 )
                 """
             )
+            # Авто-миграция для существующих баз
+            try:
+                conn.execute("ALTER TABLE users ADD COLUMN phone TEXT")
+                conn.execute("ALTER TABLE users ADD COLUMN total_gb REAL DEFAULT 0")
+                conn.execute("ALTER TABLE users ADD COLUMN used_gb REAL DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass  # Колонки уже есть
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS ip_log (
@@ -115,7 +125,7 @@ class PanelDB:
 
     def update_user(self, email: str, **fields) -> Optional[dict]:
         """Обновить произвольные поля пользователя."""
-        allowed = {"ip_limit", "expires_at", "is_active", "description"}
+        allowed = {"ip_limit", "expires_at", "is_active", "description", "phone", "total_gb", "used_gb"}
         updates = {k: v for k, v in fields.items() if k in allowed}
         if not updates:
             return self.get_user(email)
@@ -131,27 +141,46 @@ class PanelDB:
     def get_users_with_tg_info(self, bot_db_path: str) -> list[dict]:
         """Список всех пользователей с Telegram-данными из ботовой БД."""
         users = self.list_users()
+        # Строим словарь tg_id -> {username, phone, ...} из ботовой БД
         tg_map: dict = {}
         try:
             import sqlite3 as _sqlite3
             bot_conn = _sqlite3.connect(bot_db_path)
             bot_conn.row_factory = _sqlite3.Row
             rows = bot_conn.execute(
-                "SELECT tg_id, username FROM users"
+                "SELECT tg_id, username, phone FROM users"
             ).fetchall()
             bot_conn.close()
             for row in rows:
                 tg_map[str(row["tg_id"])] = {
                     "tg_id": row["tg_id"],
                     "tg_username": row["username"] or "",
+                    "tg_phone": row.get("phone") or "",
                 }
         except Exception:
             logger.warning("Bot DB not accessible at %s", bot_db_path)
 
+        # Объединяем: email = "tg_{tg_id}"
         result = []
         for u in users:
             tg_id = u["email"].removeprefix("tg_")
-            tg_info = tg_map.get(tg_id, {"tg_id": None, "tg_username": ""})
+            tg_info = tg_map.get(tg_id, {"tg_id": None, "tg_username": "", "tg_phone": ""})
+            
+            # Фоллбек: если нет данных в ботовой БД, пробуем вытянуть из description
+            desc = u.get("description") or ""
+            if not tg_info["tg_username"] and "@" in desc:
+                import re
+                match = re.search(r"@(\w+)", desc)
+                if match:
+                    tg_info["tg_username"] = match.group(1)
+            
+            # Если tg_id всё ещё нет, но email начинается на tg_, восстанавливаем tg_id
+            if not tg_info["tg_id"] and u["email"].startswith("tg_"):
+                try:
+                    tg_info["tg_id"] = int(tg_id)
+                except ValueError:
+                    pass
+
             result.append({**u, **tg_info})
         return result
 

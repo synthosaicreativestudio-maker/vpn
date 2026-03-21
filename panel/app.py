@@ -270,6 +270,9 @@ async def create_user(request: Request, data: UserCreate):
         expires_at=user.get("expires_at"),
         is_active=bool(user["is_active"]),
         sub_token=user["sub_token"],
+        phone=user.get("phone"),
+        total_gb=user.get("total_gb") or 0.0,
+        used_gb=user.get("used_gb") or 0.0,
     )
 
 
@@ -393,6 +396,12 @@ async def update_user(email: str, data: UserUpdate):
         fields["description"] = data.description
     if data.expires_at is not None:
         fields["expires_at"] = data.expires_at
+    if data.phone is not None:
+        fields["phone"] = data.phone
+    if data.total_gb is not None:
+        fields["total_gb"] = data.total_gb
+    if data.used_gb is not None:
+        fields["used_gb"] = data.used_gb
     if data.expire_days is not None:
         # Продлить от текущего expires_at или от сегодня
         base = user.get("expires_at")
@@ -420,6 +429,9 @@ async def update_user(email: str, data: UserUpdate):
         expires_at=updated.get("expires_at"),
         is_active=bool(updated["is_active"]),
         sub_token=updated["sub_token"],
+        phone=updated.get("phone"),
+        total_gb=updated.get("total_gb") or 0.0,
+        used_gb=updated.get("used_gb") or 0.0,
     )
 
 

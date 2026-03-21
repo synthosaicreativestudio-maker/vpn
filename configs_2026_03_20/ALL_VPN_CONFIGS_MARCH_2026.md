@@ -1,54 +1,35 @@
-# 📖 Главная Книга Конфигураций (Март 2026) — АКТУАЛЬНО 🚀
+# 📖 Главная Книга Конфигураций (Март 2026) — ФИНАЛЬНАЯ СИНХРОНИЗАЦИЯ 🚀
 
-В этом документе собраны все финальные и проверенные ссылки для вашего мощного VPN.
-
----
-
-## 📱 Ссылки для Hiddify / Happ (Лучший выбор)
-
-**1. Автоматическая подписка (New Subscription)**
-`http://37.1.212.51/configs/sub.txt`
-
-**2. Резервные прямые ссылки (Добавить из буфера)**
-- `shadow-tls://ShadowPassword2026@37.1.212.51:443?sni=taxi.yandex.ru&version=3#🔐-ShadowTLS-v3`
-- `tuic://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed:eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:20443?congestion_control=bbr&sni=taxi.yandex.ru&alpn=h3&insecure=1#⚡-TUIC-v5`
-- `hysteria2://HysteriaPassword2026@37.1.212.51:10443?sni=www.microsoft.com&insecure=1#🚀-Hysteria2`
-- `vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:10443?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&flow=xtls-rprx-vision#🔌-VLESS-Direct`
-- `vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:8444?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&type=xhttp&mode=packet-up&path=/secretpath2026#🕵️-VLESS-xHTTP(Stealth)`
-- `vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:18443?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&type=grpc&serviceName=grpc#📡-VLESS-gRPC(Stealth)`
+В этом документе — результат глубокой отладки сети. Все порты разведены и проверены.
 
 ---
 
-## 🛡️ Конфиги для Amnezia App
+## 📱 Ссылки для Hiddify / Happ (Актуальные порты)
 
-**1. Протокол AmneziaWG (через "Добавить через JSON")**
-```json
-{
-  "containers": [
-    {
-      "container": "amnezia-awg",
-      "port": "30443",
-      "protocol": "awg",
-      "settings": {
-        "address": "10.0.0.2",
-        "h1": "1", "h2": "2", "h3": "3", "h4": "4",
-        "jc": "4", "jmax": "70", "jmin": "40",
-        "mtu": "1280",
-        "private_key": "EJNiKCiAmXsQ8kzfhg48uzRaYE5axjzRo0i+MNi5FUY=",
-        "public_key": "+K1x0KsIzca4NniWr6wBqYZl6gCi+D4x989Sf7zP9AQ=",
-        "s1": "5", "s2": "10"
-      }
-    }
-  ],
-  "host": "37.1.212.51"
-}
-```
+**1. Автоматическая подписка**
+# 🗺 Карта VPN Конфигураций (Март 2026 — Финал)
 
-**2. VLESS ссылки для Amnezia**
-- `vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:443?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&flow=xtls-rprx-vision#🚀-Amnezia-VLESS-Reality`
+Все службы переведены на **независимую (decoupled)** архитектуру для 100% стабильности.
+
+## 🟢 Активные Протоколы
+
+| Протокол | Порт | Маскировка (SNI) | Особенности |
+| :--- | :--- | :--- | :--- |
+| **Shadow-TLS v3** | 443 (TCP) | taxi.yandex.ru | Премиум маскировка (Pass: `SecureShadow2026V3`) |
+| **VLESS-Vision** | 10443 (TCP) | taxi.yandex.ru | Прямое Reality соединение |
+| **VLESS-xHTTP** | 10444 (TCP) | taxi.yandex.ru | Обход DPI (Path: `/secretpath2026`) |
+| **VLESS-gRPC** | 18443 (TCP) | taxi.yandex.ru | Для мобильных сетей |
+| **TUIC v5** | 30445 (UDP) | taxi.yandex.ru | Высокая скорость, низкий пинг |
+| **Hysteria2** | 10443 (UDP) | microsoft.com | Протокол на базе QUIC |
+| **AmneziaWG** | 30443 (UDP) | - | Кастомный WireGuard |
+
+## 🔗 Основные Ссылки
+
+### 📱 Hiddify / Happ
+- **Подписка**: `http://37.1.212.51/configs/sub.txt`
+- **Файл со списком**: [HIDDIFY_LINKS.txt](file:///Users/verakoroleva/Desktop/vpn/configs_2026_03_20/HIDDIFY_LINKS.txt)
 
 ---
-
-## 🌐 Полезные ресурсы
-- **CDN-Bridge (Cloudflare)**: [Инструкция в walkthrough.md](file:///Users/verakoroleva/.gemini/antigravity/brain/07f89542-f909-4444-af27-57fb61c56ba2/walkthrough.md)
-- **Статус сервера**: `http://37.1.212.51:8080` (Marzban Dashboard)
+*Статус: Проверено. Все порты LISTEN. Конфликты устранены.*
+## 🛡️ Amnezia App Status
+- **AmneziaWG**: Порт **30443** (UDP). Проверьте файл [AMNEZIA_CONFIG.txt](file:///Users/verakoroleva/Desktop/vpn/configs_2026_03_20/AMNEZIA_CONFIG.txt).
