@@ -137,29 +137,21 @@ async def cb_register(callback: types.CallbackQuery):
             user_data = db.get_user(user.id)
             sub_url = user_data[3] if user_data and user_data[3] else ""
 
-        # Получаем ссылки (гарантированно есть для обоих случаев)
-        links_data = result if "vless_reality" in result else await panel.get_links(email)
-
-        if links_data:
-            vless_link = links_data.get("vless_reality", "")
+        if sub_url:
             text = (
-                "✅ <b>Ваш VPN-профиль готов!</b>\n\n"
+                "✅ <b>Ваш VPN готов!</b>\n\n"
                 "<b>📱 Инструкция:</b>\n"
-                "1. Установите приложение Hiddify (кнопки ниже)\n"
+                "1. Установите Hiddify (кнопки ниже)\n"
                 "2. Скопируйте ссылку ниже\n"
-                "3. В Hiddify нажмите <b>+</b> → <b>Добавить из буфера</b>\n\n"
-                "👇 <b>Ваш ключ (нажмите чтобы скопировать):</b>\n"
-                f"<code>{vless_link}</code>\n\n"
+                "3. В Hiddify: <b>+</b> → <b>Добавить из буфера</b>\n\n"
+                "👇 <b>Ваша ссылка (нажмите чтобы скопировать):</b>\n"
+                f"<code>{sub_url}</code>"
             )
-            if sub_url:
-                text += (
-                    "🔄 <b>Ссылка подписки</b> (авто-обновление):\n"
-                    f"<code>{sub_url}</code>"
-                )
         else:
             text = (
                 "✅ <b>Профиль создан!</b>\n\n"
-                "Нажмите <b>🔗 Мои ссылки</b> для получения ключей."
+                "Не удалось получить ссылку подписки. "
+                "Попробуйте позже или напишите в поддержку."
             )
 
         await callback.message.edit_text(text, reply_markup=_apps_keyboard())
@@ -177,31 +169,22 @@ async def cb_register(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data == "my_links")
 async def cb_my_links(callback: types.CallbackQuery):
-    """Показать все VPN-ссылки пользователя."""
-    email = _email_from_tg(callback.from_user)
+    """Показать ссылку подписки пользователя."""
+    user_data = db.get_user(callback.from_user.id)
+    sub_url = user_data[3] if user_data and user_data[3] else None
 
-    links_data = await panel.get_links(email)
-    if not links_data:
+    if not sub_url:
         await callback.answer(
             "❌ Профиль не найден. Нажмите «Получить VPN» сначала.",
             show_alert=True,
         )
         return
 
-    text = "<b>🔗 Ваши VPN-ссылки:</b>\n\n"
-
-    labels = {
-        "vless_reality": "🔌 VLESS Vision",
-        "vless_xhttp": "🕵️ VLESS xHTTP",
-        "vless_grpc": "📡 VLESS gRPC",
-        "vless_ws": "🌐 VLESS WebSocket",
-        "hysteria2": "🚀 Hysteria2",
-    }
-
-    for key, label in labels.items():
-        link = links_data.get(key, "")
-        if link:
-            text += f"<b>{label}:</b>\n<code>{link}</code>\n\n"
+    text = (
+        "<b>🔗 Ваша ссылка подписки:</b>\n\n"
+        "Скопируйте и добавьте в Hiddify:\n"
+        f"<code>{sub_url}</code>"
+    )
 
     await callback.message.edit_text(
         text,
