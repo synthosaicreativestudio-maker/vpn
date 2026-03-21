@@ -75,9 +75,10 @@ class LinkGenerator:
     @classmethod
     def vless_ws(cls, uuid: str, email: str) -> str:
         """4. VLESS + Reality + WebSocket (порт 2083)."""
+        # WebSocket на этом сервере теперь без Reality для стабильности
         return (
-            cls._vless_base(uuid, PORT_VLESS_WS)
-            + "&type=ws&path=/ws-tunnel"
+            f"vless://{uuid}@{SERVER_IP}:{PORT_VLESS_WS}"
+            f"?encryption=none&security=none&type=ws&path=/ws-tunnel"
             + f"#{quote(f'🌐 {email} (WebSocket)')}"
         )
 
@@ -93,9 +94,10 @@ class LinkGenerator:
     @classmethod
     def vless_h2(cls, uuid: str, email: str) -> str:
         """6. VLESS + Reality + HTTP/2 (порт 2087)."""
+        # H2 на этом сервере теперь без Reality для стабильности
         return (
-            cls._vless_base(uuid, PORT_VLESS_H2)
-            + "&type=http&path=/h2-tunnel"
+            f"vless://{uuid}@{SERVER_IP}:{PORT_VLESS_H2}"
+            f"?encryption=none&security=none&type=http&path=/h2-tunnel"
             + f"#{quote(f'🔒 {email} (H2)')}"
         )
 

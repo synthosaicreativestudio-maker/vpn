@@ -46,8 +46,8 @@ HYSTERIA2_SNI = os.getenv("HYSTERIA2_SNI", "www.microsoft.com")
 INBOUND_TAG_VISION = os.getenv("INBOUND_TAG_VISION", "VLESS-Reality-Vision")
 INBOUND_TAG_XHTTP = os.getenv("INBOUND_TAG_XHTTP", "VLESS-Reality-XHTTP")
 INBOUND_TAG_GRPC = os.getenv("INBOUND_TAG_GRPC", "VLESS-Reality-gRPC")
-INBOUND_TAG_WS = os.getenv("INBOUND_TAG_WS", "VLESS-Reality-WS")
-INBOUND_TAG_H2 = os.getenv("INBOUND_TAG_H2", "VLESS-Reality-H2")
+INBOUND_TAG_WS = os.getenv("INBOUND_TAG_WS", "VLESS-WS")
+INBOUND_TAG_H2 = os.getenv("INBOUND_TAG_H2", "VLESS-H2")
 
 # ── Paths ─────────────────────────────────────────────────────
 XRAY_ACCESS_LOG = os.getenv("XRAY_ACCESS_LOG", "/var/lib/marzban/access.log")

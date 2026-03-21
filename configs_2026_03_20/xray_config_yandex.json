@@ -149,7 +149,7 @@
       }
     },
     {
-      "tag": "VLESS-Reality-WS",
+      "tag": "VLESS-WS",
       "protocol": "vless",
       "listen": "0.0.0.0",
       "port": 2083,
@@ -164,15 +164,6 @@
       },
       "streamSettings": {
         "network": "ws",
-        "security": "reality",
-        "realitySettings": {
-          "show": false,
-          "dest": "www.microsoft.com:443",
-          "xver": 0,
-          "serverNames": ["www.microsoft.com"],
-          "privateKey": "4PjME9JBUmV-Td9rZGS9l0147TXqMJtcU_f2iG-PVxA",
-          "shortIds": ["0123456789abcdef", "00"]
-        },
         "wsSettings": {
           "path": "/ws-tunnel"
         }
@@ -183,7 +174,7 @@
       }
     },
     {
-      "tag": "VLESS-Reality-H2",
+      "tag": "VLESS-H2",
       "protocol": "vless",
       "listen": "0.0.0.0",
       "port": 2087,
@@ -198,18 +189,8 @@
       },
       "streamSettings": {
         "network": "http",
-        "security": "reality",
-        "realitySettings": {
-          "show": false,
-          "dest": "www.microsoft.com:443",
-          "xver": 0,
-          "serverNames": ["www.microsoft.com"],
-          "privateKey": "4PjME9JBUmV-Td9rZGS9l0147TXqMJtcU_f2iG-PVxA",
-          "shortIds": ["0123456789abcdef", "00"]
-        },
         "httpSettings": {
-          "path": "/h2-tunnel",
-          "host": ["www.microsoft.com"]
+          "path": "/h2-tunnel"
         }
       },
       "sniffing": {
