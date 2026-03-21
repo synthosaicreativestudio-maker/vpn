@@ -160,6 +160,29 @@
         "outbound": "block"
       },
       {
+        "domain": [
+          "gemini.google.com",
+          "bard.google.com",
+          "aistudio.google.com",
+          "chatgpt.com",
+          "openai.com",
+          "anthropic.com",
+          "claude.ai"
+        ],
+        "outbound": "proxy"
+      },
+      {
+        "geosite": [
+          "google",
+          "openai",
+          "anthropic",
+          "telegram",
+          "whatsapp",
+          "youtube"
+        ],
+        "outbound": "proxy"
+      },
+      {
         "geosite": [
           "ru",
           "yandex",
