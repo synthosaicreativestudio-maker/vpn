@@ -23,7 +23,6 @@ from fastapi.templating import Jinja2Templates
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
-from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from panel.config import (
     API_KEY,
@@ -95,6 +94,20 @@ def _init_xray_client():
 @asynccontextmanager
 async def lifespan(application: FastAPI):
     _init_xray_client()
+    
+    # Ресинхронизация пользователей при старте
+    if xray_client:
+        try:
+            users = db.list_users()
+            sync_count = 0
+            for u in users:
+                if u.get("is_active"):
+                    xray_client.add_user_all_inbounds(u["email"], u["uuid"], ALL_INBOUND_TAGS)
+                    sync_count += 1
+            logger.info(f"🔄 Resynced {sync_count} active users to Xray memory")
+        except Exception as e:
+            logger.error(f"Failed to resync users: {e}")
+
     ip_task = asyncio.create_task(ip_limiter.start())
     logger.info("🚀 Subscription Manager started (port 8085)")
     yield
