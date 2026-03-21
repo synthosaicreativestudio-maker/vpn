@@ -14,6 +14,8 @@
 - `tuic://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed:eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:20443?congestion_control=bbr&sni=taxi.yandex.ru&alpn=h3&insecure=1#⚡-TUIC-v5`
 - `hysteria2://HysteriaPassword2026@37.1.212.51:10443?sni=www.microsoft.com&insecure=1#🚀-Hysteria2`
 - `vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:10443?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&flow=xtls-rprx-vision#🔌-VLESS-Direct`
+- `vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:8444?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&type=xhttp&mode=packet-up&path=/secretpath2026#🕵️-VLESS-xHTTP(Stealth)`
+- `vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@37.1.212.51:18443?encryption=none&security=reality&sni=taxi.yandex.ru&pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4&fp=chrome&type=grpc&serviceName=grpc#📡-VLESS-gRPC(Stealth)`
 
 ---
 
