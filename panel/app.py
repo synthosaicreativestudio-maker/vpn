@@ -13,8 +13,13 @@ import secrets
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Response, Security, status
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, Security, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security.api_key import APIKeyHeader
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from panel.config import (
     API_KEY,
@@ -24,6 +29,7 @@ from panel.config import (
     INBOUND_TAG_GRPC,
     INBOUND_TAG_VISION,
     INBOUND_TAG_XHTTP,
+    SERVER_IP,
     XRAY_GRPC_HOST,
 )
 from panel.db import PanelDB
@@ -83,12 +89,48 @@ async def lifespan(application: FastAPI):
     logger.info("Subscription Manager stopped")
 
 
+# ── Rate Limiter ──────────────────────────────────────────────
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(
     title="Subscription Manager",
     description="Панель управления VPN-подписками через Xray gRPC",
     version="2026.1.0",
     lifespan=lifespan,
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# ── Middleware Stack (OWASP API Top 10) ───────────────────────
+
+# 1. CORS — только доверенные источники
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[f"https://{SERVER_IP}", "https://localhost"],
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=[API_KEY_HEADER],
+)
+
+# 2. TrustedHost — защита от Host Header Injection
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=[SERVER_IP, "localhost", "127.0.0.1"],
+)
+
+
+# 3. Security Headers
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Добавляет security headers ко всем ответам."""
+    response = await call_next(request)
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), camera=()"
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 # ── Security ──────────────────────────────────────────────────
 api_key_header = APIKeyHeader(name=API_KEY_HEADER, auto_error=False)
@@ -109,7 +151,8 @@ async def verify_api_key(
 
 
 @app.get("/health", response_model=HealthResponse)
-async def health_check():
+@limiter.limit("30/minute")
+async def health_check(request: Request):
     """Статус сервиса и подключения к Xray."""
     connected = False
     if xray_client:
@@ -140,7 +183,8 @@ async def list_users():
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(verify_api_key)],
 )
-async def create_user(data: UserCreate):
+@limiter.limit("10/minute")
+async def create_user(request: Request, data: UserCreate):
     """Создать нового пользователя и добавить во все inbound'ы Xray."""
     # Проверка уникальности
     if db.get_user(data.email):
@@ -185,7 +229,8 @@ async def create_user(data: UserCreate):
 
 
 @app.delete("/users/{email}", dependencies=[Depends(verify_api_key)])
-async def delete_user(email: str):
+@limiter.limit("10/minute")
+async def delete_user(request: Request, email: str):
     """Удалить пользователя из Xray и БД."""
     user = db.get_user(email)
     if not user:
@@ -221,7 +266,8 @@ async def get_user_links(email: str):
 
 
 @app.get("/sub/{token}")
-async def subscription_endpoint(token: str):
+@limiter.limit("30/minute")
+async def subscription_endpoint(request: Request, token: str):
     """Публичный endpoint подписки (без API key).
 
     Клиент (Hiddify/Happ) использует этот URL для автоматического
