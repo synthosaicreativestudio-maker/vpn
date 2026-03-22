@@ -63,6 +63,10 @@ def _apps_keyboard() -> types.InlineKeyboardMarkup:
         types.InlineKeyboardButton(text="👽 Happ (Android)", url="https://play.google.com/store/apps/details?id=com.happ.proxy")
     )
     builder.row(
+        types.InlineKeyboardButton(text="🛡 Amnezia (iOS)", url="https://apps.apple.com/app/amneziavpn/id1600529900"),
+        types.InlineKeyboardButton(text="🤖 Amnezia (Android)", url="https://play.google.com/store/apps/details?id=org.amnezia.vpn")
+    )
+    builder.row(
         types.InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")
     )
     return builder.as_markup()
@@ -139,21 +143,24 @@ async def cb_register(callback: types.CallbackQuery):
 
         if sub_url:
             sub_url_happ = sub_url.replace(f"{PANEL_PUBLIC_URL}/sub/", "https://37.1.212.51.sslip.io:8086/sub/happ/")
-            sub_url_amnezia_sub = sub_url.replace(f"{PANEL_PUBLIC_URL}/sub/", "https://37.1.212.51.sslip.io:8086/sub/amnezia/")
             text = (
                 "✅ <b>Ваш VPN готов!</b>\n\n"
                 "<b>📱 Инструкция:</b>\n"
                 "Скопируйте нужную ссылку ниже и добавьте её в приложение (обычно через <b>+</b> → <b>Добавить из буфера</b>).\n\n"
                 "🤖/🍏 <b>Для Hiddify:</b>\n"
-                f"<pre>{sub_url}</pre>\n\n"
-                "🍏 <b>Для Happ (iPhone/iPad):</b>\n"
-                f"<pre>{sub_url_happ}</pre>\n\n"
+                "1️⃣ <i>Авто-подписка (HTTP):</i>\n"
+                f"<pre>{sub_url}</pre>\n"
+                "2️⃣ <i>Прямая ссылка (VLESS xHTTP):</i>\n"
+                f"<pre>{vless_reality}</pre>\n\n"
+                "🍏/👽 <b>Для Happ:</b>\n"
+                "1️⃣ <i>Авто-подписка (HTTPS):</i>\n"
+                f"<pre>{sub_url_happ}</pre>\n"
+                "2️⃣ <i>Прямая ссылка (VLESS xHTTP):</i>\n"
+                f"<pre>{vless_reality}</pre>\n\n"
                 "🛡 <b>Для AmneziaVPN:</b>\n"
-                "1️⃣ <i>Авто-подписка (VLESS HTTPS):</i>\n"
-                f"<pre>{sub_url_amnezia_sub}</pre>\n"
-                "2️⃣ <i>Прямая ссылка (VLESS Reality):</i>\n"
+                "1️⃣ <i>Прямая ссылка (VLESS Vision):</i>\n"
                 f"<pre>{vless_reality}</pre>\n"
-                "3️⃣ <i>Через AmneziaWG (Стабильный запасной):</i>\n"
+                "2️⃣ <i>Конфиг JSON (AmneziaWG):</i>\n"
                 f"<pre>{AMNEZIA_VPN_LINK}</pre>"
             )
         else:
@@ -194,20 +201,23 @@ async def cb_my_links(callback: types.CallbackQuery):
     vless_reality = links.get("vless_reality", "") if links else ""
 
     sub_url_happ = sub_url.replace(f"{PANEL_PUBLIC_URL}/sub/", "https://37.1.212.51.sslip.io:8086/sub/happ/")
-    sub_url_amnezia_sub = sub_url.replace(f"{PANEL_PUBLIC_URL}/sub/", "https://37.1.212.51.sslip.io:8086/sub/amnezia/")
     text = (
         "<b>🔗 Ваши ссылки подписки:</b>\n\n"
         "Скопируйте нужную ссылку для вашего приложения:\n\n"
         "🤖/🍏 <b>Для Hiddify:</b>\n"
-        f"<pre>{sub_url}</pre>\n\n"
-        "🍏 <b>Для Happ (iPhone/iPad):</b>\n"
-        f"<pre>{sub_url_happ}</pre>\n\n"
+        "1️⃣ <i>Авто-подписка (HTTP):</i>\n"
+        f"<pre>{sub_url}</pre>\n"
+        "2️⃣ <i>Прямая ссылка (VLESS xHTTP):</i>\n"
+        f"<pre>{vless_reality}</pre>\n\n"
+        "🍏/👽 <b>Для Happ:</b>\n"
+        "1️⃣ <i>Авто-подписка (HTTPS):</i>\n"
+        f"<pre>{sub_url_happ}</pre>\n"
+        "2️⃣ <i>Прямая ссылка (VLESS xHTTP):</i>\n"
+        f"<pre>{vless_reality}</pre>\n\n"
         "🛡 <b>Для AmneziaVPN:</b>\n"
-        "1️⃣ <i>Авто-подписка (VLESS HTTPS):</i>\n"
-        f"<pre>{sub_url_amnezia_sub}</pre>\n"
-        "2️⃣ <i>Прямая ссылка (VLESS Reality):</i>\n"
+        "1️⃣ <i>Прямая ссылка (VLESS Vision):</i>\n"
         f"<pre>{vless_reality}</pre>\n"
-        "3️⃣ <i>Через AmneziaWG (Стабильный запасной):</i>\n"
+        "2️⃣ <i>Конфиг JSON (AmneziaWG):</i>\n"
         f"<pre>{AMNEZIA_VPN_LINK}</pre>"
     )
 
