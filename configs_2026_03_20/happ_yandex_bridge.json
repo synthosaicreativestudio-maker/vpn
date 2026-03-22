@@ -1,0 +1,53 @@
+{
+  "log": { "level": "warn", "timestamp": true },
+  "dns": {
+    "servers": [
+      { "tag": "google-dns", "address": "https://8.8.8.8/dns-query", "detour": "proxy" },
+      { "tag": "local-dns", "address": "local", "detour": "direct" }
+    ],
+    "rules": [
+      { "outbound": "any", "server": "local-dns" },
+      { "geosite": ["ru", "yandex", "vk"], "server": "local-dns" }
+    ],
+    "final": "google-dns",
+    "strategy": "ipv4_only"
+  },
+  "inbounds": [
+    {
+      "type": "tun",
+      "inet4_address": "172.19.0.1/30",
+      "auto_route": true,
+      "strict_route": true,
+      "mtu": 1280,
+      "sniff": true
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "vless",
+      "tag": "proxy",
+      "server": "213.165.208.217",
+      "server_port": 8881,
+      "uuid": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
+      "transport": {
+        "type": "ws",
+        "path": "/ya-bridge-ws",
+        "headers": {
+          "Host": "37.1.212.51.sslip.io"
+        }
+      }
+    },
+    { "type": "direct", "tag": "direct" },
+    { "type": "block", "tag": "block" },
+    { "type": "dns", "tag": "dns-out" }
+  ],
+  "route": {
+    "rules": [
+      { "protocol": "dns", "outbound": "dns-out" },
+      { "geosite": ["ru", "yandex", "vk"], "outbound": "direct" },
+      { "geoip": ["ru", "private"], "outbound": "direct" }
+    ],
+    "auto_detect_interface": true,
+    "final": "proxy"
+  }
+}
