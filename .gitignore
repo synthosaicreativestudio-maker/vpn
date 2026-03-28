@@ -1,7 +1,7 @@
 # ── Secrets ────────────────────────────────────────────────────
 panel/.env
-ALL_CREDENTIALS.md
-YANDEX_VM_CREDENTIALS.md
+docs/CREDENTIALS.md
+docs/YANDEX_VM_CREDENTIALS.md
 
 # ── Database ──────────────────────────────────────────────────
 panel/data/
@@ -21,5 +21,6 @@ panel/proto/*_pb2*.py
 .DS_Store
 $DB_PATH
 *.log
-bot.log
+*.png
 ssh-key-1770366966512/
+
