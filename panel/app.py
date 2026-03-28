@@ -331,8 +331,6 @@ async def get_user_links(email: str):
     return SubscriptionLinks(
         email=email,
         sub_url=f"http://{SERVER_IP}:8085/sub/{user['sub_token']}",
-        sub_hiddify=f"http://{SERVER_IP}:8085/sub/hiddify/{user['sub_token']}",
-        sub_happ=f"http://{SERVER_IP}:8085/sub/happ/{user['sub_token']}",
         **links,
         all_links=list(links.values()),
     )
@@ -341,15 +339,15 @@ async def get_user_links(email: str):
 @app.get(
     "/sub/{token}",
     tags=["Подписки"],
-    summary="Публичная подписка (универсальная)",
-    description="Все ссылки включая Yandex Bridge для любого клиента",
+    summary="Публичная подписка",
+    description="Текстовый список ссылок для Hiddify/Happ (без ключа API)",
 )
 @limiter.limit("30/minute")
 async def subscription_endpoint(request: Request, token: str):
-    """Универсальный endpoint подписки (без API key).
+    """Публичный endpoint подписки (без API key).
 
-    Содержит все ссылки: VLESS, Hysteria2, Yandex Bridge.
-    Совместим с Hiddify, Happ и другими клиентами.
+    Клиент (Hiddify/Happ) использует этот URL для автоматического
+    обновления конфигурации.
     """
     import base64
 
@@ -377,57 +375,14 @@ async def subscription_endpoint(request: Request, token: str):
 
 
 @app.get(
-    "/sub/hiddify/{token}",
-    tags=["Подписки"],
-    summary="Подписка для Hiddify",
-    description="Оптимизированный набор ссылок для Hiddify (все протоколы + Yandex Bridge)",
-)
-@limiter.limit("30/minute")
-async def subscription_hiddify_endpoint(request: Request, token: str):
-    """Подписка оптимизированная для Hiddify.
-
-    Включает все протоколы: VLESS Vision, xHTTP, gRPC, WS, Hysteria2,
-    и Yandex Bridge (xHTTP + WS).
-    """
-    import base64
-
-    user = db.get_user_by_token(token)
-    if not user:
-        raise HTTPException(status_code=404, detail="Subscription not found")
-
-    if not user["is_active"]:
-        raise HTTPException(status_code=403, detail="Subscription expired")
-
-    text = LinkGenerator.subscription_text_hiddify(user["uuid"], user["email"])
-    profile_title = base64.b64encode(
-        f"🛡 Hiddify VPN {user['email']}".encode()
-    ).decode()
-    return Response(
-        content=text,
-        media_type="text/plain",
-        headers={
-            "Content-Disposition": f'attachment; filename="{user["email"]}_hiddify.txt"',
-            "Profile-Title": profile_title,
-            "Profile-Update-Interval": "12",
-            "Subscription-UserInfo": "upload=0; download=0; total=0; expire=0",
-        },
-    )
-
-
-@app.get(
     "/sub/happ/{token}",
     tags=["Подписки"],
     summary="Подписка для Happ (Base64)",
-    description="Оптимизированный набор ссылок для Happ/Sing-Box (без gRPC, Base64)",
+    description="Закодированный в Base64 список ссылок для iOS-клиентов вроде Happ",
 )
 @limiter.limit("30/minute")
 async def subscription_happ_endpoint(request: Request, token: str):
-    """Подписка оптимизированная для Happ (Sing-Box).
-
-    Без gRPC (Happ не поддерживает).
-    Включает Yandex Bridge.
-    Кодировка Base64 для совместимости.
-    """
+    """Специальный endpoint для Happ (Sing-Box), требующего Base64 формат."""
     import base64
 
     user = db.get_user_by_token(token)
@@ -437,13 +392,13 @@ async def subscription_happ_endpoint(request: Request, token: str):
     if not user["is_active"]:
         raise HTTPException(status_code=403, detail="Subscription expired")
 
-    text = LinkGenerator.subscription_text_happ(user["uuid"], user["email"])
+    text = LinkGenerator.subscription_text(user["uuid"], user["email"])
     b64_text = base64.b64encode(text.encode("utf-8")).decode("utf-8")
-
+    
     profile_title = base64.b64encode(
         f"🛡 Happ VPN {user['email']}".encode()
     ).decode()
-
+    
     return Response(
         content=b64_text,
         media_type="text/plain",
@@ -451,7 +406,6 @@ async def subscription_happ_endpoint(request: Request, token: str):
             "Content-Disposition": f'attachment; filename="{user["email"]}_happ.txt"',
             "Profile-Title": profile_title,
             "Profile-Update-Interval": "12",
-            "Subscription-UserInfo": "upload=0; download=0; total=0; expire=0",
         },
     )
 

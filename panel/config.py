@@ -29,14 +29,6 @@ PORT_VLESS_WS = int(os.getenv("PORT_VLESS_WS", "2083"))
 # Standalone Hysteria2 (UDP/QUIC)
 PORT_HYSTERIA2 = int(os.getenv("PORT_HYSTERIA2", "10443"))
 
-# ── Yandex Bridge ─────────────────────────────────────────────
-YANDEX_VM_IP = os.getenv("YANDEX_VM_IP", "213.165.208.217")
-PORT_YANDEX_BRIDGE = int(os.getenv("PORT_YANDEX_BRIDGE", "8880"))
-PORT_YANDEX_BRIDGE_WS = int(os.getenv("PORT_YANDEX_BRIDGE_WS", "8881"))
-YANDEX_BRIDGE_PATH = os.getenv("YANDEX_BRIDGE_PATH", "/ya-bridge")
-YANDEX_BRIDGE_WS_PATH = os.getenv("YANDEX_BRIDGE_WS_PATH", "/ya-bridge-ws")
-YANDEX_BRIDGE_HOST = os.getenv("YANDEX_BRIDGE_HOST", "37.1.212.51.sslip.io")
-
 # ── Reality Keys ──────────────────────────────────────────────
 REALITY_PUBLIC_KEY = os.getenv(
     "REALITY_PUBLIC_KEY",
