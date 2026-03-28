@@ -22,3 +22,4 @@ panel/proto/*_pb2*.py
 $DB_PATH
 *.log
 bot.log
+ssh-key-1770366966512/

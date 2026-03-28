@@ -61,6 +61,8 @@ class SubscriptionLinks(BaseModel):
     vless_grpc: str
     vless_ws: str
     hysteria2: str
+    yandex_bridge: str = ""
+    yandex_bridge_ws: str = ""
     all_links: List[str]
 
 

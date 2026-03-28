@@ -6,8 +6,7 @@
       { "tag": "local-dns", "address": "local", "detour": "direct" }
     ],
     "rules": [
-      { "outbound": "any", "server": "local-dns" },
-      { "geosite": ["ru", "yandex", "vk"], "server": "local-dns" }
+      { "outbound": "any", "server": "local-dns" }
     ],
     "final": "google-dns",
     "strategy": "ipv4_only"
@@ -15,7 +14,8 @@
   "inbounds": [
     {
       "type": "tun",
-      "inet4_address": "172.19.0.1/30",
+      "tag": "tun-in",
+      "address": ["172.19.0.1/30"],
       "auto_route": true,
       "strict_route": true,
       "mtu": 1280,
@@ -32,9 +32,7 @@
       "transport": {
         "type": "ws",
         "path": "/ya-bridge-ws",
-        "headers": {
-          "Host": "37.1.212.51.sslip.io"
-        }
+        "headers": { "Host": "37.1.212.51.sslip.io" }
       }
     },
     { "type": "direct", "tag": "direct" },
@@ -44,8 +42,7 @@
   "route": {
     "rules": [
       { "protocol": "dns", "outbound": "dns-out" },
-      { "geosite": ["ru", "yandex", "vk"], "outbound": "direct" },
-      { "geoip": ["ru", "private"], "outbound": "direct" }
+      { "ip_is_private": true, "outbound": "direct" }
     ],
     "auto_detect_interface": true,
     "final": "proxy"

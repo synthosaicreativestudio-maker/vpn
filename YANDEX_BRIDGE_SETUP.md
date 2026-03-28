@@ -1,11 +1,8 @@
-# 🌉 Yandex Bridge VPN — Полная документация
+# 🌉 Yandex Bridge VPN — Документация
 
 > **Статус:** ✅ Работает  
-> **Последнее обновление:** 22.03.2026  
-> **Ссылка для Hiddify:**
-> ```
-> vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@213.165.208.217:8880?encryption=none&security=none&type=xhttp&host=37.1.212.51.sslip.io&path=/ya-bridge#Yandex-VM-Bridge
-> ```
+> **Последнее обновление:** 28.03.2026  
+> **Транспорт на Yandex VM:** nginx stream (заменён socat)
 
 ---
 
@@ -15,16 +12,16 @@
 ┌─────────────┐     ┌───────────────────┐     ┌──────────────────────┐     ┌──────────┐
 │  📱 Телефон │────▶│  🇷🇺 Yandex VM     │────▶│  🇺🇸 US Server        │────▶│ Интернет │
 │  (Hiddify)  │     │  213.165.208.217  │     │  37.1.212.51         │     │          │
-│             │     │  socat :8880      │     │  xray-bridge :8880   │     │          │
+│             │     │  nginx stream     │     │  xray-bridge :8880   │     │          │
 └─────────────┘     └───────────────────┘     └──────────────────────┘     └──────────┘
-     VLESS+xHTTP         TCP-форвард              VLESS→DIRECT
+     VLESS+xHTTP      TCP-форвард (nginx)        VLESS→DIRECT/WARP
 ```
 
 **Принцип работы «Матрёшка»:**
 
 1. **Телефон** подключается к российскому IP Яндекс VM (`213.165.208.217:8880`) по протоколу VLESS+xHTTP
-2. **Yandex VM** (socat) прозрачно перебрасывает TCP-пакеты на US сервер (`37.1.212.51:8880`)
-3. **US сервер** (Docker: `xray-yandex-bridge`) принимает VLESS, расшифровывает и отправляет трафик в интернет напрямую (outbound: `DIRECT`)
+2. **Yandex VM** (nginx stream) прозрачно перебрасывает TCP-пакеты на US сервер (`37.1.212.51:8880`)
+3. **US сервер** (Docker: `xray-yandex-bridge`) принимает VLESS, расшифровывает и отправляет трафик в интернет
 
 **Для мобильного оператора** это выглядит как обычное соединение с российским сервером Яндекса — не блокируется.
 
@@ -36,58 +33,8 @@
 
 **Расположение конфига:** `/opt/yandex-bridge/config.json`  
 **Docker Compose:** `/opt/yandex-bridge/docker-compose.yml`  
-**Порт:** `8880` (TCP)  
-**Режим сети:** `host` (контейнер использует сеть хоста)
-
-#### Конфигурация Xray (`config.json`):
-
-```json
-{
-  "log": { "loglevel": "warning" },
-  "inbounds": [
-    {
-      "tag": "VLESS-Yandex-Bridge",
-      "protocol": "vless",
-      "listen": "0.0.0.0",
-      "port": 8880,
-      "settings": {
-        "clients": [
-          {
-            "id": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
-            "email": "admin-yandex-bridge"
-          }
-        ],
-        "decryption": "none"
-      },
-      "streamSettings": {
-        "network": "xhttp",
-        "xhttpSettings": { "path": "/ya-bridge" }
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": ["http", "tls"]
-      }
-    }
-  ],
-  "outbounds": [
-    { "protocol": "freedom", "tag": "DIRECT" }
-  ]
-}
-```
-
-#### Docker Compose (`docker-compose.yml`):
-
-```yaml
-version: "3"
-services:
-  xray-yandex-bridge:
-    image: ghcr.io/xtls/xray-core:latest
-    container_name: xray-yandex-bridge
-    network_mode: host
-    restart: unless-stopped
-    volumes:
-      - ./config.json:/etc/xray/config.json:ro
-```
+**Порты:** `8880` (xHTTP), `8881` (WebSocket)  
+**Режим сети:** `host`
 
 #### Управление:
 
@@ -100,214 +47,123 @@ docker logs --tail 50 xray-yandex-bridge
 
 # Перезапуск
 docker restart xray-yandex-bridge
-
-# Полная пересборка
-cd /opt/yandex-bridge && docker compose up -d
-```
-
----
-
-### Caddy (reverse proxy для CDN)
-
-**Файл:** `/etc/caddy/Caddyfile`
-
-```caddyfile
-37.1.212.51.sslip.io:8086 {
-    reverse_proxy 127.0.0.1:8085
-}
-
-:80 {
-    handle /ya-bridge* {
-        reverse_proxy 127.0.0.1:8880
-    }
-    handle {
-        respond "OK" 200
-    }
-}
-```
-
-> ⚠️ **КРИТИЧЕСКИ ВАЖНО:** Блок `:80` с маршрутом `/ya-bridge` необходим для работы Yandex CDN. Если Caddyfile перезаписать без этого блока — мост сломается!
-
-#### Управление:
-
-```bash
-# Перезагрузка конфига
-systemctl reload caddy
-
-# Проверка
-curl -I http://127.0.0.1:80/ya-bridge
-# Ожидаемый ответ: 404 Not Found (это нормально — Xray отвечает)
 ```
 
 ---
 
 ## 🖥️ Компонент 2: Yandex VM (213.165.208.217)
 
-### TCP-форвардер `socat`
+### TCP-форвардер: nginx stream (замена socat)
 
-**Задача:** Прозрачно перебрасывать весь TCP-трафик с порта 8880 на US сервер.
+**Конфиг:** В `/etc/nginx/nginx.conf` → блок `stream {}`
 
-```bash
-# Запуск
-sudo nohup socat TCP-LISTEN:8880,fork,reuseaddr TCP:37.1.212.51:8880 &>/dev/null &
+```nginx
+stream {
+    # ... SNI routing для порта 443 ...
 
-# Проверка
-ps aux | grep socat | grep -v grep
-sudo ss -tlnp | grep 8880
-
-# Остановка
-sudo pkill -9 socat
+    # VPN Bridge TCP forwarding
+    upstream us_bridge_xhttp {
+        server 37.1.212.51:8880;
+    }
+    upstream us_bridge_ws {
+        server 37.1.212.51:8881;
+    }
+    server {
+        listen 8880;
+        proxy_pass us_bridge_xhttp;
+        proxy_timeout 300s;
+        proxy_connect_timeout 10s;
+    }
+    server {
+        listen 8881;
+        proxy_pass us_bridge_ws;
+        proxy_timeout 300s;
+        proxy_connect_timeout 10s;
+    }
+}
 ```
 
-> ⚠️ **НЕ использовать `redir`!** Он создаёт тысячи форков и нестабилен. Только `socat`.
-
-#### Автозапуск (systemd сервис):
-
-Для надёжности рекомендуется создать systemd-сервис:
+#### Управление:
 
 ```bash
-sudo cat > /etc/systemd/system/socat-bridge.service << 'EOF'
-[Unit]
-Description=Socat Bridge to US VPN
-After=network.target
+# Проверка конфига
+sudo nginx -t
 
-[Service]
-Type=simple
-ExecStart=/usr/bin/socat TCP-LISTEN:8880,fork,reuseaddr TCP:37.1.212.51:8880
-Restart=always
-RestartSec=3
-LimitNOFILE=65535
+# Перезагрузка
+sudo systemctl reload nginx
 
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable socat-bridge
-sudo systemctl start socat-bridge
+# Проверка портов
+sudo ss -tlnp | grep -E '888[01]'
+# Должен быть nginx на обоих портах
 ```
 
-### Firewall (UFW)
+> ⚠️ **socat и redir больше НЕ используются.** Они удалены. Весь TCP-форвардинг через nginx stream.
+
+### SSH подключение к Yandex VM
 
 ```bash
-# Порт 8880 должен быть открыт
-sudo ufw allow 8880/tcp
-sudo ufw allow 8880/udp
+ssh marketing@213.165.208.217 -i ssh-key-1770366966512/ssh-key-1770366966512
+```
+
+### UFW (Firewall)
+
+```
+22/tcp    — SSH
+80/tcp    — Nginx HTTP
+443/tcp   — Nginx HTTPS + SNI routing
+8880/tcp  — VPN Bridge xHTTP
+8881/tcp  — VPN Bridge WS
 ```
 
 ---
 
-## ☁️ Компонент 3: Yandex Cloud CDN (опционально)
+## 📱 Подписки (обновляются автоматически)
 
-**Статус:** Создан, но **не активирован** (DNS CNAME не прописан).
+### Ссылки подписок (автообновление каждые 12 часов):
 
-| Параметр | Значение |
-|----------|----------|
-| ID ресурса | `bc8rsopxtjygp4sayoai` |
-| Группа источников | `common-37-1-212-51-sslip-io` |
-| Домен | `cdn.my-test-vpn.ru` |
-| Протокол | HTTP |
-| Host заголовок | `37.1.212.51.sslip.io` |
-| CNAME | `7c58b852939393e5.topology.gslb.yccdn.ru` |
+| Клиент | URL подписки |
+|--------|-------------|
+| **Hiddify** | `http://37.1.212.51:8085/sub/hiddify/{TOKEN}` |
+| **Happ** | `http://37.1.212.51:8085/sub/happ/{TOKEN}` |
+| **Универсальная** | `http://37.1.212.51:8085/sub/{TOKEN}` |
 
-**Для активации CDN нужно:**
-1. Зарегистрировать реальный домен
-2. Прописать CNAME-запись в DNS
-3. В группе источников указать порт `8880`
-4. Включить POST-методы в настройках HTTP-методов
+### Что получает каждый клиент:
 
-> Без CDN мост работает напрямую через `socat` — CDN не обязателен.
-
----
-
-## 📱 Настройка клиента (Hiddify)
-
-### Ссылка для подключения:
-
-```
-vless://eb4a1cf2-4235-4b0a-83b2-0e5a298389ed@213.165.208.217:8880?encryption=none&security=none&type=xhttp&host=37.1.212.51.sslip.io&path=/ya-bridge#Yandex-VM-Bridge
-```
-
-### Параметры вручную:
-
-| Параметр | Значение |
-|----------|----------|
-| Протокол | VLESS |
-| Адрес | `213.165.208.217` |
-| Порт | `8880` |
-| UUID | `eb4a1cf2-4235-4b0a-83b2-0e5a298389ed` |
-| Шифрование | none |
-| Безопасность (TLS) | none |
-| Транспорт | xhttp |
-| Host | `37.1.212.51.sslip.io` |
-| Path | `/ya-bridge` |
+| Протокол | Hiddify | Happ |
+|----------|---------|------|
+| VLESS+Reality+Vision (443) | ✅ | ✅ |
+| VLESS+Reality+xHTTP (8443) | ✅ | ✅ |
+| VLESS+Reality+gRPC (2053) | ✅ | ❌ (не поддерживает) |
+| VLESS+WS (2083) | ✅ | ✅ |
+| Hysteria2 (10443) | ✅ | ✅ |
+| **Yandex Bridge xHTTP (8880)** | ✅ | ✅ |
+| **Yandex Bridge WS (8881)** | ✅ | ✅ |
 
 ---
 
 ## 🔧 Устранение неполадок
 
-### «Пинг есть, связи нет»
+### Bridge не работает
 
-1. **Проверить socat на Yandex VM:**
+1. **Проверить nginx stream на Yandex VM:**
    ```bash
    ssh marketing@213.165.208.217
-   ps aux | grep socat | grep -v grep
-   # Если нет процессов → перезапустить:
-   sudo systemctl restart socat-bridge
+   sudo ss -tlnp | grep -E '888[01]'
+   # Должен быть nginx
    ```
 
 2. **Проверить Docker-мост на US сервере:**
    ```bash
    ssh root@37.1.212.51
    docker logs --tail 10 xray-yandex-bridge
-   # Должны быть строки "accepted" с IP Яндекс VM (213.165.208.217)
    ```
 
-3. **Проверить маршрут в Caddy:**
+3. **Проверить маршрут:**
    ```bash
-   curl -I http://127.0.0.1:80/ya-bridge
-   # Ответ 404 = норма (Xray отвечает)
-   # Ответ 308 = ПРОБЛЕМА: Caddy потерял маршрут /ya-bridge!
+   curl -s -o /dev/null -w '%{http_code}' http://213.165.208.217:8880/ya-bridge
+   # 404 = нормально (Xray отвечает)
+   # Connection refused = nginx не слушает
    ```
-
-### Caddy потерял маршрут `/ya-bridge`
-
-Это самая частая причина поломки. Если кто-то перезаписал `/etc/caddy/Caddyfile` без блока `:80`:
-
-```bash
-# Восстановить Caddyfile (см. секцию Caddy выше)
-systemctl reload caddy
-```
-
-### Docker-контейнер не запускается
-
-```bash
-docker logs xray-yandex-bridge
-# Если ошибка "VLESS deprecated" — это предупреждение, не ошибка
-# Если "config error" — проверить /opt/yandex-bridge/config.json
-```
-
----
-
-## 🔄 Точки восстановления
-
-| Сервер | Путь |
-|--------|------|
-| US | `/root/recovery_20260322_235027.tar.gz` |
-| Yandex VM | `/home/marketing/recovery_20260322_185036.tar.gz` |
-
-```bash
-# Откат US сервера:
-ssh root@37.1.212.51
-cd / && tar xzf /root/recovery_20260322_235027.tar.gz
-systemctl restart xray caddy
-docker restart xray-yandex-bridge
-
-# Откат Yandex VM:
-ssh marketing@213.165.208.217
-cd / && sudo tar xzf /home/marketing/recovery_20260322_185036.tar.gz
-sudo systemctl restart socat-bridge
-```
 
 ---
 
@@ -315,11 +171,18 @@ sudo systemctl restart socat-bridge
 
 | Компонент | Порт | Влияние на мост |
 |-----------|------|----------------|
-| Основной Xray | 443, 8443, 2053, 2083 | ❌ Не влияет (изолирован) |
+| Основной Xray | 443, 8443, 2053, 2083 | ❌ Не влияет |
 | Hysteria2 | 10443 | ❌ Не влияет |
 | VPN Panel | 8085 (HTTP), 8086 (HTTPS) | ❌ Не влияет |
-| Telegram Bot | — | ❌ Не влияет |
-| **Caddy** | **80, 8086** | **⚠️ ВЛИЯЕТ** — маршрут `/ya-bridge` |
-| **Yandex Bridge** | **8880** | **✅ Основной компонент** |
+| Gemini API Proxy | 9443 (nginx) | ❌ Не влияет |
+| **Nginx stream** | **8880, 8881** | **✅ Основной компонент bridge** |
 
-> 🔑 **Главное правило:** Мост полностью изолирован от остальной инфраструктуры. Единственное слабое место — Caddyfile. При любых изменениях Caddy **обязательно** сохранять блок `:80 { handle /ya-bridge }`.
+---
+
+## ✅ Оптимизации (март 2026)
+
+- **BBR** включён на обоих серверах (ускорение TCP)
+- **nginx stream** вместо socat (стабильнее, нет fork-бомб)
+- **UFW** включён на Yandex VM
+- **redir удалён** (apt remove)
+- **xray-relay отключён** (мёртвый компонент)
