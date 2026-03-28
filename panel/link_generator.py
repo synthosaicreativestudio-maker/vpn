@@ -29,9 +29,6 @@ from panel.config import (
     REALITY_SHORT_ID,
     REALITY_SNI,
     SERVER_IP,
-    YANDEX_BRIDGE_HOST,
-    YANDEX_BRIDGE_PATH,
-    YANDEX_BRIDGE_WS_PATH,
     YANDEX_VM_IP,
 )
 
@@ -98,25 +95,34 @@ class LinkGenerator:
 
     @classmethod
     def yandex_bridge_xhttp(cls, uuid: str, email: str) -> str:
-        """6. Yandex Bridge xHTTP (через Yandex VM, порт 8880)."""
+        """6. Yandex Bridge xHTTP (TCP-форвард через Yandex VM → US:8443).
+
+        Nginx stream на Yandex VM пробрасывает TCP с порта 8880
+        на US сервер порт 8443 (VLESS+Reality+xHTTP).
+        Клиент устанавливает Reality-соединение через этот туннель.
+        """
         return (
             f"vless://{uuid}@{YANDEX_VM_IP}:{PORT_YANDEX_BRIDGE}"
-            f"?encryption=none&security=none"
-            f"&type=xhttp"
-            f"&host={YANDEX_BRIDGE_HOST}"
-            f"&path={YANDEX_BRIDGE_PATH}"
-            f"#{quote(f'🌉 {email} (Yandex Bridge)')}"
+            f"?encryption=none&security=reality"
+            f"&sni={REALITY_SNI}"
+            f"&pbk={REALITY_PUBLIC_KEY}"
+            f"&sid={REALITY_SHORT_ID}"
+            f"&fp=chrome"
+            f"&type=xhttp&mode=stream-up&path=/secretpath2026"
+            f"#{quote(f'🌉 {email} (YaBridge xHTTP)')}"
         )
 
     @classmethod
     def yandex_bridge_ws(cls, uuid: str, email: str) -> str:
-        """7. Yandex Bridge WebSocket (через Yandex VM, порт 8881)."""
+        """7. Yandex Bridge WS (TCP-форвард через Yandex VM → US:2083).
+
+        Nginx stream на Yandex VM пробрасывает TCP с порта 8881
+        на US сервер порт 2083 (VLESS+WS, без Reality).
+        """
         return (
             f"vless://{uuid}@{YANDEX_VM_IP}:{PORT_YANDEX_BRIDGE_WS}"
             f"?encryption=none&security=none"
-            f"&type=ws"
-            f"&host={YANDEX_BRIDGE_HOST}"
-            f"&path={YANDEX_BRIDGE_WS_PATH}"
+            f"&type=ws&path=/ws-tunnel"
             f"#{quote(f'🌉 {email} (YaBridge WS)')}"
         )
 

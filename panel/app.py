@@ -332,7 +332,7 @@ async def get_user_links(email: str):
         email=email,
         sub_url=f"http://{SERVER_IP}:8085/sub/{user['sub_token']}",
         sub_hiddify=f"http://{SERVER_IP}:8085/sub/hiddify/{user['sub_token']}",
-        sub_happ=f"http://{SERVER_IP}:8085/sub/happ/{user['sub_token']}",
+        sub_happ=f"https://{SERVER_IP}.sslip.io:8086/sub/happ/{user['sub_token']}",
         **links,
         all_links=list(links.values()),
     )
