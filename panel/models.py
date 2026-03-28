@@ -56,6 +56,8 @@ class SubscriptionLinks(BaseModel):
 
     email: str
     sub_url: str
+    sub_hiddify: str
+    sub_happ: str
     vless_reality: str
     vless_xhttp: str
     vless_grpc: str
