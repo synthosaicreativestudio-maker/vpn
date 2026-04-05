@@ -125,6 +125,7 @@ class LinkGenerator:
             "vless_reality": cls.vless_reality(uuid, email),
             "vless_xhttp": cls.vless_xhttp(uuid, email),
             "vless_ws": cls.vless_ws(uuid, email),
+            "hysteria2": cls.hysteria2(email),
         }
 
     # ── Текст подписок ───────────────────────────────────────────
