@@ -43,6 +43,11 @@ REALITY_SNI = os.getenv("REALITY_SNI", "www.microsoft.com")
 HYSTERIA2_PASSWORD = os.getenv("HYSTERIA2_PASSWORD", "HysteriaPassword2026")
 HYSTERIA2_SNI = os.getenv("HYSTERIA2_SNI", "www.microsoft.com")
 
+# ── Shadowsocks 2022 ─────────────────────────────────────────
+PORT_SHADOWSOCKS = int(os.getenv("PORT_SHADOWSOCKS", "2085"))
+SHADOWSOCKS_METHOD = os.getenv("SHADOWSOCKS_METHOD", "2022-blake3-aes-256-gcm")
+SHADOWSOCKS_PASSWORD = os.getenv("SHADOWSOCKS_PASSWORD", "vUHfGuAyhJlEGStg1P3YllhMbXvGA9Ib1XDyFu2khi0=")
+
 # ── Xray Inbound Tags ────────────────────────────────────────
 INBOUND_TAG_VISION = os.getenv("INBOUND_TAG_VISION", "VLESS-Reality-Vision")
 INBOUND_TAG_XHTTP = os.getenv("INBOUND_TAG_XHTTP", "VLESS-Reality-XHTTP")

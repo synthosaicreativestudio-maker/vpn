@@ -64,6 +64,7 @@ class SubscriptionLinks(BaseModel):
     vless_grpc: str
     vless_ws: str
     hysteria2: str
+    shadowsocks: str = ""
     all_links: List[str]
 
 

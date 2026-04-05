@@ -9,6 +9,7 @@
   3. VLESS + Reality + gRPC    (H2, порт 2053)
   4. VLESS + Reality + WS      (WebSocket, порт 2083)
   5. Hysteria2                 (UDP/QUIC, порт 10443)
+  6. Shadowsocks 2022          (TCP+UDP, порт 2085)
 """
 
 from urllib.parse import quote
@@ -17,6 +18,7 @@ from panel.config import (
     HYSTERIA2_PASSWORD,
     HYSTERIA2_SNI,
     PORT_HYSTERIA2,
+    PORT_SHADOWSOCKS,
     PORT_VLESS_GRPC,
     PORT_VLESS_REALITY,
     PORT_VLESS_WS,
@@ -25,6 +27,8 @@ from panel.config import (
     REALITY_SHORT_ID,
     REALITY_SNI,
     SERVER_IP,
+    SHADOWSOCKS_METHOD,
+    SHADOWSOCKS_PASSWORD,
 )
 
 
@@ -88,24 +92,39 @@ class LinkGenerator:
             f"#{quote(f'🚀 {email} (Hysteria2)')}"
         )
 
+    @staticmethod
+    def shadowsocks(email: str) -> str:
+        """6. Shadowsocks 2022 (TCP+UDP, порт 2085)."""
+        import base64
+
+        # SS URI: ss://method:password@host:port#fragment
+        userinfo = base64.urlsafe_b64encode(
+            f"{SHADOWSOCKS_METHOD}:{SHADOWSOCKS_PASSWORD}".encode()
+        ).decode().rstrip("=")
+        return (
+            f"ss://{userinfo}@{SERVER_IP}:{PORT_SHADOWSOCKS}"
+            f"#{quote(f'🔒 {email} (Shadowsocks)')}"
+        )
+
     # ── Наборы ссылок ────────────────────────────────────────────
 
     @classmethod
     def all_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Все ссылки для пользователя (5 каналов)."""
+        """Все ссылки для пользователя (6 каналов)."""
         return {
             "vless_reality": cls.vless_reality(uuid, email),
             "vless_xhttp": cls.vless_xhttp(uuid, email),
             "vless_grpc": cls.vless_grpc(uuid, email),
             "vless_ws": cls.vless_ws(uuid, email),
             "hysteria2": cls.hysteria2(email),
+            "shadowsocks": cls.shadowsocks(email),
         }
 
     @classmethod
     def hiddify_links(cls, uuid: str, email: str) -> dict[str, str]:
         """Ссылки оптимизированные для Hiddify.
 
-        Hiddify поддерживает все протоколы включая gRPC и Hysteria2.
+        Hiddify поддерживает все протоколы.
         """
         return {
             "vless_reality": cls.vless_reality(uuid, email),
@@ -113,6 +132,7 @@ class LinkGenerator:
             "vless_grpc": cls.vless_grpc(uuid, email),
             "vless_ws": cls.vless_ws(uuid, email),
             "hysteria2": cls.hysteria2(email),
+            "shadowsocks": cls.shadowsocks(email),
         }
 
     @classmethod
@@ -126,6 +146,7 @@ class LinkGenerator:
             "vless_xhttp": cls.vless_xhttp(uuid, email),
             "vless_ws": cls.vless_ws(uuid, email),
             "hysteria2": cls.hysteria2(email),
+            "shadowsocks": cls.shadowsocks(email),
         }
 
     # ── Текст подписок ───────────────────────────────────────────
