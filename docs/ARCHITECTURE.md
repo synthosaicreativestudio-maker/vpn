@@ -1,6 +1,6 @@
 # 🏗️ Архитектура VPN-инфраструктуры
 
-> **Обновлено:** 28.03.2026  
+> **Обновлено:** 05.04.2026  
 > **⚠️ AI-агенты: этот документ обязателен к прочтению перед работой с проектом**
 
 ---
@@ -8,14 +8,13 @@
 ## Общая схема
 
 ```
-┌──────────────┐     ┌────────────────────────┐     ┌──────────────────────────────┐
-│  📱 Клиент   │────▶│  🇷🇺 Yandex VM           │────▶│  🇺🇸 US Server                │
-│  Hiddify/Happ│     │  213.165.208.217        │     │  37.1.212.51                 │
-│              │     │  nginx stream :8880/8881│     │  Xray + Panel + Bot + WARP   │
-└──────────────┘     └────────────────────────┘     └──────────────────────────────┘
-       │                                                       │
-       └───────────────── Прямое подключение ──────────────────┘
-                    (Vision/xHTTP/gRPC/WS/Hysteria2)
+┌──────────────┐     ┌──────────────────────────────┐
+│  📱 Клиент   │────▶│  🇺🇸 US Server                │
+│  Hiddify/Happ│     │  37.1.212.51                 │
+│              │     │  Xray + Panel + Bot + WARP   │
+└──────────────┘     └──────────────────────────────┘
+       Прямое подключение
+  (Vision/xHTTP/gRPC/WS/Hysteria2)
 ```
 
 ---
@@ -28,7 +27,6 @@
 |--------|-------------|------|----------|
 | **Xray Core** | `xray.service` | 443, 8443, 2053, 2083, 2087 | Основной VPN: Vision, xHTTP, gRPC, WS, H2 |
 | **Hysteria2** | `hysteria2.service` | 10443/UDP | UDP/QUIC VPN протокол |
-| **Yandex Bridge** | Docker `xray-yandex-bridge` | 8880, 8881 | xHTTP и WS bridge для Yandex VM relay |
 | **VPN Panel** | `vpn-panel.service` | 8085 | Панель управления подписками |
 | **Caddy** | `caddy.service` | 8086 | HTTPS reverse proxy (sslip.io SSL) |
 | **VPN Bot** | `vpn-bot.service` | — | Telegram бот управления |
@@ -36,7 +34,6 @@
 | **Galina Proxy** | `galina_proxy.service` | 8888 | Gemini AI proxy |
 | **Nginx** | `nginx.service` | 9443 | Reverse proxy к Gemini API |
 | **Cloudflared** | `cloudflared-tunnel.service` | — | Cloudflare Tunnel |
-| **WireGuard** | `wg-quick@wg_bridge` | 51820/UDP | WG мост между серверами |
 
 ### Xray Inbounds (подробно)
 
@@ -59,31 +56,9 @@
 | Путь | Содержание |
 |------|-----------|
 | `/root/vpn/` | Основной проект (panel, bot) — `vpn-panel` и `vpn-bot` работают отсюда |
-| `/opt/yandex-bridge/` | Docker-конфиг Yandex Bridge Xray |
 | `/opt/openclaw/` | AI-бот OpenClaw + galina_proxy.py |
 | `/etc/xray/config.json` | Конфиг основного Xray |
 | `/etc/hysteria/` | Конфиг + сертификаты Hysteria2 |
-| `/etc/wireguard/wg_bridge.conf` | WireGuard мост |
-
----
-
-## Yandex VM (213.165.208.217)
-
-### Назначение
-TCP-relay (nginx stream) для обхода блокировки по IP US сервера.
-
-### SSH доступ
-```bash
-ssh marketing@213.165.208.217 -i ssh-key-1770366966512/ssh-key-1770366966512
-```
-
-### Nginx Stream
-
-| Порт | Upstream | Назначение |
-|------|----------|-----------|
-| 443 | SNI routing (taxi.yandex.ru → reality, остальное → wstls) | TLS multiplexing |
-| 8880 | 37.1.212.51:8443 | Bridge xHTTP → Xray Reality+xHTTP |
-| 8881 | 37.1.212.51:2083 | Bridge WS → Xray WS |
 
 ---
 
@@ -100,8 +75,6 @@ ssh marketing@213.165.208.217 -i ssh-key-1770366966512/ssh-key-1770366966512
 - VLESS+Reality+gRPC (2053) — только Hiddify
 - VLESS+WS (2083)
 - Hysteria2 (10443/UDP)
-- Yandex Bridge xHTTP (через 213.165.208.217:8880)
-- Yandex Bridge WS (через 213.165.208.217:8881)
 
 ---
 
@@ -127,11 +100,3 @@ systemctl restart vpn-panel  # ОБЯЗАТЕЛЬНО — синхронизац
 
 ### При проблемах с Google/YouTube:
 Проверить WARP: `curl --interface wg0 https://www.youtube.com`
-
-### При проблемах с Bridge:
-```bash
-# На Yandex VM:
-sudo ss -tlnp | grep -E '888[01]'
-# На US:
-docker logs --tail 20 xray-yandex-bridge
-```

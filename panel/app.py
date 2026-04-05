@@ -333,6 +333,7 @@ async def get_user_links(email: str):
         sub_url=f"http://{SERVER_IP}:8085/sub/{user['sub_token']}",
         sub_hiddify=f"http://{SERVER_IP}:8085/sub/hiddify/{user['sub_token']}",
         sub_happ=f"https://{SERVER_IP}.sslip.io:8086/sub/happ/{user['sub_token']}",
+        sub_amnezia=f"http://{SERVER_IP}:8085/sub/amnezia/{user['sub_token']}",
         **links,
         all_links=list(links.values()),
     )
@@ -342,13 +343,13 @@ async def get_user_links(email: str):
     "/sub/{token}",
     tags=["Подписки"],
     summary="Публичная подписка (универсальная)",
-    description="Все ссылки включая Yandex Bridge для любого клиента",
+    description="Все ссылки для любого клиента",
 )
 @limiter.limit("30/minute")
 async def subscription_endpoint(request: Request, token: str):
     """Универсальный endpoint подписки (без API key).
 
-    Содержит все ссылки: VLESS, Hysteria2, Yandex Bridge.
+    Содержит все ссылки: VLESS, Hysteria2.
     Совместим с Hiddify, Happ и другими клиентами.
     """
     import base64
@@ -380,14 +381,13 @@ async def subscription_endpoint(request: Request, token: str):
     "/sub/hiddify/{token}",
     tags=["Подписки"],
     summary="Подписка для Hiddify",
-    description="Оптимизированный набор ссылок для Hiddify (все протоколы + Yandex Bridge)",
+    description="Оптимизированный набор ссылок для Hiddify (все протоколы)",
 )
 @limiter.limit("30/minute")
 async def subscription_hiddify_endpoint(request: Request, token: str):
     """Подписка оптимизированная для Hiddify.
 
-    Включает все протоколы: VLESS Vision, xHTTP, gRPC, WS, Hysteria2,
-    и Yandex Bridge (xHTTP + WS).
+    Включает все протоколы: VLESS Vision, xHTTP, gRPC, WS, Hysteria2.
     """
     import base64
 
@@ -425,7 +425,6 @@ async def subscription_happ_endpoint(request: Request, token: str):
     """Подписка оптимизированная для Happ (Sing-Box).
 
     Без gRPC (Happ не поддерживает).
-    Включает Yandex Bridge.
     Кодировка Base64 для совместимости.
     """
     import base64

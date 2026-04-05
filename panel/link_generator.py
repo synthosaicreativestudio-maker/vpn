@@ -3,14 +3,12 @@
 Каждый метод формирует URI для конкретного протокола,
 используя параметры из config.py.
 
-Каналы (март 2026):
+Каналы (апрель 2026):
   1. VLESS + Reality + Vision  (TCP, порт 443)
   2. VLESS + Reality + xHTTP   (xHTTP stream-up, порт 8443)
   3. VLESS + Reality + gRPC    (H2, порт 2053)
   4. VLESS + Reality + WS      (WebSocket, порт 2083)
   5. Hysteria2                 (UDP/QUIC, порт 10443)
-  6. Yandex Bridge xHTTP       (через Yandex VM, порт 8880)
-  7. Yandex Bridge WS          (через Yandex VM, порт 8881)
 """
 
 from urllib.parse import quote
@@ -23,13 +21,10 @@ from panel.config import (
     PORT_VLESS_REALITY,
     PORT_VLESS_WS,
     PORT_VLESS_XHTTP,
-    PORT_YANDEX_BRIDGE,
-    PORT_YANDEX_BRIDGE_WS,
     REALITY_PUBLIC_KEY,
     REALITY_SHORT_ID,
     REALITY_SNI,
     SERVER_IP,
-    YANDEX_VM_IP,
 )
 
 
@@ -93,52 +88,17 @@ class LinkGenerator:
             f"#{quote(f'🚀 {email} (Hysteria2)')}"
         )
 
-    @classmethod
-    def yandex_bridge_xhttp(cls, uuid: str, email: str) -> str:
-        """6. Yandex Bridge xHTTP (TCP-форвард через Yandex VM → US:8443).
-
-        Nginx stream на Yandex VM пробрасывает TCP с порта 8880
-        на US сервер порт 8443 (VLESS+Reality+xHTTP).
-        Клиент устанавливает Reality-соединение через этот туннель.
-        """
-        return (
-            f"vless://{uuid}@{YANDEX_VM_IP}:{PORT_YANDEX_BRIDGE}"
-            f"?encryption=none&security=reality"
-            f"&sni={REALITY_SNI}"
-            f"&pbk={REALITY_PUBLIC_KEY}"
-            f"&sid={REALITY_SHORT_ID}"
-            f"&fp=chrome"
-            f"&type=xhttp&mode=stream-up&path=/secretpath2026"
-            f"#{quote(f'🌉 {email} (YaBridge xHTTP)')}"
-        )
-
-    @classmethod
-    def yandex_bridge_ws(cls, uuid: str, email: str) -> str:
-        """7. Yandex Bridge WS (TCP-форвард через Yandex VM → US:2083).
-
-        Nginx stream на Yandex VM пробрасывает TCP с порта 8881
-        на US сервер порт 2083 (VLESS+WS, без Reality).
-        """
-        return (
-            f"vless://{uuid}@{YANDEX_VM_IP}:{PORT_YANDEX_BRIDGE_WS}"
-            f"?encryption=none&security=none"
-            f"&type=ws&path=/ws-tunnel"
-            f"#{quote(f'🌉 {email} (YaBridge WS)')}"
-        )
-
     # ── Наборы ссылок ────────────────────────────────────────────
 
     @classmethod
     def all_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Все ссылки для пользователя (7 каналов)."""
+        """Все ссылки для пользователя (5 каналов)."""
         return {
             "vless_reality": cls.vless_reality(uuid, email),
             "vless_xhttp": cls.vless_xhttp(uuid, email),
             "vless_grpc": cls.vless_grpc(uuid, email),
             "vless_ws": cls.vless_ws(uuid, email),
             "hysteria2": cls.hysteria2(email),
-            "yandex_bridge": cls.yandex_bridge_xhttp(uuid, email),
-            "yandex_bridge_ws": cls.yandex_bridge_ws(uuid, email),
         }
 
     @classmethod
@@ -153,8 +113,6 @@ class LinkGenerator:
             "vless_grpc": cls.vless_grpc(uuid, email),
             "vless_ws": cls.vless_ws(uuid, email),
             "hysteria2": cls.hysteria2(email),
-            "yandex_bridge": cls.yandex_bridge_xhttp(uuid, email),
-            "yandex_bridge_ws": cls.yandex_bridge_ws(uuid, email),
         }
 
     @classmethod
@@ -162,15 +120,11 @@ class LinkGenerator:
         """Ссылки оптимизированные для Happ (Sing-Box).
 
         Happ НЕ поддерживает gRPC.
-        Hysteria2 может работать нестабильно — оставляем для тестов.
         """
         return {
             "vless_reality": cls.vless_reality(uuid, email),
             "vless_xhttp": cls.vless_xhttp(uuid, email),
             "vless_ws": cls.vless_ws(uuid, email),
-            "hysteria2": cls.hysteria2(email),
-            "yandex_bridge": cls.yandex_bridge_xhttp(uuid, email),
-            "yandex_bridge_ws": cls.yandex_bridge_ws(uuid, email),
         }
 
     # ── Текст подписок ───────────────────────────────────────────
