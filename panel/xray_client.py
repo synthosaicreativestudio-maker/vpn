@@ -18,6 +18,8 @@ _command_pb2_grpc = None
 _user_pb2 = None
 _serial_pb2 = None
 _vless_pb2 = None
+_stats_pb2 = None
+_stats_pb2_grpc = None
 
 
 def _load_stubs():
@@ -33,12 +35,16 @@ def _load_stubs():
         from panel.proto import xray_serial_pb2 as serial
         from panel.proto import xray_user_pb2 as user
         from panel.proto import xray_vless_pb2 as vless
+        from panel.proto import xray_stats_pb2 as stats
+        from panel.proto import xray_stats_pb2_grpc as stats_grpc
 
         _command_pb2 = cmd
         _command_pb2_grpc = cmd_grpc
         _user_pb2 = user
         _serial_pb2 = serial
         _vless_pb2 = vless
+        _stats_pb2 = stats
+        _stats_pb2_grpc = stats_grpc
         _stubs_loaded = True
         logger.info("gRPC stubs loaded successfully")
     except ImportError as exc:
@@ -58,6 +64,7 @@ class XrayClient:
         _load_stubs()
         self.channel = grpc.insecure_channel(grpc_host)
         self.handler = _command_pb2_grpc.HandlerServiceStub(self.channel)
+        self.stats = _stats_pb2_grpc.StatsServiceStub(self.channel)
         self._host = grpc_host
         logger.info("XrayClient connected to %s", grpc_host)
 
@@ -165,6 +172,16 @@ class XrayClient:
                 exc.details(),
             )
             return None
+
+    def query_stats(self, pattern: str = "", reset: bool = True) -> list[dict]:
+        """Получить статистику по переданному паттерну (по умолчанию всех пользователей)."""
+        try:
+            request = _stats_pb2.QueryStatsRequest(pattern=pattern, reset=reset)
+            response = self.stats.QueryStats(request)
+            return [{"name": s.name, "value": s.value} for s in response.stat]
+        except grpc.RpcError as exc:
+            logger.error("Failed to query stats from Xray: %s", exc.details())
+            return []
 
     def is_connected(self) -> bool:
         """Проверка доступности Xray gRPC."""

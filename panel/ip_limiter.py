@@ -7,10 +7,19 @@
 import asyncio
 import logging
 import re
+import time
 from collections import defaultdict
 from pathlib import Path
 
-from panel.config import IP_CHECK_INTERVAL, XRAY_ACCESS_LOG
+from panel.config import (
+    IP_CHECK_INTERVAL,
+    XRAY_ACCESS_LOG,
+    ENABLE_IP_LIMITS,
+    INBOUND_TAG_VISION,
+    INBOUND_TAG_XHTTP,
+    INBOUND_TAG_GRPC,
+    INBOUND_TAG_WS,
+)
 from panel.db import PanelDB
 
 logger = logging.getLogger("panel.ip_limiter")
@@ -33,6 +42,7 @@ class IPLimiter:
         self.xray_client = xray_client
         self._running = False
         self._last_position: int = 0
+        self.blocked_users: dict[str, float] = {}
 
     async def start(self):
         """Запуск фонового мониторинга."""
@@ -84,6 +94,7 @@ class IPLimiter:
                 self.db.log_ip(email, ip)
 
         # Проверяем лимиты
+        all_tags = [INBOUND_TAG_VISION, INBOUND_TAG_XHTTP, INBOUND_TAG_GRPC, INBOUND_TAG_WS]
         for email, ips in ip_map.items():
             user = self.db.get_user(email)
             if not user:
@@ -100,7 +111,24 @@ class IPLimiter:
                     limit,
                     active_ips,
                 )
-                # TODO: Опционально отключить пользователя через xray_client
+                if ENABLE_IP_LIMITS and self.xray_client and email not in self.blocked_users:
+                    logger.info("Temporarily blocking %s for 10 minutes", email)
+                    self.blocked_users[email] = time.time() + 600
+                    self.xray_client.remove_user_all_inbounds(email, all_tags)
+
+        # Разблокировка пользователей
+        if ENABLE_IP_LIMITS and self.xray_client:
+            current_time = time.time()
+            to_unblock = [e for e, t in self.blocked_users.items() if current_time > t]
+            for e in to_unblock:
+                del self.blocked_users[e]
+                user = self.db.get_user(e)
+                if user and user.get("is_active"):
+                    # Проверяем, не исчерпан ли трафик
+                    if user.get("total_gb") and user.get("used_gb") >= user.get("total_gb"):
+                        continue
+                    logger.info("IP block expired for %s, restoring to Xray", e)
+                    self.xray_client.add_user_all_inbounds(e, user["uuid"], all_tags)
 
     def get_user_ips(self, email: str) -> list[str]:
         """Получить активные IP-адреса пользователя."""

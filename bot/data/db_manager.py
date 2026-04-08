@@ -21,7 +21,8 @@ class DBManager:
                     username TEXT,
                     subscription_expires DATETIME,
                     vless_link TEXT,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    has_trial BOOLEAN DEFAULT 0
                 )
             ''')
             cursor.execute('''
@@ -35,6 +36,11 @@ class DBManager:
                     FOREIGN KEY(tg_id) REFERENCES users(tg_id)
                 )
             ''')
+            # Авто-миграция для старых баз
+            try:
+                cursor.execute('ALTER TABLE users ADD COLUMN has_trial BOOLEAN DEFAULT 0')
+            except sqlite3.OperationalError:
+                pass
             conn.commit()
 
     def add_user(self, tg_id, username):
@@ -60,3 +66,15 @@ class DBManager:
             cursor = conn.cursor()
             cursor.execute('SELECT * FROM users WHERE tg_id = ?', (tg_id,))
             return cursor.fetchone()
+
+    def has_user_trial(self, tg_id) -> bool:
+        user = self.get_user(tg_id)
+        if user and len(user) > 5:
+            return bool(user[5])
+        return False
+
+    def set_user_trial(self, tg_id):
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('UPDATE users SET has_trial = 1 WHERE tg_id = ?', (tg_id,))
+            conn.commit()

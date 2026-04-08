@@ -30,6 +30,7 @@ from panel.config import (
     BOT_DB_PATH,
     DB_PATH,
     DEFAULT_IP_LIMIT,
+    ENABLE_TRAFFIC_LIMITS,
     INBOUND_TAG_GRPC,
     INBOUND_TAG_VISION,
     INBOUND_TAG_WS,
@@ -90,6 +91,42 @@ def _init_xray_client():
         xray_client = None
 
 
+async def _traffic_monitor_task():
+    """Фоновая задача опроса статистики Xray и обновления БД."""
+    while True:
+        try:
+            if ENABLE_TRAFFIC_LIMITS and xray_client and xray_client.is_connected():
+                stats = xray_client.query_stats(reset=True)
+                traffic_by_email = {}
+                for stat in stats:
+                    parts = stat["name"].split(">>>")
+                    # name format: user>>>email>>>traffic>>>downlink
+                    if len(parts) == 4 and parts[0] == "user" and parts[2] == "traffic":
+                        email = parts[1]
+                        value_gb = stat["value"] / (1024**3)
+                        traffic_by_email[email] = traffic_by_email.get(email, 0.0) + value_gb
+
+                for email, added_gb in traffic_by_email.items():
+                    if added_gb <= 0:
+                        continue
+                    user = db.get_user(email)
+                    if not user:
+                        continue
+                    new_used = (user.get("used_gb") or 0.0) + added_gb
+                    total_gb = user.get("total_gb") or 0.0
+                    
+                    if total_gb > 0 and new_used >= total_gb and user.get("is_active"):
+                        logger.warning("User %s exceeded traffic limit (%.2f/%.2f GB). Disabling.", email, new_used, total_gb)
+                        db.update_user(email, used_gb=new_used, is_active=0)
+                        xray_client.remove_user_all_inbounds(email, ALL_INBOUND_TAGS)
+                    else:
+                        db.update_user(email, used_gb=new_used)
+        except Exception as e:
+            logger.error("Traffic monitor error: %s", e)
+            
+        await asyncio.sleep(60)
+
+
 # ── Lifespan ──────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(application: FastAPI):
@@ -109,10 +146,12 @@ async def lifespan(application: FastAPI):
             logger.error(f"Failed to resync users: {e}")
 
     ip_task = asyncio.create_task(ip_limiter.start())
+    traffic_task = asyncio.create_task(_traffic_monitor_task())
     logger.info("🚀 Subscription Manager started (port 8085)")
     yield
     ip_limiter.stop()
     ip_task.cancel()
+    traffic_task.cancel()
     if xray_client:
         xray_client.close()
     logger.info("Subscription Manager stopped")

@@ -63,3 +63,7 @@ BOT_DB_PATH = os.getenv("BOT_DB_PATH", "bot/data/bot.db")
 # ── IP Limit ──────────────────────────────────────────────────
 DEFAULT_IP_LIMIT = int(os.getenv("DEFAULT_IP_LIMIT", "2"))
 IP_CHECK_INTERVAL = int(os.getenv("IP_CHECK_INTERVAL", "30"))
+
+# ── Feature Toggles ───────────────────────────────────────────
+ENABLE_TRAFFIC_LIMITS = os.getenv("ENABLE_TRAFFIC_LIMITS", "False").lower() == "true"
+ENABLE_IP_LIMITS = os.getenv("ENABLE_IP_LIMITS", "False").lower() == "true"

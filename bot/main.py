@@ -12,7 +12,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from bot.config import BOT_TOKEN, PANEL_API_KEY, PANEL_PUBLIC_URL, PANEL_URL
+from bot.config import BOT_TOKEN, PANEL_API_KEY, PANEL_PUBLIC_URL, PANEL_URL, ENABLE_TRIAL_FUNNEL
 from bot.data.db_manager import DBManager
 from bot.utils.panel_api import PanelAPI
 
@@ -72,6 +72,23 @@ def _apps_keyboard() -> types.InlineKeyboardMarkup:
     return builder.as_markup()
 
 
+def _os_keyboard() -> types.InlineKeyboardMarkup:
+    """Выбор операционной системы."""
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        types.InlineKeyboardButton(text="🍏 iOS (iPhone/iPad)", callback_data="os_ios"),
+        types.InlineKeyboardButton(text="🤖 Android", callback_data="os_android")
+    )
+    builder.row(
+        types.InlineKeyboardButton(text="💻 Windows", callback_data="os_windows"),
+        types.InlineKeyboardButton(text="🍎 macOS", callback_data="os_macos")
+    )
+    builder.row(
+        types.InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")
+    )
+    return builder.as_markup()
+
+
 # ── Команды ───────────────────────────────────────────────────
 
 
@@ -106,18 +123,50 @@ async def cb_register(callback: types.CallbackQuery):
     user = callback.from_user
     email = _email_from_tg(user)
 
-    await callback.message.edit_text("⏳ <b>Создаю ваш VPN-профиль...</b>")
+    user_data = db.get_user(user.id)
+    sub_url = user_data[3] if user_data and len(user_data) > 3 and user_data[3] else ""
+
+    if ENABLE_TRIAL_FUNNEL:
+        if sub_url:
+            await callback.message.edit_text(
+                "✅ <b>У вас уже есть активная подписка!</b>\n\nНа каком устройстве будем настраивать VPN?",
+                reply_markup=_os_keyboard()
+            )
+            return
+
+        if db.has_user_trial(user.id):
+            await callback.message.edit_text(
+                "❌ <b>Вы уже использовали бесплатный тестовый период.</b>\nДля продолжения работы необходимо продлить подписку.",
+                reply_markup=_main_keyboard()
+            )
+            return
+
+        await callback.message.edit_text("⏳ <b>Активирую тестовый период (2 дня, 10 ГБ трафика)...</b>")
+        is_trial = True
+    else:
+        await callback.message.edit_text("⏳ <b>Создаю ваш VPN-профиль...</b>")
+        is_trial = False
 
     try:
-        # Попытка создать нового юзера
-        result = await panel.create_user(
-            email=email,
-            ip_limit=2,
-            expire_days=30,
-            description=f"Telegram: @{user.username or user.id}",
-        )
+        if is_trial:
+            result = await panel.create_user(
+                email=email,
+                ip_limit=1,
+                expire_days=2,
+                description=f"Telegram: @{user.username or user.id} (TRIAL)",
+            )
+            if result:
+                await panel.update_user(email, total_gb=10.0)
+                db.set_user_trial(user.id)
+        else:
+            result = await panel.create_user(
+                email=email,
+                ip_limit=2,
+                expire_days=30,
+                description=f"Telegram: @{user.username or user.id}",
+            )
 
-        if not result:
+        if not result and not sub_url:
             await callback.message.edit_text(
                 "❌ <b>Ошибка при создании профиля.</b>\n"
                 "Попробуйте позже или напишите в поддержку.",
@@ -125,7 +174,7 @@ async def cb_register(callback: types.CallbackQuery):
             )
             return
 
-        sub_token = result.get("sub_token", "")
+        sub_token = result.get("sub_token", "") if result else ""
         if sub_token:
             sub_url = f"{PANEL_PUBLIC_URL}/sub/{sub_token}"
             db.update_subscription(
@@ -133,11 +182,15 @@ async def cb_register(callback: types.CallbackQuery):
                 result.get("expires_at", ""),
                 sub_url,
             )
-        else:
-            # Юзер уже существовал — берём sub_url из локальной БД
-            user_data = db.get_user(user.id)
-            sub_url = user_data[3] if user_data and user_data[3] else ""
 
+        if ENABLE_TRIAL_FUNNEL:
+            await callback.message.edit_text(
+                "✅ <b>Тестовый период успешно активирован!</b>\n\nНа каком устройстве будем настраивать VPN?",
+                reply_markup=_os_keyboard()
+            )
+            return
+
+        # Старая логика (все ссылки разом)
         links = await panel.get_links(email)
         vless_reality = links.get("vless_reality", "") if links else ""
 
@@ -164,12 +217,7 @@ async def cb_register(callback: types.CallbackQuery):
                 f"<pre>{AMNEZIA_VPN_LINK}</pre>"
             )
         else:
-            text = (
-                "✅ <b>Профиль создан!</b>\n\n"
-                "Не удалось получить ссылку подписки. "
-                "Попробуйте позже или напишите в поддержку."
-            )
-
+            text = "✅ <b>Профиль создан!</b>\nНе удалось получить ссылку."
         await callback.message.edit_text(text, reply_markup=_apps_keyboard())
 
     except Exception as e:
@@ -180,6 +228,52 @@ async def cb_register(callback: types.CallbackQuery):
         )
 
 
+@dp.callback_query(F.data.startswith("os_"))
+async def cb_os_selection(callback: types.CallbackQuery):
+    """Выдача конкретной инструкции по ОС."""
+    os_type = callback.data.split("_")[1]
+    user_data = db.get_user(callback.from_user.id)
+    sub_url = user_data[3] if user_data and len(user_data) > 3 and user_data[3] else None
+
+    if not sub_url:
+        await callback.answer("❌ Профиль не найден. Нажмите «Получить VPN».", show_alert=True)
+        return
+
+    hiddify_ios = "https://apps.apple.com/app/hiddify-proxy-vpn/id6596777532"
+    hiddify_android = "https://play.google.com/store/apps/details?id=app.hiddify.com"
+    hiddify_windows = "https://github.com/hiddify/hiddify-next/releases/latest"
+    hiddify_macos = "https://github.com/hiddify/hiddify-next/releases/latest"
+
+    app_link = ""
+    if os_type == "ios":
+        app_link = hiddify_ios
+        os_name = "iOS (AppStore)"
+    elif os_type == "android":
+        app_link = hiddify_android
+        os_name = "Android (Google Play)"
+    elif os_type == "windows":
+        app_link = hiddify_windows
+        os_name = "Windows"
+    else:
+        app_link = hiddify_macos
+        os_name = "macOS"
+
+    text = (
+        f"📱 Инструкция для <b>{os_name}</b>:\n\n"
+        f"<b>Шаг 1:</b> Скачайте и установите приложение <b>Hiddify</b> по ссылке ниже.\n\n"
+        f"<b>Шаг 2:</b> Нажмите на эту ссылку, чтобы скопировать её:\n"
+        f"<code>{sub_url}</code>\n\n"
+        f"<b>Шаг 3:</b> Откройте Hiddify, нажмите <b>«Новый профиль»</b> (или значок ➕), выберите <b>«Добавить из буфера обмена»</b> и нажмите большую кнопку для подключения."
+    )
+
+    builder = InlineKeyboardBuilder()
+    builder.row(types.InlineKeyboardButton(text="📥 Скачать Hiddify", url=app_link))
+    builder.row(types.InlineKeyboardButton(text="🔄 Инструкция для другого устройства", callback_data="register"))
+    builder.row(types.InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu"))
+
+    await callback.message.edit_text(text, reply_markup=builder.as_markup())
+
+
 # ── Мои ссылки ────────────────────────────────────────────────
 
 
@@ -188,12 +282,19 @@ async def cb_my_links(callback: types.CallbackQuery):
     """Показать ссылку подписки пользователя."""
     email = _email_from_tg(callback.from_user)
     user_data = db.get_user(callback.from_user.id)
-    sub_url = user_data[3] if user_data and user_data[3] else None
+    sub_url = user_data[3] if user_data and len(user_data) > 3 and user_data[3] else None
 
     if not sub_url:
         await callback.answer(
             "❌ Профиль не найден. Нажмите «Получить VPN» сначала.",
             show_alert=True,
+        )
+        return
+
+    if ENABLE_TRIAL_FUNNEL:
+        await callback.message.edit_text(
+            "✅ <b>У вас есть активная подписка!</b>\n\nНа каком устройстве выбрать инструкцию?",
+            reply_markup=_os_keyboard()
         )
         return
 

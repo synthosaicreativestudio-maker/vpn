@@ -15,7 +15,8 @@ python -m grpc_tools.protoc \
     "$SCRIPT_DIR/xray_serial.proto" \
     "$SCRIPT_DIR/xray_user.proto" \
     "$SCRIPT_DIR/xray_vless.proto" \
-    "$SCRIPT_DIR/xray_command.proto"
+    "$SCRIPT_DIR/xray_command.proto" \
+    "$SCRIPT_DIR/xray_stats.proto"
 
 # Правим импорты для работы как модуль Python-пакета
 for f in "$SCRIPT_DIR"/*_pb2*.py; do
