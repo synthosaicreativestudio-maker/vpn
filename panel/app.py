@@ -554,9 +554,51 @@ _HAPP_ROUTING_PROFILE = {
         "cloudflare-dns.com": "1.1.1.1",
         "dns.google": "8.8.8.8",
     },
-    "DirectSites": ["geosite:category-ru"],
+    "DirectSites": [
+        # Мессенджеры и соцсети РФ
+        "domain:vk.com", "domain:vk.me", "domain:vkontakte.ru",
+        "domain:ok.ru", "domain:odnoklassniki.ru",
+        "domain:mail.ru", "domain:max.ru", "domain:my.mail.ru",
+        "domain:t.me", "domain:telegram.org",
+        # Яндекс
+        "domain:yandex.ru", "domain:yandex.net", "domain:ya.ru",
+        "domain:yastatic.net", "domain:yandex.com",
+        # Банки
+        "domain:sberbank.ru", "domain:online.sberbank.ru",
+        "domain:tinkoff.ru", "domain:tbank.ru",
+        "domain:vtb.ru", "domain:alfabank.ru",
+        "domain:raiffeisen.ru", "domain:gazprombank.ru",
+        "domain:open.ru", "domain:sovcombank.ru",
+        "domain:rosbank.ru", "domain:psbank.ru",
+        # Госуслуги
+        "domain:gosuslugi.ru", "domain:mos.ru", "domain:nalog.gov.ru",
+        "domain:pfr.gov.ru", "domain:government.ru",
+        # Маркетплейсы и доставка
+        "domain:wildberries.ru", "domain:wb.ru",
+        "domain:ozon.ru", "domain:market.yandex.ru",
+        "domain:dns-shop.ru", "domain:mvideo.ru",
+        "domain:citilink.ru", "domain:lamoda.ru",
+        "domain:avito.ru", "domain:youla.ru",
+        "domain:sbermegamarket.ru",
+        # Доставка еды и такси
+        "domain:delivery-club.ru", "domain:eda.yandex.ru",
+        "domain:taxi.yandex.ru", "domain:go.yandex.ru",
+        # Медиа и стриминг
+        "domain:kinopoisk.ru", "domain:ivi.ru",
+        "domain:okko.tv", "domain:more.tv",
+        "domain:premier.one", "domain:wink.ru",
+        "domain:rutube.ru", "domain:dzen.ru",
+        # Телеком
+        "domain:mts.ru", "domain:megafon.ru",
+        "domain:beeline.ru", "domain:tele2.ru",
+        "domain:rt.ru", "domain:rostelecom.ru",
+        # Другое
+        "domain:ria.ru", "domain:rbc.ru", "domain:lenta.ru",
+        "domain:kommersant.ru", "domain:tass.ru",
+        "domain:hh.ru", "domain:superjob.ru",
+        "domain:2gis.ru", "domain:flamp.ru",
+    ],
     "DirectIp": [
-        "geoip:ru",
         "10.0.0.0/8",
         "172.16.0.0/12",
         "192.168.0.0/16",
@@ -566,9 +608,9 @@ _HAPP_ROUTING_PROFILE = {
     ],
     "ProxySites": [],
     "ProxyIp": [],
-    "BlockSites": ["geosite:category-ads-all"],
+    "BlockSites": [],
     "BlockIp": [],
-    "DomainStrategy": "IPIfNonMatch",
+    "DomainStrategy": "AsIs",
     "FakeDNS": "false",
 }
 
