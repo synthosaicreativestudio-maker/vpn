@@ -8,6 +8,7 @@
 """
 
 import asyncio
+import json
 import logging
 import os
 import secrets
@@ -482,6 +483,8 @@ async def subscription_happ_endpoint(request: Request, token: str):
         f"🛡 Happ VPN {user['email']}".encode()
     ).decode()
 
+    routing_deeplink = _build_happ_routing_deeplink()
+
     return Response(
         content=b64_text,
         media_type="text/plain",
@@ -490,6 +493,7 @@ async def subscription_happ_endpoint(request: Request, token: str):
             "Profile-Title": profile_title,
             "Profile-Update-Interval": "12",
             "Subscription-UserInfo": "upload=0; download=0; total=0; expire=0",
+            "routing": routing_deeplink,
         },
     )
 
@@ -526,6 +530,74 @@ async def subscription_amnezia_endpoint(request: Request, token: str):
             "Profile-Update-Interval": "12",
         },
     )
+
+
+# ── Happ Routing Profile (Russia Bypass) ──────────────────────
+
+_HAPP_ROUTING_PROFILE = {
+    "Name": "🇷🇺 Обход РФ",
+    "GlobalProxy": "true",
+    "RemoteDNSType": "DoH",
+    "RemoteDNSDomain": "https://cloudflare-dns.com/dns-query",
+    "RemoteDNSIP": "1.1.1.1",
+    "DomesticDNSType": "DoH",
+    "DomesticDNSDomain": "https://dns.google/dns-query",
+    "DomesticDNSIP": "8.8.8.8",
+    "Geoipurl": "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat",
+    "Geositeurl": "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat",
+    "DnsHosts": {
+        "cloudflare-dns.com": "1.1.1.1",
+        "dns.google": "8.8.8.8",
+    },
+    "DirectSites": ["geosite:category-ru"],
+    "DirectIp": [
+        "geoip:ru",
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "169.254.0.0/16",
+        "224.0.0.0/4",
+        "255.255.255.255",
+    ],
+    "ProxySites": [],
+    "ProxyIp": [],
+    "BlockSites": ["geosite:category-ads-all"],
+    "BlockIp": [],
+    "DomainStrategy": "IPIfNonMatch",
+    "FakeDNS": "false",
+}
+
+
+def _build_happ_routing_deeplink() -> str:
+    """Генерация deeplink для автоматической настройки маршрутизации в Happ."""
+    import base64 as b64mod
+
+    profile_json = json.dumps(_HAPP_ROUTING_PROFILE, ensure_ascii=False)
+    encoded = b64mod.b64encode(profile_json.encode("utf-8")).decode("utf-8")
+    return f"happ://routing/onadd/{encoded}"
+
+
+@app.get(
+    "/routing/happ",
+    tags=["Подписки"],
+    summary="Профиль маршрутизации для Happ (обход РФ)",
+    description="Deeplink для автонастройки маршрутизации: РФ сайты/приложения напрямую, остальное через VPN",
+)
+@limiter.limit("30/minute")
+async def happ_routing_profile(request: Request):
+    """Возвращает deeplink для настройки маршрутизации в Happ.
+
+    Российские сайты и приложения идут напрямую (Direct),
+    зарубежные сервисы — через VPN-туннель (Proxy).
+    Реклама блокируется.
+    """
+    deeplink = _build_happ_routing_deeplink()
+    return {
+        "deeplink": deeplink,
+        "qr_content": deeplink,
+        "instruction": "Откройте эту ссылку на телефоне с установленным Happ, "
+        "или отсканируйте QR-код в разделе Маршрутизация → QR-код",
+    }
 
 
 @app.get(
