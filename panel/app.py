@@ -405,6 +405,8 @@ async def subscription_endpoint(request: Request, token: str):
     profile_title = base64.b64encode(
         f"🛡 VPN {user['email']}".encode()
     ).decode()
+    routing_deeplink = _build_happ_routing_deeplink()
+
     return Response(
         content=text,
         media_type="text/plain",
@@ -413,6 +415,8 @@ async def subscription_endpoint(request: Request, token: str):
             "Profile-Title": profile_title,
             "Profile-Update-Interval": "12",
             "Subscription-UserInfo": "upload=0; download=0; total=0; expire=0",
+            "routing": routing_deeplink,
+            "no-limit-enabled": "1",
         },
     )
 
@@ -494,6 +498,7 @@ async def subscription_happ_endpoint(request: Request, token: str):
             "Profile-Update-Interval": "12",
             "Subscription-UserInfo": "upload=0; download=0; total=0; expire=0",
             "routing": routing_deeplink,
+            "no-limit-enabled": "1",
         },
     )
 
