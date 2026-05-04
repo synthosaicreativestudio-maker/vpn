@@ -1,31 +1,7 @@
-{
-    auto_https disable_redirects
+37.1.212.51.sslip.io:8086 {
+    reverse_proxy 127.0.0.1:8085
 }
 
-http://37.1.212.51.sslip.io {
-    handle /configs/* {
-        file_server {
-            root /config
-        }
-    }
-    handle {
-        respond "Not Found" 404
-    }
-}
-
-https://37.1.212.51.sslip.io:8443 {
-    bind 127.0.0.1
-
-    handle /secretpath2026* {
-        reverse_proxy 127.0.0.1:8444
-    }
-    handle {
-        respond "Not Found" 404
-    }
-}
-
-https://37.1.212.51.sslip.io:8086 {
-    reverse_proxy 127.0.0.1:8085 {
-        header_up Host {upstream_hostport}
-    }
+:80 {
+    respond "OK" 200
 }

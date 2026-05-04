@@ -1,6 +1,6 @@
 # 🏗️ Архитектура VPN-инфраструктуры
 
-> **Обновлено:** 05.04.2026  
+> **Обновлено:** 04.05.2026  
 > **⚠️ AI-агенты: этот документ обязателен к прочтению перед работой с проектом**
 
 ---
@@ -25,15 +25,12 @@
 
 | Сервис | Systemd unit | Порт | Описание |
 |--------|-------------|------|----------|
-| **Xray Core** | `xray.service` | 443, 8443, 2053, 2083, 2087 | Основной VPN: Vision, xHTTP, gRPC, WS, H2 |
+| **Xray Core** | `xray.service` | 443, 8443, 2053, 2083, 2087, 2085 | Основной VPN: Vision, xHTTP, gRPC, WS, H2, SS2022 |
 | **Hysteria2** | `hysteria2.service` | 10443/UDP | UDP/QUIC VPN протокол |
 | **VPN Panel** | `vpn-panel.service` | 8085 | Панель управления подписками |
 | **Caddy** | `caddy.service` | 8086 | HTTPS reverse proxy (sslip.io SSL) |
-| **VPN Bot** | `vpn-bot.service` | — | Telegram бот управления |
+| **VPN Bot** | `vpn-bot.service` | — | Telegram бот (⚠️ остановлен, в разработке) |
 | **WARP** | `warp-svc.service` | wg0 | Cloudflare WARP (Google/YouTube routing) |
-| **Galina Proxy** | `galina_proxy.service` | 8888 | Gemini AI proxy |
-| **Nginx** | `nginx.service` | 9443 | Reverse proxy к Gemini API |
-| **Cloudflared** | `cloudflared-tunnel.service` | — | Cloudflare Tunnel |
 
 ### Xray Inbounds (подробно)
 
@@ -64,10 +61,20 @@
 
 ## Подписки
 
+### Стандартные (без маршрутизации)
 | Тип | URL шаблон |
 |-----|-----------|
-| Hiddify / V2Ray | `http://37.1.212.51:8085/sub/hiddify/{TOKEN}` |
+| Универсальная | `http://37.1.212.51:8085/sub/{TOKEN}` |
+| Hiddify | `http://37.1.212.51:8085/sub/hiddify/{TOKEN}` |
 | Happ (iOS) | `https://37.1.212.51.sslip.io:8086/sub/happ/{TOKEN}` |
+| AmneziaVPN | `http://37.1.212.51:8085/sub/amnezia/{TOKEN}` |
+
+### С маршрутизацией (обход РФ — РФ сайты напрямую)
+| Тип | URL шаблон |
+|-----|-----------|
+| Универсальная | `http://37.1.212.51:8085/sub/{TOKEN}?routing=ru` |
+| Hiddify | `http://37.1.212.51:8085/sub/hiddify/{TOKEN}?routing=ru` |
+| Happ (iOS) | `https://37.1.212.51.sslip.io:8086/sub/happ/{TOKEN}?routing=ru` |
 
 ### Что содержит подписка:
 - VLESS+Reality+Vision (443)
@@ -75,6 +82,7 @@
 - VLESS+Reality+gRPC (2053) — только Hiddify
 - VLESS+WS (2083)
 - Hysteria2 (10443/UDP)
+- Shadowsocks 2022 (2085)
 
 ---
 
