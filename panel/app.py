@@ -383,14 +383,17 @@ async def get_user_links(email: str):
     "/sub/{token}",
     tags=["Подписки"],
     summary="Публичная подписка (универсальная)",
-    description="Все ссылки для любого клиента",
+    description="Все ссылки для любого клиента. Добавьте ?routing=ru для обхода РФ",
 )
 @limiter.limit("30/minute")
-async def subscription_endpoint(request: Request, token: str):
+async def subscription_endpoint(
+    request: Request, token: str, routing: Optional[str] = None
+):
     """Универсальный endpoint подписки (без API key).
 
     Содержит все ссылки: VLESS, Hysteria2.
     Совместим с Hiddify, Happ и другими клиентами.
+    ?routing=ru — включает профиль маршрутизации (обход РФ).
     """
     import base64
 
@@ -405,19 +408,22 @@ async def subscription_endpoint(request: Request, token: str):
     profile_title = base64.b64encode(
         f"🛡 VPN {user['email']}".encode()
     ).decode()
-    routing_deeplink = _build_happ_routing_deeplink()
+
+    headers = {
+        "Content-Disposition": f'attachment; filename="{user["email"]}.txt"',
+        "Profile-Title": profile_title,
+        "Profile-Update-Interval": "12",
+        "Subscription-UserInfo": "upload=0; download=0; total=0; expire=0",
+    }
+
+    if routing == "ru":
+        headers["routing"] = _build_happ_routing_deeplink()
+        headers["no-limit-enabled"] = "1"
 
     return Response(
         content=text,
         media_type="text/plain",
-        headers={
-            "Content-Disposition": f'attachment; filename="{user["email"]}.txt"',
-            "Profile-Title": profile_title,
-            "Profile-Update-Interval": "12",
-            "Subscription-UserInfo": "upload=0; download=0; total=0; expire=0",
-            "routing": routing_deeplink,
-            "no-limit-enabled": "1",
-        },
+        headers=headers,
     )
 
 
@@ -425,13 +431,16 @@ async def subscription_endpoint(request: Request, token: str):
     "/sub/hiddify/{token}",
     tags=["Подписки"],
     summary="Подписка для Hiddify",
-    description="Оптимизированный набор ссылок для Hiddify (все протоколы)",
+    description="Оптимизированный набор ссылок для Hiddify. Добавьте ?routing=ru для обхода РФ",
 )
 @limiter.limit("30/minute")
-async def subscription_hiddify_endpoint(request: Request, token: str):
+async def subscription_hiddify_endpoint(
+    request: Request, token: str, routing: Optional[str] = None
+):
     """Подписка оптимизированная для Hiddify.
 
     Включает все протоколы: VLESS Vision, xHTTP, gRPC, WS, Hysteria2.
+    ?routing=ru — включает профиль маршрутизации (обход РФ).
     """
     import base64
 
@@ -446,15 +455,22 @@ async def subscription_hiddify_endpoint(request: Request, token: str):
     profile_title = base64.b64encode(
         f"🛡 Hiddify VPN {user['email']}".encode()
     ).decode()
+
+    headers = {
+        "Content-Disposition": f'attachment; filename="{user["email"]}_hiddify.txt"',
+        "Profile-Title": profile_title,
+        "Profile-Update-Interval": "12",
+        "Subscription-UserInfo": "upload=0; download=0; total=0; expire=0",
+    }
+
+    if routing == "ru":
+        headers["routing"] = _build_happ_routing_deeplink()
+        headers["no-limit-enabled"] = "1"
+
     return Response(
         content=text,
         media_type="text/plain",
-        headers={
-            "Content-Disposition": f'attachment; filename="{user["email"]}_hiddify.txt"',
-            "Profile-Title": profile_title,
-            "Profile-Update-Interval": "12",
-            "Subscription-UserInfo": "upload=0; download=0; total=0; expire=0",
-        },
+        headers=headers,
     )
 
 
@@ -462,14 +478,17 @@ async def subscription_hiddify_endpoint(request: Request, token: str):
     "/sub/happ/{token}",
     tags=["Подписки"],
     summary="Подписка для Happ (Base64)",
-    description="Оптимизированный набор ссылок для Happ/Sing-Box (без gRPC, Base64)",
+    description="Оптимизированный набор ссылок для Happ/Sing-Box. Добавьте ?routing=ru для обхода РФ",
 )
 @limiter.limit("30/minute")
-async def subscription_happ_endpoint(request: Request, token: str):
+async def subscription_happ_endpoint(
+    request: Request, token: str, routing: Optional[str] = None
+):
     """Подписка оптимизированная для Happ (Sing-Box).
 
     Без gRPC (Happ не поддерживает).
     Кодировка Base64 для совместимости.
+    ?routing=ru — включает профиль маршрутизации (обход РФ).
     """
     import base64
 
@@ -487,19 +506,21 @@ async def subscription_happ_endpoint(request: Request, token: str):
         f"🛡 Happ VPN {user['email']}".encode()
     ).decode()
 
-    routing_deeplink = _build_happ_routing_deeplink()
+    headers = {
+        "Content-Disposition": f'attachment; filename="{user["email"]}_happ.txt"',
+        "Profile-Title": profile_title,
+        "Profile-Update-Interval": "12",
+        "Subscription-UserInfo": "upload=0; download=0; total=0; expire=0",
+    }
+
+    if routing == "ru":
+        headers["routing"] = _build_happ_routing_deeplink()
+        headers["no-limit-enabled"] = "1"
 
     return Response(
         content=b64_text,
         media_type="text/plain",
-        headers={
-            "Content-Disposition": f'attachment; filename="{user["email"]}_happ.txt"',
-            "Profile-Title": profile_title,
-            "Profile-Update-Interval": "12",
-            "Subscription-UserInfo": "upload=0; download=0; total=0; expire=0",
-            "routing": routing_deeplink,
-            "no-limit-enabled": "1",
-        },
+        headers=headers,
     )
 
 
