@@ -401,7 +401,6 @@ async def subscription_endpoint(
     Совместим с Hiddify, Happ и другими клиентами.
     ?routing=ru — включает профиль маршрутизации (обход РФ).
     """
-    import base64
 
     user = db.get_user_by_token(token)
     if not user:
@@ -411,9 +410,10 @@ async def subscription_endpoint(
         raise HTTPException(status_code=403, detail="Subscription expired")
 
     text = LinkGenerator.subscription_text(user["uuid"], user["email"])
-    profile_title = base64.b64encode(
-        f"🛡 VPN {user['email']}".encode()
-    ).decode()
+    if routing == "ru":
+        profile_title = f"VPN + Obhod RF {user['email']}"
+    else:
+        profile_title = f"VPN {user['email']}"
 
     headers = {
         "Content-Disposition": f'attachment; filename="{user["email"]}.txt"',
@@ -448,7 +448,6 @@ async def subscription_hiddify_endpoint(
     Включает все протоколы: VLESS Vision, xHTTP, gRPC, WS, Hysteria2.
     ?routing=ru — включает профиль маршрутизации (обход РФ).
     """
-    import base64
 
     user = db.get_user_by_token(token)
     if not user:
@@ -458,9 +457,10 @@ async def subscription_hiddify_endpoint(
         raise HTTPException(status_code=403, detail="Subscription expired")
 
     text = LinkGenerator.subscription_text_hiddify(user["uuid"], user["email"])
-    profile_title = base64.b64encode(
-        f"🛡 Hiddify VPN {user['email']}".encode()
-    ).decode()
+    if routing == "ru":
+        profile_title = f"Hiddify + Obhod RF {user['email']}"
+    else:
+        profile_title = f"Hiddify VPN {user['email']}"
 
     headers = {
         "Content-Disposition": f'attachment; filename="{user["email"]}_hiddify.txt"',
@@ -508,9 +508,10 @@ async def subscription_happ_endpoint(
     text = LinkGenerator.subscription_text_happ(user["uuid"], user["email"])
     b64_text = base64.b64encode(text.encode("utf-8")).decode("utf-8")
 
-    profile_title = base64.b64encode(
-        f"🛡 Happ VPN {user['email']}".encode()
-    ).decode()
+    if routing == "ru":
+        profile_title = f"Happ + Obhod RF {user['email']}"
+    else:
+        profile_title = f"Happ VPN {user['email']}"
 
     headers = {
         "Content-Disposition": f'attachment; filename="{user["email"]}_happ.txt"',
@@ -538,7 +539,6 @@ async def subscription_happ_endpoint(
 )
 @limiter.limit("30/minute")
 async def subscription_amnezia_endpoint(request: Request, token: str):
-    import base64
 
     user = db.get_user_by_token(token)
     if not user:
@@ -548,10 +548,7 @@ async def subscription_amnezia_endpoint(request: Request, token: str):
         raise HTTPException(status_code=403, detail="Subscription expired")
 
     text = LinkGenerator.subscription_text(user["uuid"], user["email"])
-    
-    profile_title = base64.b64encode(
-        f"🛡 Amnezia VPN {user['email']}".encode()
-    ).decode()
+    profile_title = f"Amnezia VPN {user['email']}"
 
     return Response(
         content=text,
@@ -582,58 +579,34 @@ _HAPP_ROUTING_PROFILE = {
         "dns.google": "8.8.8.8",
     },
     "DirectSites": [
-        # ВКонтакте (все домены включая CDN)
+        # Автоматическое определение российских сайтов через geosite
+        "geosite:category-ru",
+        # Дополнительные домены (CDN/API которых может не быть в geosite)
         "domain:vk.com", "domain:vk.me", "domain:vkontakte.ru",
         "domain:userapi.com", "domain:vk-cdn.net", "domain:vkuser.net",
         "domain:vk.cc", "domain:vkuseraudio.net", "domain:vkuservideo.net",
-        # Одноклассники
+        "domain:vk-portal.net", "domain:vk.video", "domain:vk-apps.com",
+        "domain:vkplay.ru", "domain:vkmusic.ru",
         "domain:ok.ru", "domain:odnoklassniki.ru", "domain:odkl.ru",
-        # Mail.ru / MAX
-        "domain:mail.ru", "domain:max.ru", "domain:my.mail.ru",
-        "domain:imgsmail.ru", "domain:mycdn.me", "domain:mradx.net",
-        # Telegram
+        "domain:mail.ru", "domain:max.ru", "domain:max.im",
+        "domain:my.mail.ru", "domain:imgsmail.ru", "domain:mycdn.me",
+        "domain:mradx.net", "domain:mailru-api.ru", "domain:mr0.ru",
         "domain:t.me", "domain:telegram.org", "domain:telegram.me",
-        # Яндекс
         "domain:yandex.ru", "domain:yandex.net", "domain:ya.ru",
         "domain:yastatic.net", "domain:yandex.com",
-        "domain:yandex.st", "domain:yastat.net",
-        # Банки
         "domain:sberbank.ru", "domain:sber.ru",
         "domain:tinkoff.ru", "domain:tbank.ru", "domain:tcsbank.ru",
-        "domain:vtb.ru", "domain:alfabank.ru", "domain:alfa.me",
-        "domain:raiffeisen.ru", "domain:gazprombank.ru",
-        "domain:open.ru", "domain:sovcombank.ru",
-        "domain:rosbank.ru", "domain:psbank.ru",
-        # Госуслуги
-        "domain:gosuslugi.ru", "domain:mos.ru", "domain:nalog.gov.ru",
-        "domain:pfr.gov.ru", "domain:government.ru",
-        # Маркетплейсы
         "domain:wildberries.ru", "domain:wb.ru", "domain:wbstatic.net",
-        "domain:ozon.ru", "domain:ozoncdn.com",
-        "domain:market.yandex.ru",
-        "domain:dns-shop.ru", "domain:mvideo.ru",
-        "domain:citilink.ru", "domain:lamoda.ru",
+        "domain:wbbasket.ru", "domain:wbx-content.ru",
+        "domain:ozon.ru", "domain:ozoncdn.com", "domain:ozonstat.com",
+        "domain:sbermegamarket.ru", "domain:megamarket.ru",
+        "domain:sbermarket.ru",
+        "domain:gosuslugi.ru", "domain:mos.ru",
         "domain:avito.ru", "domain:avito.st",
-        "domain:sbermegamarket.ru",
-        # Доставка и такси
-        "domain:delivery-club.ru", "domain:eda.yandex.ru",
-        "domain:taxi.yandex.ru", "domain:go.yandex.ru",
-        # Медиа и стриминг
-        "domain:kinopoisk.ru", "domain:ivi.ru",
-        "domain:okko.tv", "domain:more.tv",
-        "domain:premier.one", "domain:wink.ru",
-        "domain:rutube.ru", "domain:dzen.ru",
-        # Телеком
-        "domain:mts.ru", "domain:megafon.ru",
-        "domain:beeline.ru", "domain:tele2.ru",
-        "domain:rt.ru", "domain:rostelecom.ru",
-        # Другое
-        "domain:ria.ru", "domain:rbc.ru", "domain:lenta.ru",
-        "domain:kommersant.ru", "domain:tass.ru",
-        "domain:hh.ru", "domain:superjob.ru",
-        "domain:2gis.ru", "domain:flamp.ru",
     ],
     "DirectIp": [
+        # Автоматическое определение российских IP через geoip
+        "geoip:ru",
         "10.0.0.0/8",
         "172.16.0.0/12",
         "192.168.0.0/16",
