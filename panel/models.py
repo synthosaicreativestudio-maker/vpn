@@ -55,10 +55,16 @@ class SubscriptionLinks(BaseModel):
     """Ссылки подписки для всех протоколов."""
 
     email: str
+    # Стандартные подписки (без маршрутизации)
     sub_url: str
     sub_hiddify: str
     sub_happ: str
     sub_amnezia: str
+    # Подписки с маршрутизацией (обход РФ)
+    sub_url_routing: str = ""
+    sub_hiddify_routing: str = ""
+    sub_happ_routing: str = ""
+    # Отдельные ссылки протоколов
     vless_reality: str
     vless_xhttp: str
     vless_grpc: str

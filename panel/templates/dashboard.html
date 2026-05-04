@@ -716,18 +716,39 @@
   }
 
   // ── Links modal ────────────────────────────────────────
-  const LINK_LABELS = {
-    vless_reality: '🔌 VLESS Reality Vision',
-    vless_xhttp:   '🕵️ VLESS xHTTP',
-    vless_grpc:    '📡 VLESS gRPC',
-    vless_ws:      '🌐 VLESS WebSocket',
-    hysteria2:     '🚀 Hysteria2',
-    shadowsocks:   '🔒 Shadowsocks 2022',
-    sub_url:       '📄 Универсальная подписка',
-    sub_hiddify:   '🧲 Подписка Hiddify / V2Ray',
-    sub_happ:      '🍏 Подписка Happ (iOS)',
-    sub_amnezia:   '🛡 Подписка Amnezia',
-  };
+  const LINK_SECTIONS = [
+    {
+      title: '📋 Стандартные подписки',
+      subtitle: 'Весь трафик через VPN',
+      links: {
+        sub_happ:    '🍏 Happ (iOS)',
+        sub_hiddify: '🧲 Hiddify / V2Ray',
+        sub_url:     '📄 Универсальная',
+        sub_amnezia: '🛡 AmneziaVPN',
+      }
+    },
+    {
+      title: '🇷🇺 С маршрутизацией (обход РФ)',
+      subtitle: 'РФ сайты напрямую, остальное через VPN',
+      links: {
+        sub_happ_routing:    '🍏 Happ (iOS) + обход РФ',
+        sub_hiddify_routing: '🧲 Hiddify + обход РФ',
+        sub_url_routing:     '📄 Универсальная + обход РФ',
+      }
+    },
+    {
+      title: '🔗 Отдельные протоколы',
+      subtitle: 'Ручная настройка',
+      links: {
+        vless_reality: '🔌 VLESS Reality Vision',
+        vless_xhttp:   '🕵️ VLESS xHTTP',
+        vless_grpc:    '📡 VLESS gRPC',
+        vless_ws:      '🌐 VLESS WebSocket',
+        hysteria2:     '🚀 Hysteria2',
+        shadowsocks:   '🔒 Shadowsocks 2022',
+      }
+    },
+  ];
 
   async function openLinksModal(email) {
     document.getElementById('linksContainer').innerHTML = '<div class="spinner"></div>';
@@ -735,12 +756,22 @@
     try {
       const data = await apiFetch(`/users/${encodeURIComponent(email)}/links`);
       let html = '';
-      for (const [key, label] of Object.entries(LINK_LABELS)) {
-        const val = data[key] || '';
-        if (val) {
-          html += `<div class="link-item">
-            <div class="link-label">${label}</div>
-            <div class="link-value" onclick="copyText('${val.replace(/'/g,"\\'")}', this)">${val}</div>
+      for (const section of LINK_SECTIONS) {
+        let sectionHtml = '';
+        for (const [key, label] of Object.entries(section.links)) {
+          const val = data[key] || '';
+          if (val) {
+            sectionHtml += `<div class="link-item">
+              <div class="link-label">${label}</div>
+              <div class="link-value" onclick="copyText('${val.replace(/'/g,"\\'")}', this)">${val}</div>
+            </div>`;
+          }
+        }
+        if (sectionHtml) {
+          html += `<div style="margin-bottom:18px;">
+            <div style="font-size:14px;font-weight:600;margin-bottom:4px;">${section.title}</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">${section.subtitle}</div>
+            ${sectionHtml}
           </div>`;
         }
       }

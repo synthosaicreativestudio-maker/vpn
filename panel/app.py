@@ -368,12 +368,18 @@ async def get_user_links(email: str):
         raise HTTPException(status_code=404, detail="User not found")
 
     links = LinkGenerator.all_links(user["uuid"], email)
+    token = user["sub_token"]
     return SubscriptionLinks(
         email=email,
-        sub_url=f"http://{SERVER_IP}:8085/sub/{user['sub_token']}",
-        sub_hiddify=f"http://{SERVER_IP}:8085/sub/hiddify/{user['sub_token']}",
-        sub_happ=f"https://{SERVER_IP}.sslip.io:8086/sub/happ/{user['sub_token']}",
-        sub_amnezia=f"http://{SERVER_IP}:8085/sub/amnezia/{user['sub_token']}",
+        # Стандартные подписки
+        sub_url=f"http://{SERVER_IP}:8085/sub/{token}",
+        sub_hiddify=f"http://{SERVER_IP}:8085/sub/hiddify/{token}",
+        sub_happ=f"https://{SERVER_IP}.sslip.io:8086/sub/happ/{token}",
+        sub_amnezia=f"http://{SERVER_IP}:8085/sub/amnezia/{token}",
+        # С маршрутизацией (обход РФ)
+        sub_url_routing=f"http://{SERVER_IP}:8085/sub/{token}?routing=ru",
+        sub_hiddify_routing=f"http://{SERVER_IP}:8085/sub/hiddify/{token}?routing=ru",
+        sub_happ_routing=f"https://{SERVER_IP}.sslip.io:8086/sub/happ/{token}?routing=ru",
         **links,
         all_links=list(links.values()),
     )
