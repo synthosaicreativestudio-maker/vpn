@@ -579,8 +579,12 @@ _HAPP_ROUTING_PROFILE = {
         "dns.google": "8.8.8.8",
     },
     "DirectSites": [
+        # Все домены зоны .ru — напрямую без VPN
+        "domain:ru",
         # Автоматическое определение российских сайтов через geosite
         "geosite:category-ru",
+        # CRM и бизнес-сервисы
+        "domain:crm.topnlab.ru",
         # Дополнительные домены (CDN/API которых может не быть в geosite)
         "domain:vk.com", "domain:vk.me", "domain:vkontakte.ru",
         "domain:userapi.com", "domain:vk-cdn.net", "domain:vkuser.net",
