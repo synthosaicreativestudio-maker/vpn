@@ -595,7 +595,7 @@ _HAPP_ROUTING_PROFILE = {
         "domain:mail.ru", "domain:max.ru", "domain:max.im",
         "domain:my.mail.ru", "domain:imgsmail.ru", "domain:mycdn.me",
         "domain:mradx.net", "domain:mailru-api.ru", "domain:mr0.ru",
-        "domain:t.me", "domain:telegram.org", "domain:telegram.me",
+        # Telegram НЕ в DirectSites — заблокирован в РФ, идёт через VPN
         "domain:yandex.ru", "domain:yandex.net", "domain:ya.ru",
         "domain:yastatic.net", "domain:yandex.com",
         "domain:sberbank.ru", "domain:sber.ru",
