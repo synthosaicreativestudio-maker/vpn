@@ -607,6 +607,9 @@ _HAPP_ROUTING_PROFILE = {
         "domain:sbermarket.ru",
         "domain:gosuslugi.ru", "domain:mos.ru",
         "domain:avito.ru", "domain:avito.st",
+        # 2ГИС — карты, навигация, справочник
+        "domain:2gis.ru", "domain:2gis.com",
+        "domain:2gis.io", "domain:2gis.pro",
     ],
     "DirectIp": [
         # Автоматическое определение российских IP через geoip
