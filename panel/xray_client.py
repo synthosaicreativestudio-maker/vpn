@@ -25,6 +25,7 @@ _stats_pb2_grpc = None
 def _load_stubs():
     global _stubs_loaded, _command_pb2, _command_pb2_grpc
     global _user_pb2, _serial_pb2, _vless_pb2
+    global _stats_pb2, _stats_pb2_grpc
 
     if _stubs_loaded:
         return
