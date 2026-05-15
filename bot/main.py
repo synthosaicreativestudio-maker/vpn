@@ -73,6 +73,13 @@ def _parse_expiry(raw: str) -> tuple[str, int]:
     return dt_str, days_left
 
 
+def _fmt_gb(value: float) -> str:
+    """Форматирует Гб: показывает МБ если < 1 Гб."""
+    if value < 1.0:
+        return f"{value * 1024:.0f} МБ"
+    return f"{value:.2f} Гб"
+
+
 async def _get_happ_url(user: types.User) -> str | None:
     """Получить актуальную Happ-ссылку из панели."""
     email = await _resolve_email(user)
@@ -208,9 +215,9 @@ async def cb_register(callback: types.CallbackQuery):
         used = existing.get("used_gb", 0)
         total = existing.get("total_gb", 0)
         if total > 0:
-            text += f"📊 <b>Трафик:</b> {used:.1f} / {total:.0f} Гб\n"
+            text += f"📊 <b>Трафик:</b> {_fmt_gb(used)} / {total:.0f} Гб\n"
         else:
-            text += f"📊 <b>Трафик:</b> {used:.1f} Гб (безлимит)\n"
+            text += f"📊 <b>Трафик:</b> {_fmt_gb(used)} (безлимит)\n"
 
         builder = InlineKeyboardBuilder()
         builder.row(types.InlineKeyboardButton(
@@ -432,9 +439,9 @@ async def cb_status(callback: types.CallbackQuery):
         used = user_info.get("used_gb", 0)
         total = user_info.get("total_gb", 0)
         if total > 0:
-            text += f"📊 <b>Трафик:</b> {used:.1f} / {total:.0f} Гб\n"
+            text += f"📊 <b>Трафик:</b> {_fmt_gb(used)} / {total:.0f} Гб\n"
         else:
-            text += f"📊 <b>Трафик:</b> {used:.1f} Гб (безлимит)\n"
+            text += f"📊 <b>Трафик:</b> {_fmt_gb(used)} (безлимит)\n"
 
     # Проверяем IP
     ips_data = await panel.get_user_ips(email)
