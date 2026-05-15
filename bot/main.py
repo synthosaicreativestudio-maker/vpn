@@ -32,7 +32,9 @@ db = DBManager()
 
 
 def _email_from_tg(user: types.User) -> str:
-    """Генерирует уникальный email-идентификатор из Telegram ID."""
+    """Генерирует email из @username или Telegram ID."""
+    if user.username:
+        return f"@{user.username}"
     return f"tg_{user.id}"
 
 
