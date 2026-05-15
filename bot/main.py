@@ -6,6 +6,7 @@
 
 import asyncio
 import logging
+from datetime import datetime, timezone
 
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.client.default import DefaultBotProperties
@@ -49,6 +50,21 @@ async def _resolve_email(user: types.User) -> str:
             return new_email
         return new_email
     return old_email
+
+
+def _parse_expiry(raw: str) -> tuple[str, int]:
+    """Парсит дату истечения. Возвращает (date_str, days_left)."""
+    dt_str = raw[:10]  # "2026-05-18"
+    try:
+        # Убираем микросекунды и добавляем UTC если нет timezone
+        clean = raw.replace("Z", "+00:00")
+        if "+" not in clean[10:] and "-" not in clean[11:]:
+            clean += "+00:00"
+        expires = datetime.fromisoformat(clean)
+        days_left = (expires - datetime.now(timezone.utc)).days
+    except Exception:
+        days_left = -1
+    return dt_str, days_left
 
 
 async def _get_happ_url(user: types.User) -> str | None:
@@ -174,17 +190,11 @@ async def cb_register(callback: types.CallbackQuery):
         # Дата и оставшиеся дни
         raw = existing.get("expires_at", "")
         if raw:
-            try:
-                from datetime import datetime, timezone
-                dt_str = raw[:10]
-                expires = datetime.fromisoformat(raw.replace("Z", "+00:00"))
-                days_left = (expires - datetime.now(timezone.utc)).days
-                if days_left > 0:
-                    text += f"📅 <b>Подписка до:</b> {dt_str} ({days_left} дн.)\n"
-                else:
-                    text += f"📅 <b>Подписка:</b> истекла {dt_str}\n"
-            except Exception:
-                text += f"📅 <b>Подписка до:</b> {raw[:10]}\n"
+            dt_str, days_left = _parse_expiry(raw)
+            if days_left > 0:
+                text += f"📅 <b>Подписка до:</b> {dt_str} ({days_left} дн.)\n"
+            else:
+                text += f"📅 <b>Подписка:</b> истекла {dt_str}\n"
         else:
             text += "♾ <b>Подписка:</b> бессрочная\n"
 
@@ -399,17 +409,11 @@ async def cb_status(callback: types.CallbackQuery):
     if user_info and user_info.get("expires_at"):
         raw = user_info["expires_at"]
         # Форматируем дату красиво
-        try:
-            dt_str = raw[:10]  # "2027-04-20"
-            from datetime import datetime, timezone
-            expires = datetime.fromisoformat(raw.replace("Z", "+00:00"))
-            days_left = (expires - datetime.now(timezone.utc)).days
-            if days_left > 0:
-                text += f"📅 <b>Подписка до:</b> {dt_str} ({days_left} дн.)\n"
-            else:
-                text += f"📅 <b>Подписка:</b> истекла {dt_str}\n"
-        except Exception:
-            text += f"📅 <b>Подписка до:</b> {raw}\n"
+        dt_str, days_left = _parse_expiry(raw)
+        if days_left > 0:
+            text += f"📅 <b>Подписка до:</b> {dt_str} ({days_left} дн.)\n"
+        else:
+            text += f"📅 <b>Подписка:</b> истекла {dt_str}\n"
         if not user_info.get("is_active", True):
             text += "🔴 <b>Подписка приостановлена</b>\n"
     elif user_info and not user_info.get("expires_at"):
