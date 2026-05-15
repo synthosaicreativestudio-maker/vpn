@@ -33,7 +33,6 @@ from panel.config import (
     RELAY_PUBLIC_KEY,
     RELAY_SHORT_ID,
     RELAY_SNI,
-    RELAY_UUID,
     SERVER_IP,
     SHADOWSOCKS_METHOD,
     SHADOWSOCKS_PASSWORD,
@@ -116,15 +115,15 @@ class LinkGenerator:
         )
 
     @staticmethod
-    def vless_relay(email: str) -> str:
+    def vless_relay(email: str, uuid: str) -> str:
         """7. VLESS + Reality + Vision через Relay RU (обход БС ТСПУ).
 
         Использует РФ VPS как входную точку с whitelisted IP/SNI,
         трафик пробрасывается на US сервер.
-        UUID фиксированный (relay-пользователь, не персональный).
+        UUID персональный — relay различает пользователей.
         """
         return (
-            f"vless://{RELAY_UUID}@{RELAY_IP}:{RELAY_PORT}"
+            f"vless://{uuid}@{RELAY_IP}:{RELAY_PORT}"
             f"?encryption=none&security=reality"
             f"&sni={RELAY_SNI}"
             f"&pbk={RELAY_PUBLIC_KEY}"
@@ -143,7 +142,7 @@ class LinkGenerator:
             "vless_reality": cls.vless_reality(uuid, email),
         }
         if RELAY_ENABLED:
-            links["vless_relay"] = cls.vless_relay(email)
+            links["vless_relay"] = cls.vless_relay(email, uuid)
         return links
 
     @classmethod
@@ -153,7 +152,7 @@ class LinkGenerator:
             "vless_reality": cls.vless_reality(uuid, email),
         }
         if RELAY_ENABLED:
-            links["vless_relay"] = cls.vless_relay(email)
+            links["vless_relay"] = cls.vless_relay(email, uuid)
         return links
 
     @classmethod
@@ -163,7 +162,7 @@ class LinkGenerator:
             "vless_reality": cls.vless_reality(uuid, email),
         }
         if RELAY_ENABLED:
-            links["vless_relay"] = cls.vless_relay(email)
+            links["vless_relay"] = cls.vless_relay(email, uuid)
         return links
 
     # ── Текст подписок ───────────────────────────────────────────

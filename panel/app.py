@@ -50,6 +50,7 @@ from panel.models import (
     UserStats,
     UserUpdate,
 )
+from panel.relay_sync import add_user_to_relay, remove_user_from_relay, sync_all_users_to_relay
 
 # ── Templates ─────────────────────────────────────────────────
 _TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "templates")
@@ -145,6 +146,15 @@ async def lifespan(application: FastAPI):
             logger.info(f"🔄 Resynced {sync_count} active users to Xray memory")
         except Exception as e:
             logger.error(f"Failed to resync users: {e}")
+
+    # Синхронизация с relay при старте (в фоне, не блокируем)
+    try:
+        active_users = db.list_users()
+        relay_count = sync_all_users_to_relay(active_users)
+        if relay_count:
+            logger.info("🔄 Relay sync: %d users", relay_count)
+    except Exception as e:
+        logger.warning("Relay sync failed (non-critical): %s", e)
 
     ip_task = asyncio.create_task(ip_limiter.start())
     traffic_task = asyncio.create_task(_traffic_monitor_task())
@@ -330,6 +340,9 @@ async def create_user(request: Request, data: UserCreate):
         if failed:
             logger.warning("Failed to add user to inbounds: %s", failed)
 
+    # Добавляем на relay
+    add_user_to_relay(data.email, data.uuid)
+
     # Сохранение в БД
     user = db.add_user(
         email=data.email,
@@ -373,6 +386,9 @@ async def delete_user(request: Request, email: str):
     # Удаление из Xray
     if xray_client:
         xray_client.remove_user_all_inbounds(email, ALL_INBOUND_TAGS)
+
+    # Удаление из relay
+    remove_user_from_relay(email)
 
     # Удаление из БД
     db.delete_user(email)
