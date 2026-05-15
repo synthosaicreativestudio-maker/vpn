@@ -52,25 +52,14 @@ class UserResponse(BaseModel):
 
 
 class SubscriptionLinks(BaseModel):
-    """Ссылки подписки для всех протоколов."""
+    """Ссылки подписки (Vision + Relay RU)."""
 
     email: str
-    # Стандартные подписки (без маршрутизации)
-    sub_url: str
-    sub_hiddify: str
+    # Основная подписка
     sub_happ: str
-    sub_amnezia: str
-    # Подписки с маршрутизацией (обход РФ)
-    sub_url_routing: str = ""
-    sub_hiddify_routing: str = ""
-    sub_happ_routing: str = ""
     # Отдельные ссылки протоколов
     vless_reality: str
-    vless_xhttp: str
-    vless_grpc: str
-    vless_ws: str
-    hysteria2: str
-    shadowsocks: str = ""
+    vless_relay: str = ""
     all_links: List[str]
 
 
