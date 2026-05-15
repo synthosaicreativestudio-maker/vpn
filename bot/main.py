@@ -156,15 +156,46 @@ async def cb_register(callback: types.CallbackQuery):
     # Проверяем, есть ли уже подписка
     existing = await panel.get_user(email)
     if existing and existing.get("is_active"):
-        user_data = db.get_user(user.id)
-        sub_url = user_data[3] if user_data and len(user_data) > 3 and user_data[3] else None
-        if sub_url:
-            await callback.message.edit_text(
-                "✅ <b>У вас уже есть активная подписка!</b>\n\n"
-                "На каком устройстве будем настраивать?",
-                reply_markup=_os_keyboard(),
-            )
-            return
+        # Формируем статус подписки
+        text = "✅ <b>У вас уже есть активная подписка!</b>\n\n"
+
+        # Дата и оставшиеся дни
+        raw = existing.get("expires_at", "")
+        if raw:
+            try:
+                from datetime import datetime, timezone
+                dt_str = raw[:10]
+                expires = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+                days_left = (expires - datetime.now(timezone.utc)).days
+                if days_left > 0:
+                    text += f"📅 <b>Подписка до:</b> {dt_str} ({days_left} дн.)\n"
+                else:
+                    text += f"📅 <b>Подписка:</b> истекла {dt_str}\n"
+            except Exception:
+                text += f"📅 <b>Подписка до:</b> {raw[:10]}\n"
+        else:
+            text += "♾ <b>Подписка:</b> бессрочная\n"
+
+        # Трафик
+        used = existing.get("used_gb", 0)
+        total = existing.get("total_gb", 0)
+        if total > 0:
+            text += f"📊 <b>Трафик:</b> {used:.1f} / {total:.0f} Гб\n"
+        else:
+            text += f"📊 <b>Трафик:</b> {used:.1f} Гб (безлимит)\n"
+
+        builder = InlineKeyboardBuilder()
+        builder.row(types.InlineKeyboardButton(
+            text="📱 Настроить устройство", callback_data="register_os"
+        ))
+        builder.row(types.InlineKeyboardButton(
+            text="💳 Продлить подписку", callback_data="plans"
+        ))
+        builder.row(types.InlineKeyboardButton(
+            text="🏠 Главное меню", callback_data="menu"
+        ))
+        await callback.message.edit_text(text, reply_markup=builder.as_markup())
+        return
 
     # Показываем тарифы
     show_trial = not db.has_user_trial(user.id)
@@ -256,6 +287,16 @@ async def cb_plan_select(callback: types.CallbackQuery):
         f"📱 Устройства: {plan['ip_limit']}\n\n"
         "<i>⏳ Оплата подключается. Для активации свяжитесь с @vera_artpower</i>",
         reply_markup=_main_keyboard(),
+    )
+    await callback.answer()
+
+
+@dp.callback_query(F.data == "register_os")
+async def cb_register_os(callback: types.CallbackQuery):
+    """Переход на выбор ОС из экрана подписки."""
+    await callback.message.edit_text(
+        "📱 <b>На каком устройстве настраиваем?</b>",
+        reply_markup=_os_keyboard(),
     )
     await callback.answer()
 
