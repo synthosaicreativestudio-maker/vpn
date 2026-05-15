@@ -5,7 +5,7 @@
 
 Каналы (май 2026):
   1. VLESS + Reality + Vision  (TCP, порт 443)
-  2. VLESS + Reality + xHTTP   (xHTTP stream-one, порт 443 через fallback)
+  2. VLESS + Reality + xHTTP   (xHTTP stream-one, порт 8443) — только Xray-клиенты
   3. VLESS + Reality + gRPC    (H2, порт 2053)
   4. VLESS + Reality + WS      (WebSocket, порт 2083)
   5. Hysteria2 + Salamander    (UDP/QUIC, порт 10443, obfs)
@@ -23,6 +23,7 @@ from panel.config import (
     PORT_VLESS_GRPC,
     PORT_VLESS_REALITY,
     PORT_VLESS_WS,
+    PORT_VLESS_XHTTP,
     REALITY_PUBLIC_KEY,
     REALITY_SHORT_ID,
     REALITY_SNI,
@@ -58,9 +59,9 @@ class LinkGenerator:
 
     @classmethod
     def vless_xhttp(cls, uuid: str, email: str) -> str:
-        """2. VLESS + Reality + xHTTP stream-one (порт 443 через fallback)."""
+        """2. VLESS + Reality + xHTTP stream-one (порт 8443, только Xray-клиенты)."""
         return (
-            cls._vless_base(uuid, PORT_VLESS_REALITY)
+            cls._vless_base(uuid, PORT_VLESS_XHTTP)
             + "&type=xhttp&mode=stream-one&path=/secretpath2026"
             + f"#{quote(f'🕵️ {email} (xHTTP)')}"
         )
@@ -125,11 +126,10 @@ class LinkGenerator:
     def hiddify_links(cls, uuid: str, email: str) -> dict[str, str]:
         """Ссылки оптимизированные для Hiddify.
 
-        Hiddify поддерживает все протоколы.
+        Hiddify (Sing-Box) НЕ поддерживает xHTTP — исключён.
         """
         return {
             "vless_reality": cls.vless_reality(uuid, email),
-            "vless_xhttp": cls.vless_xhttp(uuid, email),
             "vless_grpc": cls.vless_grpc(uuid, email),
             "vless_ws": cls.vless_ws(uuid, email),
             "hysteria2": cls.hysteria2(email),
