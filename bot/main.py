@@ -52,19 +52,11 @@ def _main_keyboard() -> types.InlineKeyboardMarkup:
 
 
 def _apps_keyboard() -> types.InlineKeyboardMarkup:
-    """Кнопки для скачивания приложений."""
+    """Кнопки для скачивания Happ."""
     builder = InlineKeyboardBuilder()
     builder.row(
-        types.InlineKeyboardButton(text="🍎 Hiddify (iOS)", url="https://apps.apple.com/app/hiddify-proxy-vpn/id6596777532"),
-        types.InlineKeyboardButton(text="🤖 Hiddify (Android)", url="https://play.google.com/store/apps/details?id=app.hiddify.com")
-    )
-    builder.row(
         types.InlineKeyboardButton(text="🍏 Happ (iOS)", url="https://apps.apple.com/app/happ-proxy-utility/id6553971216"),
-        types.InlineKeyboardButton(text="👽 Happ (Android)", url="https://play.google.com/store/apps/details?id=com.happ.proxy")
-    )
-    builder.row(
-        types.InlineKeyboardButton(text="🛡 Amnezia (iOS)", url="https://apps.apple.com/app/amneziavpn/id1600529900"),
-        types.InlineKeyboardButton(text="🤖 Amnezia (Android)", url="https://play.google.com/store/apps/details?id=org.amnezia.vpn")
+        types.InlineKeyboardButton(text="🤖 Happ (Android)", url="https://play.google.com/store/apps/details?id=com.happ.proxy")
     )
     builder.row(
         types.InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")
@@ -78,10 +70,6 @@ def _os_keyboard() -> types.InlineKeyboardMarkup:
     builder.row(
         types.InlineKeyboardButton(text="🍏 iOS (iPhone/iPad)", callback_data="os_ios"),
         types.InlineKeyboardButton(text="🤖 Android", callback_data="os_android")
-    )
-    builder.row(
-        types.InlineKeyboardButton(text="💻 Windows", callback_data="os_windows"),
-        types.InlineKeyboardButton(text="🍎 macOS", callback_data="os_macos")
     )
     builder.row(
         types.InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")
@@ -190,31 +178,20 @@ async def cb_register(callback: types.CallbackQuery):
             )
             return
 
-        # Старая логика (все ссылки разом)
-        links = await panel.get_links(email)
-        vless_reality = links.get("vless_reality", "") if links else ""
-
+        # Выдаём Happ подписку
         if sub_url:
-            sub_url_happ = sub_url.replace(f"{PANEL_PUBLIC_URL}/sub/", "https://37.1.212.51.sslip.io:8086/sub/happ/")
+            sub_url_happ = sub_url.replace(
+                f"{PANEL_PUBLIC_URL}/sub/",
+                "https://37.1.212.51.sslip.io:8086/sub/happ/",
+            ) + "?routing=ru"
             text = (
                 "✅ <b>Ваш VPN готов!</b>\n\n"
                 "<b>📱 Инструкция:</b>\n"
-                "Скопируйте нужную ссылку ниже и добавьте её в приложение (обычно через <b>+</b> → <b>Добавить из буфера</b>).\n\n"
-                "🤖/🍏 <b>Для Hiddify:</b>\n"
-                "1️⃣ <i>Авто-подписка (HTTP):</i>\n"
-                f"<pre>{sub_url}</pre>\n"
-                "2️⃣ <i>Прямая ссылка (VLESS xHTTP):</i>\n"
-                f"<pre>{vless_reality}</pre>\n\n"
-                "🍏/👽 <b>Для Happ:</b>\n"
-                "1️⃣ <i>Авто-подписка (HTTPS):</i>\n"
+                "1. Скачайте <b>Happ</b> по кнопке ниже\n"
+                "2. Скопируйте ссылку подписки:\n"
                 f"<pre>{sub_url_happ}</pre>\n"
-                "2️⃣ <i>Прямая ссылка (VLESS xHTTP):</i>\n"
-                f"<pre>{vless_reality}</pre>\n\n"
-                "🛡 <b>Для AmneziaVPN:</b>\n"
-                "1️⃣ <i>Прямая ссылка (VLESS Vision):</i>\n"
-                f"<pre>{vless_reality}</pre>\n"
-                "2️⃣ <i>Конфиг JSON (AmneziaWG):</i>\n"
-                f"<pre>{AMNEZIA_VPN_LINK}</pre>"
+                "3. Откройте Happ → <b>+</b> → <b>Добавить из буфера</b>\n"
+                "4. Нажмите кнопку подключения ▶️"
             )
         else:
             text = "✅ <b>Профиль создан!</b>\nНе удалось получить ссылку."
@@ -230,7 +207,7 @@ async def cb_register(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data.startswith("os_"))
 async def cb_os_selection(callback: types.CallbackQuery):
-    """Выдача конкретной инструкции по ОС."""
+    """Выдача инструкции по ОС (только Happ)."""
     os_type = callback.data.split("_")[1]
     user_data = db.get_user(callback.from_user.id)
     sub_url = user_data[3] if user_data and len(user_data) > 3 and user_data[3] else None
@@ -239,36 +216,32 @@ async def cb_os_selection(callback: types.CallbackQuery):
         await callback.answer("❌ Профиль не найден. Нажмите «Получить VPN».", show_alert=True)
         return
 
-    hiddify_ios = "https://apps.apple.com/app/hiddify-proxy-vpn/id6596777532"
-    hiddify_android = "https://play.google.com/store/apps/details?id=app.hiddify.com"
-    hiddify_windows = "https://github.com/hiddify/hiddify-next/releases/latest"
-    hiddify_macos = "https://github.com/hiddify/hiddify-next/releases/latest"
+    happ_ios = "https://apps.apple.com/app/happ-proxy-utility/id6553971216"
+    happ_android = "https://play.google.com/store/apps/details?id=com.happ.proxy"
 
-    app_link = ""
     if os_type == "ios":
-        app_link = hiddify_ios
+        app_link = happ_ios
         os_name = "iOS (AppStore)"
-    elif os_type == "android":
-        app_link = hiddify_android
-        os_name = "Android (Google Play)"
-    elif os_type == "windows":
-        app_link = hiddify_windows
-        os_name = "Windows"
     else:
-        app_link = hiddify_macos
-        os_name = "macOS"
+        app_link = happ_android
+        os_name = "Android (Google Play)"
+
+    sub_url_happ = sub_url.replace(
+        f"{PANEL_PUBLIC_URL}/sub/",
+        "https://37.1.212.51.sslip.io:8086/sub/happ/",
+    ) + "?routing=ru"
 
     text = (
         f"📱 Инструкция для <b>{os_name}</b>:\n\n"
-        f"<b>Шаг 1:</b> Скачайте и установите приложение <b>Hiddify</b> по ссылке ниже.\n\n"
-        f"<b>Шаг 2:</b> Нажмите на эту ссылку, чтобы скопировать её:\n"
-        f"<code>{sub_url}</code>\n\n"
-        f"<b>Шаг 3:</b> Откройте Hiddify, нажмите <b>«Новый профиль»</b> (или значок ➕), выберите <b>«Добавить из буфера обмена»</b> и нажмите большую кнопку для подключения."
+        f"<b>Шаг 1:</b> Скачайте <b>Happ</b> по кнопке ниже.\n\n"
+        f"<b>Шаг 2:</b> Скопируйте ссылку подписки:\n"
+        f"<code>{sub_url_happ}</code>\n\n"
+        f"<b>Шаг 3:</b> Откройте Happ → <b>+</b> → <b>Добавить из буфера обмена</b> → нажмите кнопку подключения."
     )
 
     builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text="📥 Скачать Hiddify", url=app_link))
-    builder.row(types.InlineKeyboardButton(text="🔄 Инструкция для другого устройства", callback_data="register"))
+    builder.row(types.InlineKeyboardButton(text="📥 Скачать Happ", url=app_link))
+    builder.row(types.InlineKeyboardButton(text="🔄 Другое устройство", callback_data="register"))
     builder.row(types.InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu"))
 
     await callback.message.edit_text(text, reply_markup=builder.as_markup())
@@ -280,7 +253,6 @@ async def cb_os_selection(callback: types.CallbackQuery):
 @dp.callback_query(F.data == "my_links")
 async def cb_my_links(callback: types.CallbackQuery):
     """Показать ссылку подписки пользователя."""
-    email = _email_from_tg(callback.from_user)
     user_data = db.get_user(callback.from_user.id)
     sub_url = user_data[3] if user_data and len(user_data) > 3 and user_data[3] else None
 
@@ -298,28 +270,15 @@ async def cb_my_links(callback: types.CallbackQuery):
         )
         return
 
-    links = await panel.get_links(email)
-    vless_reality = links.get("vless_reality", "") if links else ""
-
-    sub_url_happ = sub_url.replace(f"{PANEL_PUBLIC_URL}/sub/", "https://37.1.212.51.sslip.io:8086/sub/happ/")
+    sub_url_happ = sub_url.replace(
+        f"{PANEL_PUBLIC_URL}/sub/",
+        "https://37.1.212.51.sslip.io:8086/sub/happ/",
+    ) + "?routing=ru"
     text = (
-        "<b>🔗 Ваши ссылки подписки:</b>\n\n"
-        "Скопируйте нужную ссылку для вашего приложения:\n\n"
-        "🤖/🍏 <b>Для Hiddify:</b>\n"
-        "1️⃣ <i>Авто-подписка (HTTP):</i>\n"
-        f"<pre>{sub_url}</pre>\n"
-        "2️⃣ <i>Прямая ссылка (VLESS xHTTP):</i>\n"
-        f"<pre>{vless_reality}</pre>\n\n"
-        "🍏/👽 <b>Для Happ:</b>\n"
-        "1️⃣ <i>Авто-подписка (HTTPS):</i>\n"
-        f"<pre>{sub_url_happ}</pre>\n"
-        "2️⃣ <i>Прямая ссылка (VLESS xHTTP):</i>\n"
-        f"<pre>{vless_reality}</pre>\n\n"
-        "🛡 <b>Для AmneziaVPN:</b>\n"
-        "1️⃣ <i>Прямая ссылка (VLESS Vision):</i>\n"
-        f"<pre>{vless_reality}</pre>\n"
-        "2️⃣ <i>Конфиг JSON (AmneziaWG):</i>\n"
-        f"<pre>{AMNEZIA_VPN_LINK}</pre>"
+        "<b>🔗 Ваша подписка (Happ):</b>\n\n"
+        "Скопируйте ссылку и добавьте в Happ:\n\n"
+        f"<pre>{sub_url_happ}</pre>\n\n"
+        "<i>Для обновления нажмите 🔄 в Happ</i>"
     )
 
     await callback.message.edit_text(
