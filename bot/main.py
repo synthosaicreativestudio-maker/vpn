@@ -51,6 +51,18 @@ async def _resolve_email(user: types.User) -> str:
     return old_email
 
 
+async def _get_happ_url(user: types.User) -> str | None:
+    """Получить актуальную Happ-ссылку из панели."""
+    email = await _resolve_email(user)
+    user_info = await panel.get_user(email)
+    if user_info and user_info.get("sub_token"):
+        return (
+            f"https://37.1.212.51.sslip.io:8086/sub/happ/"
+            f"{user_info['sub_token']}?routing=ru"
+        )
+    return None
+
+
 def _main_keyboard() -> types.InlineKeyboardMarkup:
     """Главное меню бота."""
     builder = InlineKeyboardBuilder()
@@ -305,10 +317,9 @@ async def cb_register_os(callback: types.CallbackQuery):
 async def cb_os_selection(callback: types.CallbackQuery):
     """Выдача инструкции по ОС (только Happ)."""
     os_type = callback.data.split("_")[1]
-    user_data = db.get_user(callback.from_user.id)
-    sub_url = user_data[3] if user_data and len(user_data) > 3 and user_data[3] else None
+    sub_url_happ = await _get_happ_url(callback.from_user)
 
-    if not sub_url:
+    if not sub_url_happ:
         await callback.answer("❌ Профиль не найден. Нажмите «Получить VPN».", show_alert=True)
         return
 
@@ -321,11 +332,6 @@ async def cb_os_selection(callback: types.CallbackQuery):
     else:
         app_link = happ_android
         os_name = "Android (Google Play)"
-
-    sub_url_happ = sub_url.replace(
-        f"{PANEL_PUBLIC_URL}/sub/",
-        "https://37.1.212.51.sslip.io:8086/sub/happ/",
-    ) + "?routing=ru"
 
     text = (
         f"📱 Инструкция для <b>{os_name}</b>:\n\n"
@@ -349,20 +355,15 @@ async def cb_os_selection(callback: types.CallbackQuery):
 @dp.callback_query(F.data == "my_links")
 async def cb_my_links(callback: types.CallbackQuery):
     """Показать ссылку подписки пользователя."""
-    user_data = db.get_user(callback.from_user.id)
-    sub_url = user_data[3] if user_data and len(user_data) > 3 and user_data[3] else None
+    sub_url_happ = await _get_happ_url(callback.from_user)
 
-    if not sub_url:
+    if not sub_url_happ:
         await callback.answer(
             "❌ Профиль не найден. Нажмите «Получить VPN» сначала.",
             show_alert=True,
         )
         return
 
-    sub_url_happ = sub_url.replace(
-        f"{PANEL_PUBLIC_URL}/sub/",
-        "https://37.1.212.51.sslip.io:8086/sub/happ/",
-    ) + "?routing=ru"
     text = (
         "<b>🔗 Ваша подписка (Happ):</b>\n\n"
         "Скопируйте ссылку и добавьте в Happ:\n\n"
