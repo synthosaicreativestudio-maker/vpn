@@ -57,7 +57,7 @@ INBOUND_TAG_WS = os.getenv("INBOUND_TAG_WS", "VLESS-WS")
 
 
 # ── Paths ─────────────────────────────────────────────────────
-XRAY_ACCESS_LOG = os.getenv("XRAY_ACCESS_LOG", "/var/lib/marzban/access.log")
+XRAY_ACCESS_LOG = os.getenv("XRAY_ACCESS_LOG", "/var/log/xray/access.log")
 DB_PATH = os.getenv("PANEL_DB_PATH", "panel/data/panel.db")
 BOT_DB_PATH = os.getenv("BOT_DB_PATH", "bot/data/bot.db")
 
@@ -66,8 +66,8 @@ DEFAULT_IP_LIMIT = int(os.getenv("DEFAULT_IP_LIMIT", "2"))
 IP_CHECK_INTERVAL = int(os.getenv("IP_CHECK_INTERVAL", "30"))
 
 # ── Feature Toggles ───────────────────────────────────────────
-ENABLE_TRAFFIC_LIMITS = os.getenv("ENABLE_TRAFFIC_LIMITS", "False").lower() == "true"
-ENABLE_IP_LIMITS = os.getenv("ENABLE_IP_LIMITS", "False").lower() == "true"
+ENABLE_TRAFFIC_LIMITS = os.getenv("ENABLE_TRAFFIC_LIMITS", "True").lower() == "true"
+ENABLE_IP_LIMITS = os.getenv("ENABLE_IP_LIMITS", "True").lower() == "true"
 
 # ── Relay RU (обход белых списков ТСПУ) ───────────────────────
 # Модуль: relay-chain через РФ VPS (Yandex Cloud)
