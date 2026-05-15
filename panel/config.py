@@ -42,6 +42,7 @@ REALITY_SNI = os.getenv("REALITY_SNI", "www.microsoft.com")
 # ── Hysteria2 ─────────────────────────────────────────────────
 HYSTERIA2_PASSWORD = os.getenv("HYSTERIA2_PASSWORD", "HysteriaPassword2026")
 HYSTERIA2_SNI = os.getenv("HYSTERIA2_SNI", "www.microsoft.com")
+HYSTERIA2_OBFS_PASSWORD = os.getenv("HYSTERIA2_OBFS_PASSWORD", "SalamanderObfs2026SecretKey")
 
 # ── Shadowsocks 2022 ─────────────────────────────────────────
 PORT_SHADOWSOCKS = int(os.getenv("PORT_SHADOWSOCKS", "2085"))

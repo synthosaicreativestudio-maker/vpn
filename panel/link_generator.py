@@ -3,18 +3,19 @@
 Каждый метод формирует URI для конкретного протокола,
 используя параметры из config.py.
 
-Каналы (апрель 2026):
+Каналы (май 2026):
   1. VLESS + Reality + Vision  (TCP, порт 443)
-  2. VLESS + Reality + xHTTP   (xHTTP stream-up, порт 8443)
+  2. VLESS + Reality + xHTTP   (xHTTP stream-one, порт 443 через fallback)
   3. VLESS + Reality + gRPC    (H2, порт 2053)
   4. VLESS + Reality + WS      (WebSocket, порт 2083)
-  5. Hysteria2                 (UDP/QUIC, порт 10443)
+  5. Hysteria2 + Salamander    (UDP/QUIC, порт 10443, obfs)
   6. Shadowsocks 2022          (TCP+UDP, порт 2085)
 """
 
 from urllib.parse import quote
 
 from panel.config import (
+    HYSTERIA2_OBFS_PASSWORD,
     HYSTERIA2_PASSWORD,
     HYSTERIA2_SNI,
     PORT_HYSTERIA2,
@@ -22,7 +23,6 @@ from panel.config import (
     PORT_VLESS_GRPC,
     PORT_VLESS_REALITY,
     PORT_VLESS_WS,
-    PORT_VLESS_XHTTP,
     REALITY_PUBLIC_KEY,
     REALITY_SHORT_ID,
     REALITY_SNI,
@@ -58,10 +58,10 @@ class LinkGenerator:
 
     @classmethod
     def vless_xhttp(cls, uuid: str, email: str) -> str:
-        """2. VLESS + Reality + xHTTP stream-up (порт 8443)."""
+        """2. VLESS + Reality + xHTTP stream-one (порт 443 через fallback)."""
         return (
-            cls._vless_base(uuid, PORT_VLESS_XHTTP)
-            + "&type=xhttp&mode=stream-up&path=/secretpath2026"
+            cls._vless_base(uuid, PORT_VLESS_REALITY)
+            + "&type=xhttp&mode=stream-one&path=/secretpath2026"
             + f"#{quote(f'🕵️ {email} (xHTTP)')}"
         )
 
@@ -85,10 +85,11 @@ class LinkGenerator:
 
     @staticmethod
     def hysteria2(email: str) -> str:
-        """5. Hysteria2 (UDP/QUIC, порт 10443)."""
+        """5. Hysteria2 + Salamander obfs (UDP/QUIC, порт 10443)."""
         return (
             f"hysteria2://{HYSTERIA2_PASSWORD}@{SERVER_IP}:{PORT_HYSTERIA2}"
             f"?sni={HYSTERIA2_SNI}&insecure=1"
+            f"&obfs=salamander&obfs-password={HYSTERIA2_OBFS_PASSWORD}"
             f"#{quote(f'🚀 {email} (Hysteria2)')}"
         )
 
