@@ -126,10 +126,11 @@ class LinkGenerator:
     def hiddify_links(cls, uuid: str, email: str) -> dict[str, str]:
         """Ссылки оптимизированные для Hiddify.
 
-        Hiddify (Sing-Box) НЕ поддерживает xHTTP — исключён.
+        Hiddify поддерживает все протоколы включая xHTTP.
         """
         return {
             "vless_reality": cls.vless_reality(uuid, email),
+            "vless_xhttp": cls.vless_xhttp(uuid, email),
             "vless_grpc": cls.vless_grpc(uuid, email),
             "vless_ws": cls.vless_ws(uuid, email),
             "hysteria2": cls.hysteria2(email),
