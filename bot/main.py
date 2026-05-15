@@ -306,10 +306,20 @@ async def cb_status(callback: types.CallbackQuery):
     text += f"🖥 Панель: {'✅ Онлайн' if panel_ok else '❌ Оффлайн'}\n"
     text += f"🛡 VPN-сервер: {'✅ Работает' if xray_ok else '❌ Недоступен'}\n\n"
 
-    # Проверяем подписку
-    user_data = db.get_user(callback.from_user.id)
-    if user_data and user_data[2]:
-        text += f"📅 <b>Подписка до:</b> {user_data[2]}\n"
+    # Проверяем подписку из панели (актуальные данные)
+    user_info = await panel.get_user(email)
+    if user_info and user_info.get("expires_at"):
+        raw = user_info["expires_at"]
+        # Форматируем дату красиво
+        try:
+            dt_str = raw[:10]  # "2027-04-20"
+            text += f"📅 <b>Подписка до:</b> {dt_str}\n"
+        except Exception:
+            text += f"📅 <b>Подписка до:</b> {raw}\n"
+        if not user_info.get("is_active", True):
+            text += "🔴 <b>Подписка приостановлена</b>\n"
+    elif user_info and not user_info.get("expires_at"):
+        text += "♾ <b>Подписка:</b> бессрочная\n"
     else:
         text += "🔴 <b>Подписка не активна</b>\n"
 
