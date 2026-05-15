@@ -33,3 +33,10 @@ UUID: eb4a1cf2-4235-4b0a-83b2-0e5a298389ed
 ## Важно
 - При перезагрузке xray: systemctl restart vpn-panel.service
 - BBR включён на обоих серверах
+
+## Т-Банк Интернет-эквайринг (ИП Марченко Р.)
+- **Terminal Key (тест)**: `1778844937330DEMO`
+- **Пароль (тест)**: `oBDLqS9c34ydSNdZ`
+- Магазин ID: 905483
+- API: https://securepay.tinkoff.ru/v2/
+- Документация: https://www.tbank.ru/kassa/dev/payments/
