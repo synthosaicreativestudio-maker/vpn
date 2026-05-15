@@ -59,10 +59,10 @@ class LinkGenerator:
 
     @classmethod
     def vless_xhttp(cls, uuid: str, email: str) -> str:
-        """2. VLESS + Reality + xHTTP stream-one (порт 8443, только Xray-клиенты)."""
+        """2. VLESS + Reality + xHTTP stream-up (порт 8443)."""
         return (
             cls._vless_base(uuid, PORT_VLESS_XHTTP)
-            + "&type=xhttp&mode=stream-one&path=/secretpath2026"
+            + "&type=xhttp&mode=stream-up&path=/secretpath2026"
             + f"#{quote(f'🕵️ {email} (xHTTP)')}"
         )
 
