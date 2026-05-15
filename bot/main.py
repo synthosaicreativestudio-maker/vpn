@@ -35,20 +35,26 @@ db = DBManager()
 async def _resolve_email(user: types.User) -> str:
     """Находит существующего пользователя или создаёт email.
 
-    Порядок: tg_ID → @username → создать новый.
+    Порядок: tg_ID → @username (legacy) → username (без @).
     """
     # Проверяем по старому формату tg_ID
     old_email = f"tg_{user.id}"
     existing = await panel.get_user(old_email)
     if existing:
         return old_email
-    # Проверяем по @username
+    # Проверяем по username
     if user.username:
-        new_email = f"@{user.username}"
-        existing = await panel.get_user(new_email)
+        # Legacy формат с @
+        legacy = f"@{user.username}"
+        existing = await panel.get_user(legacy)
         if existing:
-            return new_email
-        return new_email
+            return legacy
+        # Новый формат без @ (совместим с Xray access log)
+        clean = user.username
+        existing = await panel.get_user(clean)
+        if existing:
+            return clean
+        return clean
     return old_email
 
 
