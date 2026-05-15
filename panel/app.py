@@ -275,6 +275,32 @@ async def list_users():
     return {"users": users, "count": len(users)}
 
 
+@app.get(
+    "/users/{email}",
+    response_model=UserResponse,
+    dependencies=[Depends(verify_api_key)],
+    tags=["Пользователи"],
+    summary="Получить пользователя",
+)
+async def get_user_by_email(email: str):
+    """Получить информацию о пользователе по email."""
+    user = db.get_user(email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return UserResponse(
+        email=user["email"],
+        uuid=user["uuid"],
+        ip_limit=user["ip_limit"],
+        created_at=user["created_at"],
+        expires_at=user.get("expires_at"),
+        is_active=bool(user["is_active"]),
+        sub_token=user["sub_token"],
+        phone=user.get("phone"),
+        total_gb=user.get("total_gb") or 0.0,
+        used_gb=user.get("used_gb") or 0.0,
+    )
+
+
 @app.post(
     "/users",
     response_model=UserResponse,

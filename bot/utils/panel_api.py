@@ -67,6 +67,21 @@ class PanelAPI:
                 logger.error("Create user failed (%s): %s", r.status, err)
         return None
 
+    async def get_user(self, email: str) -> dict | None:
+        """Получить информацию о пользователе."""
+        try:
+            async with aiohttp.ClientSession() as s:
+                async with s.get(
+                    f"{self.base_url}/users/{email}",
+                    headers=self._headers(),
+                    timeout=aiohttp.ClientTimeout(total=5),
+                ) as r:
+                    if r.status == 200:
+                        return await r.json()
+        except Exception as e:
+            logger.error("Get user failed: %s", e)
+        return None
+
     async def update_user(self, email: str, **kwargs) -> dict | None:
         """Обновить пользователя в панели (лимиты, трафик, активность)."""
         async with aiohttp.ClientSession() as s:
