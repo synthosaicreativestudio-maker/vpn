@@ -141,14 +141,13 @@ class LinkGenerator:
     def happ_links(cls, uuid: str, email: str) -> dict[str, str]:
         """Ссылки оптимизированные для Happ (Sing-Box).
 
-        Happ НЕ поддерживает gRPC.
+        Только рабочие протоколы с маскировкой:
+        Vision + xHTTP + Hysteria2.
         """
         return {
             "vless_reality": cls.vless_reality(uuid, email),
             "vless_xhttp": cls.vless_xhttp(uuid, email),
-            "vless_ws": cls.vless_ws(uuid, email),
             "hysteria2": cls.hysteria2(email),
-            "shadowsocks": cls.shadowsocks(email),
         }
 
     # ── Текст подписок ───────────────────────────────────────────
