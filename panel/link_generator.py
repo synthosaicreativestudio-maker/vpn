@@ -27,6 +27,13 @@ from panel.config import (
     REALITY_PUBLIC_KEY,
     REALITY_SHORT_ID,
     REALITY_SNI,
+    RELAY_ENABLED,
+    RELAY_IP,
+    RELAY_PORT,
+    RELAY_PUBLIC_KEY,
+    RELAY_SHORT_ID,
+    RELAY_SNI,
+    RELAY_UUID,
     SERVER_IP,
     SHADOWSOCKS_METHOD,
     SHADOWSOCKS_PASSWORD,
@@ -108,12 +115,31 @@ class LinkGenerator:
             f"#{quote(f'🔒 {email} (Shadowsocks)')}"
         )
 
+    @staticmethod
+    def vless_relay(email: str) -> str:
+        """7. VLESS + Reality + Vision через Relay RU (обход БС ТСПУ).
+
+        Использует РФ VPS как входную точку с whitelisted IP/SNI,
+        трафик пробрасывается на US сервер.
+        UUID фиксированный (relay-пользователь, не персональный).
+        """
+        return (
+            f"vless://{RELAY_UUID}@{RELAY_IP}:{RELAY_PORT}"
+            f"?encryption=none&security=reality"
+            f"&sni={RELAY_SNI}"
+            f"&pbk={RELAY_PUBLIC_KEY}"
+            f"&sid={RELAY_SHORT_ID}"
+            f"&fp=chrome"
+            f"&flow=xtls-rprx-vision"
+            f"#{quote(f'📡 {email} (Relay RU)')}"
+        )
+
     # ── Наборы ссылок ────────────────────────────────────────────
 
     @classmethod
     def all_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Все ссылки для пользователя (6 каналов)."""
-        return {
+        """Все ссылки для пользователя (6 каналов + relay если включён)."""
+        links = {
             "vless_reality": cls.vless_reality(uuid, email),
             "vless_xhttp": cls.vless_xhttp(uuid, email),
             "vless_grpc": cls.vless_grpc(uuid, email),
@@ -121,6 +147,9 @@ class LinkGenerator:
             "hysteria2": cls.hysteria2(email),
             "shadowsocks": cls.shadowsocks(email),
         }
+        if RELAY_ENABLED:
+            links["vless_relay"] = cls.vless_relay(email)
+        return links
 
     @classmethod
     def hiddify_links(cls, uuid: str, email: str) -> dict[str, str]:
@@ -128,7 +157,7 @@ class LinkGenerator:
 
         Hiddify поддерживает все протоколы включая xHTTP.
         """
-        return {
+        links = {
             "vless_reality": cls.vless_reality(uuid, email),
             "vless_xhttp": cls.vless_xhttp(uuid, email),
             "vless_grpc": cls.vless_grpc(uuid, email),
@@ -136,6 +165,9 @@ class LinkGenerator:
             "hysteria2": cls.hysteria2(email),
             "shadowsocks": cls.shadowsocks(email),
         }
+        if RELAY_ENABLED:
+            links["vless_relay"] = cls.vless_relay(email)
+        return links
 
     @classmethod
     def happ_links(cls, uuid: str, email: str) -> dict[str, str]:
@@ -144,11 +176,14 @@ class LinkGenerator:
         Только рабочие протоколы с маскировкой:
         Vision + xHTTP + Hysteria2.
         """
-        return {
+        links = {
             "vless_reality": cls.vless_reality(uuid, email),
             "vless_xhttp": cls.vless_xhttp(uuid, email),
             "hysteria2": cls.hysteria2(email),
         }
+        if RELAY_ENABLED:
+            links["vless_relay"] = cls.vless_relay(email)
+        return links
 
     # ── Текст подписок ───────────────────────────────────────────
 
