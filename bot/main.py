@@ -313,7 +313,13 @@ async def cb_status(callback: types.CallbackQuery):
         # Форматируем дату красиво
         try:
             dt_str = raw[:10]  # "2027-04-20"
-            text += f"📅 <b>Подписка до:</b> {dt_str}\n"
+            from datetime import datetime, timezone
+            expires = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+            days_left = (expires - datetime.now(timezone.utc)).days
+            if days_left > 0:
+                text += f"📅 <b>Подписка до:</b> {dt_str} ({days_left} дн.)\n"
+            else:
+                text += f"📅 <b>Подписка:</b> истекла {dt_str}\n"
         except Exception:
             text += f"📅 <b>Подписка до:</b> {raw}\n"
         if not user_info.get("is_active", True):
@@ -322,6 +328,15 @@ async def cb_status(callback: types.CallbackQuery):
         text += "♾ <b>Подписка:</b> бессрочная\n"
     else:
         text += "🔴 <b>Подписка не активна</b>\n"
+
+    # Трафик
+    if user_info:
+        used = user_info.get("used_gb", 0)
+        total = user_info.get("total_gb", 0)
+        if total > 0:
+            text += f"📊 <b>Трафик:</b> {used:.1f} / {total:.0f} Гб\n"
+        else:
+            text += f"📊 <b>Трафик:</b> {used:.1f} Гб (безлимит)\n"
 
     # Проверяем IP
     ips_data = await panel.get_user_ips(email)
