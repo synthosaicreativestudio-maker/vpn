@@ -1,6 +1,6 @@
 # 🏗️ Архитектура VPN-инфраструктуры
 
-> **Обновлено:** 04.05.2026  
+> **Обновлено:** 15.05.2026  
 > **⚠️ AI-агенты: этот документ обязателен к прочтению перед работой с проектом**
 
 ---
@@ -26,7 +26,7 @@
 | Сервис | Systemd unit | Порт | Описание |
 |--------|-------------|------|----------|
 | **Xray Core** | `xray.service` | 443, 8443, 2053, 2083, 2087, 2085 | Основной VPN: Vision, xHTTP, gRPC, WS, H2, SS2022 |
-| **Hysteria2** | `hysteria2.service` | 10443/UDP | UDP/QUIC VPN протокол |
+| **Hysteria2** | `hysteria2.service` | 10443/UDP | UDP/QUIC VPN + Salamander obfs |
 | **VPN Panel** | `vpn-panel.service` | 8085 | Панель управления подписками |
 | **Caddy** | `caddy.service` | 8086 | HTTPS reverse proxy (sslip.io SSL) |
 | **VPN Bot** | `vpn-bot.service` | — | Telegram бот (⚠️ остановлен, в разработке) |
@@ -37,7 +37,7 @@
 | Tag | Порт | Транспорт | Security | SNI |
 |-----|------|-----------|----------|-----|
 | VLESS-Reality-Vision | 443 | tcp + xtls-rprx-vision | reality | www.microsoft.com |
-| VLESS-Reality-XHTTP | 8443 | xhttp (stream-up) | reality | www.microsoft.com |
+| VLESS-Reality-XHTTP | 443 (fallback) | xhttp (stream-one) | reality (через Vision) | www.microsoft.com |
 | VLESS-Reality-gRPC | 2053 | grpc | reality | www.microsoft.com |
 | VLESS-WS | 2083 | websocket | none | — |
 | VLESS-H2 | 2087 | h2 | reality | www.microsoft.com |
@@ -95,6 +95,7 @@
 | Reality Short ID | `0123456789abcdef` |
 | SNI | `www.microsoft.com` |
 | Hysteria2 Password | `HysteriaPassword2026` |
+| Hysteria2 Obfs | Salamander: `SalamanderObfs2026SecretKey` |
 
 ---
 
