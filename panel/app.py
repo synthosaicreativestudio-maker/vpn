@@ -52,6 +52,26 @@ from panel.models import (
 )
 from panel.relay_sync import add_user_to_relay, remove_user_from_relay, sync_all_users_to_relay
 
+# ── Bot DB trial reset ────────────────────────────────────────
+_BOT_DB_PATH = "/var/lib/marzban/bot/data/bot_database.db"
+
+
+def _reset_bot_trial(email: str):
+    """Сброс has_trial в БД бота при удалении пользователя из панели."""
+    import sqlite3
+    clean = email.lstrip("@")
+    try:
+        with sqlite3.connect(_BOT_DB_PATH) as conn:
+            conn.execute(
+                "UPDATE users SET has_trial = 0 WHERE username = ?",
+                (clean,),
+            )
+            conn.commit()
+            logger.info("Bot trial reset for %s", clean)
+    except Exception as e:
+        logger.warning("Failed to reset bot trial for %s: %s", clean, e)
+
+
 # ── Templates ─────────────────────────────────────────────────
 _TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "templates")
 templates = Jinja2Templates(directory=_TEMPLATES_DIR)
@@ -389,6 +409,9 @@ async def delete_user(request: Request, email: str):
 
     # Удаление из relay
     remove_user_from_relay(email)
+
+    # Сброс trial в БД бота (username = email без @)
+    _reset_bot_trial(email)
 
     # Удаление из БД
     db.delete_user(email)
