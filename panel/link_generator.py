@@ -138,14 +138,11 @@ class LinkGenerator:
 
     @classmethod
     def all_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Все ссылки для пользователя (6 каналов + relay если включён)."""
+        """Все ссылки для пользователя (Vision + xHTTP + Hysteria2 + Relay)."""
         links = {
             "vless_reality": cls.vless_reality(uuid, email),
             "vless_xhttp": cls.vless_xhttp(uuid, email),
-            "vless_grpc": cls.vless_grpc(uuid, email),
-            "vless_ws": cls.vless_ws(uuid, email),
             "hysteria2": cls.hysteria2(email),
-            "shadowsocks": cls.shadowsocks(email),
         }
         if RELAY_ENABLED:
             links["vless_relay"] = cls.vless_relay(email)
@@ -155,15 +152,12 @@ class LinkGenerator:
     def hiddify_links(cls, uuid: str, email: str) -> dict[str, str]:
         """Ссылки оптимизированные для Hiddify.
 
-        Hiddify поддерживает все протоколы включая xHTTP.
+        Vision + xHTTP + Hysteria2 + Relay.
         """
         links = {
             "vless_reality": cls.vless_reality(uuid, email),
             "vless_xhttp": cls.vless_xhttp(uuid, email),
-            "vless_grpc": cls.vless_grpc(uuid, email),
-            "vless_ws": cls.vless_ws(uuid, email),
             "hysteria2": cls.hysteria2(email),
-            "shadowsocks": cls.shadowsocks(email),
         }
         if RELAY_ENABLED:
             links["vless_relay"] = cls.vless_relay(email)
