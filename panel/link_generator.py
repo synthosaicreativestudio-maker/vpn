@@ -138,11 +138,9 @@ class LinkGenerator:
 
     @classmethod
     def all_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Все ссылки для пользователя (Vision + xHTTP + Hysteria2 + Relay)."""
+        """Vision (US напрямую) + Relay RU (обход БС)."""
         links = {
             "vless_reality": cls.vless_reality(uuid, email),
-            "vless_xhttp": cls.vless_xhttp(uuid, email),
-            "hysteria2": cls.hysteria2(email),
         }
         if RELAY_ENABLED:
             links["vless_relay"] = cls.vless_relay(email)
@@ -150,14 +148,9 @@ class LinkGenerator:
 
     @classmethod
     def hiddify_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Ссылки оптимизированные для Hiddify.
-
-        Vision + xHTTP + Hysteria2 + Relay.
-        """
+        """Vision + Relay RU."""
         links = {
             "vless_reality": cls.vless_reality(uuid, email),
-            "vless_xhttp": cls.vless_xhttp(uuid, email),
-            "hysteria2": cls.hysteria2(email),
         }
         if RELAY_ENABLED:
             links["vless_relay"] = cls.vless_relay(email)
@@ -165,15 +158,9 @@ class LinkGenerator:
 
     @classmethod
     def happ_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Ссылки оптимизированные для Happ (Sing-Box).
-
-        Только рабочие протоколы с маскировкой:
-        Vision + xHTTP + Hysteria2.
-        """
+        """Vision + Relay RU."""
         links = {
             "vless_reality": cls.vless_reality(uuid, email),
-            "vless_xhttp": cls.vless_xhttp(uuid, email),
-            "hysteria2": cls.hysteria2(email),
         }
         if RELAY_ENABLED:
             links["vless_relay"] = cls.vless_relay(email)
