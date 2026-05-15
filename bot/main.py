@@ -443,12 +443,10 @@ async def cb_status(callback: types.CallbackQuery):
         else:
             text += f"📊 <b>Трафик:</b> {_fmt_gb(used)} (безлимит)\n"
 
-    # Проверяем IP
-    ips_data = await panel.get_user_ips(email)
-    if ips_data:
-        count = ips_data.get("count", 0)
-        limit = ips_data.get("ip_limit", 2)
-        text += f"📱 <b>Устройства:</b> {count}/{limit}\n"
+    # Лимит устройств
+    if user_info:
+        limit = user_info.get("ip_limit", 2)
+        text += f"📱 <b>Устройства:</b> до {limit}\n"
 
     builder = InlineKeyboardBuilder()
     builder.row(
