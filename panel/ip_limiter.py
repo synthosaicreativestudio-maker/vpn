@@ -1,12 +1,13 @@
 """Контроль лимита одновременных IP-адресов.
 
-Фоновая задача парсит access.log Xray и отключает
+Фоновая задача парсит access.log Xray (US + Relay RU) и отключает
 пользователей, превысивших лимит IP.
 """
 
 import asyncio
 import logging
 import re
+import subprocess
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -19,6 +20,8 @@ from panel.config import (
     INBOUND_TAG_XHTTP,
     INBOUND_TAG_GRPC,
     INBOUND_TAG_WS,
+    RELAY_ENABLED,
+    RELAY_IP,
 )
 from panel.db import PanelDB
 
@@ -33,6 +36,10 @@ _LOG_PATTERN = re.compile(
     r"email:\s*(?P<email>\S+)"
 )
 
+# SSH команда для чтения relay access.log (последние 200 строк)
+_RELAY_SSH_USER = "ubuntu"
+_RELAY_LOG_PATH = "/var/log/xray/access.log"
+
 
 class IPLimiter:
     """Фоновый монитор IP-адресов пользователей."""
@@ -42,19 +49,24 @@ class IPLimiter:
         self.xray_client = xray_client
         self._running = False
         self._last_position: int = 0
+        self._relay_last_ts: str = ""
         self.blocked_users: dict[str, float] = {}
 
     async def start(self):
         """Запуск фонового мониторинга."""
         self._running = True
+        relay_status = "enabled" if RELAY_ENABLED else "disabled"
         logger.info(
-            "IP limiter started (interval=%ds, log=%s)",
+            "IP limiter started (interval=%ds, log=%s, relay=%s)",
             IP_CHECK_INTERVAL,
             XRAY_ACCESS_LOG,
+            relay_status,
         )
         while self._running:
             try:
                 self._check_log()
+                if RELAY_ENABLED:
+                    self._check_relay_log()
             except Exception:
                 logger.exception("Error in IP limiter cycle")
             await asyncio.sleep(IP_CHECK_INTERVAL)
@@ -64,15 +76,26 @@ class IPLimiter:
         self._running = False
         logger.info("IP limiter stopped")
 
+    def _parse_lines(self, lines: list[str]) -> dict[str, set[str]]:
+        """Парсит строки access.log, возвращает {email: {ip1, ip2}}."""
+        ip_map: dict[str, set[str]] = defaultdict(set)
+        for line in lines:
+            match = _LOG_PATTERN.search(line)
+            if match:
+                email = match.group("email")
+                ip = match.group("ip")
+                ip_map[email].add(ip)
+                self.db.log_ip(email, ip)
+        return ip_map
+
     def _check_log(self):
-        """Однократная проверка access.log."""
+        """Однократная проверка access.log (US сервер)."""
         log_path = Path(XRAY_ACCESS_LOG)
         if not log_path.exists():
             return
 
         file_size = log_path.stat().st_size
         if file_size < self._last_position:
-            # Лог был ротирован
             self._last_position = 0
 
         with open(log_path, encoding="utf-8", errors="ignore") as f:
@@ -83,17 +106,49 @@ class IPLimiter:
         if not new_lines:
             return
 
-        # Собираем IP → email
-        ip_map: dict[str, set[str]] = defaultdict(set)
-        for line in new_lines:
-            match = _LOG_PATTERN.search(line)
-            if match:
-                email = match.group("email")
-                ip = match.group("ip")
-                ip_map[email].add(ip)
-                self.db.log_ip(email, ip)
+        ip_map = self._parse_lines(new_lines)
+        self._enforce_limits(ip_map)
 
-        # Проверяем лимиты
+    def _check_relay_log(self):
+        """Читает access.log с relay-сервера по SSH."""
+        try:
+            result = subprocess.run(
+                [
+                    "ssh", "-o", "StrictHostKeyChecking=no",
+                    "-o", "ConnectTimeout=5",
+                    f"{_RELAY_SSH_USER}@{RELAY_IP}",
+                    f"sudo tail -200 {_RELAY_LOG_PATH}",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if result.returncode != 0:
+                return
+
+            lines = result.stdout.strip().split("\n")
+            if not lines or not lines[0]:
+                return
+
+            # Фильтруем только новые строки (после последнего timestamp)
+            new_lines = []
+            for line in lines:
+                match = _LOG_PATTERN.search(line)
+                if match:
+                    ts = match.group("timestamp")
+                    if ts > self._relay_last_ts:
+                        new_lines.append(line)
+                        self._relay_last_ts = ts
+
+            if new_lines:
+                ip_map = self._parse_lines(new_lines)
+                self._enforce_limits(ip_map)
+
+        except (subprocess.TimeoutExpired, OSError) as e:
+            logger.debug("Relay log check failed: %s", e)
+
+    def _enforce_limits(self, ip_map: dict[str, set[str]]):
+        """Проверяет и применяет IP-лимиты."""
         all_tags = [INBOUND_TAG_VISION, INBOUND_TAG_XHTTP, INBOUND_TAG_GRPC, INBOUND_TAG_WS]
         for email, ips in ip_map.items():
             user = self.db.get_user(email)
@@ -124,7 +179,6 @@ class IPLimiter:
                 del self.blocked_users[e]
                 user = self.db.get_user(e)
                 if user and user.get("is_active"):
-                    # Проверяем, не исчерпан ли трафик
                     if user.get("total_gb") and user.get("used_gb") >= user.get("total_gb"):
                         continue
                     logger.info("IP block expired for %s, restoring to Xray", e)
