@@ -12,7 +12,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from bot.config import BOT_TOKEN, PANEL_API_KEY, PANEL_PUBLIC_URL, PANEL_URL, ENABLE_TRIAL_FUNNEL
+from bot.config import BOT_TOKEN, PANEL_API_KEY, PANEL_PUBLIC_URL, PANEL_URL, PLANS
 from bot.data.db_manager import DBManager
 from bot.utils.panel_api import PanelAPI
 
@@ -31,11 +31,24 @@ db = DBManager()
 # ── Helpers ───────────────────────────────────────────────────
 
 
-def _email_from_tg(user: types.User) -> str:
-    """Генерирует email из @username или Telegram ID."""
+async def _resolve_email(user: types.User) -> str:
+    """Находит существующего пользователя или создаёт email.
+
+    Порядок: tg_ID → @username → создать новый.
+    """
+    # Проверяем по старому формату tg_ID
+    old_email = f"tg_{user.id}"
+    existing = await panel.get_user(old_email)
+    if existing:
+        return old_email
+    # Проверяем по @username
     if user.username:
-        return f"@{user.username}"
-    return f"tg_{user.id}"
+        new_email = f"@{user.username}"
+        existing = await panel.get_user(new_email)
+        if existing:
+            return new_email
+        return new_email
+    return old_email
 
 
 def _main_keyboard() -> types.InlineKeyboardMarkup:
@@ -45,11 +58,38 @@ def _main_keyboard() -> types.InlineKeyboardMarkup:
         types.InlineKeyboardButton(text="🚀 Получить VPN", callback_data="register")
     )
     builder.row(
-        types.InlineKeyboardButton(text="🔗 Мои ссылки", callback_data="my_links")
-    )
-    builder.row(
+        types.InlineKeyboardButton(text="🔗 Моя подписка", callback_data="my_links"),
         types.InlineKeyboardButton(text="📊 Статус", callback_data="status")
     )
+    builder.row(
+        types.InlineKeyboardButton(text="💳 Продлить", callback_data="plans")
+    )
+    return builder.as_markup()
+
+
+def _plans_keyboard(show_trial: bool = True) -> types.InlineKeyboardMarkup:
+    """Клавиатура выбора тарифного плана."""
+    builder = InlineKeyboardBuilder()
+    if show_trial:
+        builder.row(types.InlineKeyboardButton(
+            text="🆓 Попробовать 3 дня (бесплатно)",
+            callback_data="plan_trial"
+        ))
+    builder.row(types.InlineKeyboardButton(
+        text="1 мес — 200₽", callback_data="plan_1m"
+    ))
+    builder.row(types.InlineKeyboardButton(
+        text="3 мес — 500₽", callback_data="plan_3m"
+    ))
+    builder.row(types.InlineKeyboardButton(
+        text="5 мес — 1 000₽", callback_data="plan_5m"
+    ))
+    builder.row(types.InlineKeyboardButton(
+        text="12 мес — 1 500₽ ⭐", callback_data="plan_12m"
+    ))
+    builder.row(types.InlineKeyboardButton(
+        text="🏠 Главное меню", callback_data="menu"
+    ))
     return builder.as_markup()
 
 
@@ -109,102 +149,115 @@ async def cb_menu(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data == "register")
 async def cb_register(callback: types.CallbackQuery):
-    """Регистрация пользователя в панели и выдача ссылок."""
+    """Показать выбор тарифного плана."""
     user = callback.from_user
-    email = _email_from_tg(user)
+    email = await _resolve_email(user)
 
-    user_data = db.get_user(user.id)
-    sub_url = user_data[3] if user_data and len(user_data) > 3 and user_data[3] else ""
-
-    if ENABLE_TRIAL_FUNNEL:
+    # Проверяем, есть ли уже подписка
+    existing = await panel.get_user(email)
+    if existing and existing.get("is_active"):
+        user_data = db.get_user(user.id)
+        sub_url = user_data[3] if user_data and len(user_data) > 3 and user_data[3] else None
         if sub_url:
             await callback.message.edit_text(
-                "✅ <b>У вас уже есть активная подписка!</b>\n\nНа каком устройстве будем настраивать VPN?",
-                reply_markup=_os_keyboard()
+                "✅ <b>У вас уже есть активная подписка!</b>\n\n"
+                "На каком устройстве будем настраивать?",
+                reply_markup=_os_keyboard(),
             )
             return
 
+    # Показываем тарифы
+    show_trial = not db.has_user_trial(user.id)
+    await callback.message.edit_text(
+        "<b>📋 Выберите тарифный план:</b>\n\n"
+        "Все планы включают:\n"
+        "• Обход блокировок РФ\n"
+        "• До 2 устройств\n"
+        "• Трафик 50 Гб/мес\n",
+        reply_markup=_plans_keyboard(show_trial=show_trial),
+    )
+    await callback.answer()
+
+
+@dp.callback_query(F.data == "plans")
+async def cb_plans(callback: types.CallbackQuery):
+    """Показать тарифные планы для продления."""
+    show_trial = not db.has_user_trial(callback.from_user.id)
+    await callback.message.edit_text(
+        "<b>💳 Выберите тариф для продления:</b>",
+        reply_markup=_plans_keyboard(show_trial=show_trial),
+    )
+    await callback.answer()
+
+
+@dp.callback_query(F.data.startswith("plan_"))
+async def cb_plan_select(callback: types.CallbackQuery):
+    """Обработка выбора тарифного плана."""
+    plan_id = callback.data.replace("plan_", "")
+    plan = PLANS.get(plan_id)
+    if not plan:
+        await callback.answer("❌ План не найден", show_alert=True)
+        return
+
+    user = callback.from_user
+    email = await _resolve_email(user)
+
+    # Тестовый период
+    if plan_id == "trial":
         if db.has_user_trial(user.id):
-            await callback.message.edit_text(
-                "❌ <b>Вы уже использовали бесплатный тестовый период.</b>\nДля продолжения работы необходимо продлить подписку.",
-                reply_markup=_main_keyboard()
+            await callback.answer(
+                "❌ Вы уже использовали тестовый период", show_alert=True
             )
             return
 
-        await callback.message.edit_text("⏳ <b>Активирую тестовый период (2 дня, 10 ГБ трафика)...</b>")
-        is_trial = True
-    else:
-        await callback.message.edit_text("⏳ <b>Создаю ваш VPN-профиль...</b>")
-        is_trial = False
-
-    try:
-        if is_trial:
+        await callback.message.edit_text(
+            "⏳ <b>Активирую тестовый период (3 дня, 10 Гб)...</b>"
+        )
+        try:
             result = await panel.create_user(
                 email=email,
-                ip_limit=1,
-                expire_days=2,
+                ip_limit=plan["ip_limit"],
+                expire_days=plan["days"],
                 description=f"Telegram: @{user.username or user.id} (TRIAL)",
             )
             if result:
-                await panel.update_user(email, total_gb=10.0)
+                await panel.update_user(email, total_gb=plan["traffic_gb"])
                 db.set_user_trial(user.id)
-        else:
-            result = await panel.create_user(
-                email=email,
-                ip_limit=2,
-                expire_days=30,
-                description=f"Telegram: @{user.username or user.id}",
-            )
-
-        if not result and not sub_url:
+                sub_token = result.get("sub_token", "")
+                if sub_token:
+                    sub_url = f"{PANEL_PUBLIC_URL}/sub/{sub_token}"
+                    db.update_subscription(user.id, result.get("expires_at", ""), sub_url)
+                await callback.message.edit_text(
+                    "✅ <b>Тестовый период активирован!</b>\n\n"
+                    f"📅 Срок: {plan['days']} дня\n"
+                    f"📊 Трафик: {plan['traffic_gb']} Гб\n\n"
+                    "На каком устройстве настраиваем?",
+                    reply_markup=_os_keyboard(),
+                )
+            else:
+                await callback.message.edit_text(
+                    "❌ <b>Ошибка создания.</b> Попробуйте позже.",
+                    reply_markup=_main_keyboard(),
+                )
+        except Exception as e:
+            logger.error("Trial error: %s", e)
             await callback.message.edit_text(
-                "❌ <b>Ошибка при создании профиля.</b>\n"
-                "Попробуйте позже или напишите в поддержку.",
+                "❌ <b>Ошибка.</b> Попробуйте позже.",
                 reply_markup=_main_keyboard(),
             )
-            return
+        return
 
-        sub_token = result.get("sub_token", "") if result else ""
-        if sub_token:
-            sub_url = f"{PANEL_PUBLIC_URL}/sub/{sub_token}"
-            db.update_subscription(
-                user.id,
-                result.get("expires_at", ""),
-                sub_url,
-            )
-
-        if ENABLE_TRIAL_FUNNEL:
-            await callback.message.edit_text(
-                "✅ <b>Тестовый период успешно активирован!</b>\n\nНа каком устройстве будем настраивать VPN?",
-                reply_markup=_os_keyboard()
-            )
-            return
-
-        # Выдаём Happ подписку
-        if sub_url:
-            sub_url_happ = sub_url.replace(
-                f"{PANEL_PUBLIC_URL}/sub/",
-                "https://37.1.212.51.sslip.io:8086/sub/happ/",
-            ) + "?routing=ru"
-            text = (
-                "✅ <b>Ваш VPN готов!</b>\n\n"
-                "<b>📱 Инструкция:</b>\n"
-                "1. Скачайте <b>Happ</b> по кнопке ниже\n"
-                "2. Скопируйте ссылку подписки:\n"
-                f"<pre>{sub_url_happ}</pre>\n"
-                "3. Откройте Happ → <b>+</b> → <b>Добавить из буфера</b>\n"
-                "4. Нажмите кнопку подключения ▶️"
-            )
-        else:
-            text = "✅ <b>Профиль создан!</b>\nНе удалось получить ссылку."
-        await callback.message.edit_text(text, reply_markup=_apps_keyboard())
-
-    except Exception as e:
-        logger.error("Registration error: %s", e)
-        await callback.message.edit_text(
-            "❌ <b>Произошла ошибка.</b> Попробуйте ещё раз.",
-            reply_markup=_main_keyboard(),
-        )
+    # Платный план — пока показываем информацию (оплата в Фазе 2)
+    await callback.message.edit_text(
+        f"<b>💳 План: {plan['name']}</b>\n\n"
+        f"💰 Стоимость: {plan['price']}₽\n"
+        f"📅 Срок: {plan['days']} дней\n"
+        f"📊 Трафик: {plan['traffic_gb']} Гб/мес\n"
+        f"📱 Устройства: {plan['ip_limit']}\n\n"
+        "<i>⏳ Оплата подключается. Для активации свяжитесь с @vera_artpower</i>",
+        reply_markup=_main_keyboard(),
+    )
+    await callback.answer()
 
 
 @dp.callback_query(F.data.startswith("os_"))
@@ -265,13 +318,6 @@ async def cb_my_links(callback: types.CallbackQuery):
         )
         return
 
-    if ENABLE_TRIAL_FUNNEL:
-        await callback.message.edit_text(
-            "✅ <b>У вас есть активная подписка!</b>\n\nНа каком устройстве выбрать инструкцию?",
-            reply_markup=_os_keyboard()
-        )
-        return
-
     sub_url_happ = sub_url.replace(
         f"{PANEL_PUBLIC_URL}/sub/",
         "https://37.1.212.51.sslip.io:8086/sub/happ/",
@@ -295,7 +341,7 @@ async def cb_my_links(callback: types.CallbackQuery):
 @dp.callback_query(F.data == "status")
 async def cb_status(callback: types.CallbackQuery):
     """Статус подписки и подключения."""
-    email = _email_from_tg(callback.from_user)
+    email = await _resolve_email(callback.from_user)
 
     # Проверяем связь с панелью
     health = await panel.health()

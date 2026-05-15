@@ -22,3 +22,17 @@ else:
 
 # Feature Toggles
 ENABLE_TRIAL_FUNNEL = os.getenv("ENABLE_TRIAL_FUNNEL", "False").lower() == "true"
+
+# ── Тарифные планы ────────────────────────────────────────────
+PLANS = {
+    "trial": {"name": "🆓 Тест 3 дня", "days": 3, "price": 0, "traffic_gb": 10, "ip_limit": 2},
+    "1m": {"name": "1 месяц", "days": 30, "price": 200, "traffic_gb": 50, "ip_limit": 2},
+    "3m": {"name": "3 месяца", "days": 90, "price": 500, "traffic_gb": 50, "ip_limit": 2},
+    "5m": {"name": "5 месяцев", "days": 150, "price": 1000, "traffic_gb": 50, "ip_limit": 2},
+    "12m": {"name": "12 месяцев", "days": 365, "price": 1500, "traffic_gb": 50, "ip_limit": 2},
+}
+
+# ── Т-Банк Эквайринг ─────────────────────────────────────────
+TBANK_TERMINAL_KEY = os.getenv("TBANK_TERMINAL_KEY", "1778844937330DEMO")
+TBANK_PASSWORD = os.getenv("TBANK_PASSWORD", "oBDLqS9c34ydSNdZ")
+TBANK_API_URL = "https://securepay.tinkoff.ru/v2/"
