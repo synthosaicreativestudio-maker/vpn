@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.client.default import DefaultBotProperties
 from aiogram.filters import Command
+from aiogram.types import BotCommand
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot.config import BOT_TOKEN, PANEL_API_KEY, PANEL_PUBLIC_URL, PANEL_URL, PLANS
@@ -463,6 +464,10 @@ async def cb_status(callback: types.CallbackQuery):
 
 async def main():
     logger.info("🤖 VPN Bot starting...")
+    commands = [
+        BotCommand(command="start", description="🏠 Главное меню")
+    ]
+    await bot.set_my_commands(commands)
     await dp.start_polling(bot)
 
 
