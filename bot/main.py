@@ -360,8 +360,7 @@ async def cb_os_selection(callback: types.CallbackQuery):
     text = (
         f"📱 Инструкция для <b>{os_name}</b>:\n\n"
         f"<b>Шаг 1:</b> Скачайте <b>Happ</b> по кнопке ниже.\n\n"
-        f"<b>Шаг 2:</b> Скопируйте ссылку подписки:\n"
-        f"<code>{sub_url_happ}</code>\n\n"
+        f"<b>Шаг 2:</b> Скопируйте ссылку подписки (она в следующем сообщении).\n\n"
         f"<b>Шаг 3:</b> Откройте Happ → <b>+</b> → <b>Добавить из буфера обмена</b> → нажмите кнопку подключения."
     )
 
@@ -371,6 +370,7 @@ async def cb_os_selection(callback: types.CallbackQuery):
     builder.row(types.InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu"))
 
     await callback.message.edit_text(text, reply_markup=builder.as_markup())
+    await callback.message.answer(f"<code>{sub_url_happ}</code>")
 
 
 # ── Мои ссылки ────────────────────────────────────────────────
@@ -390,15 +390,15 @@ async def cb_my_links(callback: types.CallbackQuery):
 
     text = (
         "<b>🔗 Ваша подписка (Happ):</b>\n\n"
-        "Скопируйте ссылку и добавьте в Happ:\n\n"
-        f"<pre>{sub_url_happ}</pre>\n\n"
-        "<i>Для обновления нажмите 🔄 в Happ</i>"
+        "Скопируйте ссылку из следующего сообщения и добавьте её в Happ.\n\n"
+        "<i>Для обновления конфигов нажмите 🔄 в приложении Happ</i>"
     )
 
     await callback.message.edit_text(
         text,
         reply_markup=_apps_keyboard(),
     )
+    await callback.message.answer(f"<code>{sub_url_happ}</code>")
 
 
 # ── Статус ────────────────────────────────────────────────────
