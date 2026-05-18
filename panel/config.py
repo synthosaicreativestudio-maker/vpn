@@ -74,11 +74,11 @@ ENABLE_IP_LIMITS = os.getenv("ENABLE_IP_LIMITS", "True").lower() == "true"
 # Подключение/отключение не влияет на основные каналы
 RELAY_ENABLED = os.getenv("RELAY_ENABLED", "True").lower() == "true"
 RELAY_IP = os.getenv("RELAY_IP", "46.21.244.161")
-RELAY_PORT = int(os.getenv("RELAY_PORT", "443"))
+RELAY_PORT = int(os.getenv("RELAY_PORT", "8081"))
 RELAY_UUID = os.getenv("RELAY_UUID", "57ca4aae-dcb3-4fdd-9e14-f9afb42b703c")
 RELAY_PUBLIC_KEY = os.getenv(
     "RELAY_PUBLIC_KEY",
     "p2EEfvTbaG9Qca4xKM4AxHVX1wFOqFut0Z4TX6T1wUg",
 )
 RELAY_SHORT_ID = os.getenv("RELAY_SHORT_ID", "791cd192259bb2b9")
-RELAY_SNI = os.getenv("RELAY_SNI", "ozon.ru")
+RELAY_SNI = os.getenv("RELAY_SNI", "ads.x5.ru")

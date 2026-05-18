@@ -128,9 +128,9 @@ class LinkGenerator:
             f"&sni={RELAY_SNI}"
             f"&pbk={RELAY_PUBLIC_KEY}"
             f"&sid={RELAY_SHORT_ID}"
-            f"&fp=chrome"
+            f"&fp=edge"
             f"&flow=xtls-rprx-vision"
-            f"#{quote(f'📡 {email} (Relay RU)')}"
+            f"#{quote(f'📶 {email} (Антизаглушка 4G)')}"
         )
 
     # ── Наборы ссылок ────────────────────────────────────────────
