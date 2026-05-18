@@ -15,6 +15,7 @@ logger = logging.getLogger("panel.relay_sync")
 
 RELAY_GRPC_HOST = "46.21.244.161:10085"
 RELAY_INBOUND_TAG = "VLESS-Reality-Relay"
+RELAY_INBOUND_TAG_443 = "VLESS-Reality-Relay-443"
 
 _relay_client = None
 
@@ -33,34 +34,36 @@ def get_relay_client():
 
 
 def add_user_to_relay(email: str, uuid: str) -> bool:
-    """Добавить пользователя в relay inbound."""
+    """Добавить пользователя в оба relay inbound (8081 + 443)."""
     if not RELAY_ENABLED:
         return True
     client = get_relay_client()
     if not client:
         return False
-    # Vision flow для relay
-    ok = client.add_user(RELAY_INBOUND_TAG, email, uuid, flow="xtls-rprx-vision")
-    if ok:
-        logger.info("User %s added to relay", email)
-    return ok
+    # Добавляем в оба inbound
+    ok1 = client.add_user(RELAY_INBOUND_TAG, email, uuid, flow="xtls-rprx-vision")
+    ok2 = client.add_user(RELAY_INBOUND_TAG_443, email, uuid, flow="xtls-rprx-vision")
+    if ok1 or ok2:
+        logger.info("User %s added to relay (8081=%s, 443=%s)", email, ok1, ok2)
+    return ok1 or ok2
 
 
 def remove_user_from_relay(email: str) -> bool:
-    """Удалить пользователя из relay inbound."""
+    """Удалить пользователя из обоих relay inbound."""
     if not RELAY_ENABLED:
         return True
     client = get_relay_client()
     if not client:
         return False
-    ok = client.remove_user(RELAY_INBOUND_TAG, email)
-    if ok:
+    ok1 = client.remove_user(RELAY_INBOUND_TAG, email)
+    ok2 = client.remove_user(RELAY_INBOUND_TAG_443, email)
+    if ok1 or ok2:
         logger.info("User %s removed from relay", email)
-    return ok
+    return ok1 or ok2
 
 
 def sync_all_users_to_relay(users: list[dict]) -> int:
-    """Синхронизировать всех активных пользователей на relay при старте."""
+    """Синхронизировать всех активных пользователей на оба relay inbound."""
     if not RELAY_ENABLED:
         return 0
     client = get_relay_client()
@@ -73,8 +76,9 @@ def sync_all_users_to_relay(users: list[dict]) -> int:
             continue
         email = user["email"]
         uuid = user["uuid"]
-        ok = client.add_user(RELAY_INBOUND_TAG, email, uuid, flow="xtls-rprx-vision")
-        if ok:
+        ok1 = client.add_user(RELAY_INBOUND_TAG, email, uuid, flow="xtls-rprx-vision")
+        ok2 = client.add_user(RELAY_INBOUND_TAG_443, email, uuid, flow="xtls-rprx-vision")
+        if ok1 or ok2:
             count += 1
     logger.info("Relay sync complete: %d users added", count)
     return count
