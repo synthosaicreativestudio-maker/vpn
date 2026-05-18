@@ -15,6 +15,10 @@
 from urllib.parse import quote
 
 from panel.config import (
+    ANTI_STUB_ENABLED,
+    ANTI_STUB_FP,
+    ANTI_STUB_PORT,
+    ANTI_STUB_SNI,
     HYSTERIA2_OBFS_PASSWORD,
     HYSTERIA2_PASSWORD,
     HYSTERIA2_SNI,
@@ -128,7 +132,25 @@ class LinkGenerator:
             f"&sni={RELAY_SNI}"
             f"&pbk={RELAY_PUBLIC_KEY}"
             f"&sid={RELAY_SHORT_ID}"
-            f"&fp=edge"
+            f"&fp=chrome"
+            f"&flow=xtls-rprx-vision"
+            f"#{quote(f'📡 {email} (Relay RU)')}"
+        )
+
+    @staticmethod
+    def vless_anti_stub(email: str, uuid: str) -> str:
+        """8. VLESS + Reality + Vision — Антизаглушка 4G.
+
+        Тот же relay-сервер, но на нестандартном порту с локальным SNI.
+        Обходит поведенческий анализ ТСПУ на стандартном порту 443.
+        """
+        return (
+            f"vless://{uuid}@{RELAY_IP}:{ANTI_STUB_PORT}"
+            f"?encryption=none&security=reality"
+            f"&sni={ANTI_STUB_SNI}"
+            f"&pbk={RELAY_PUBLIC_KEY}"
+            f"&sid={RELAY_SHORT_ID}"
+            f"&fp={ANTI_STUB_FP}"
             f"&flow=xtls-rprx-vision"
             f"#{quote(f'📶 {email} (Антизаглушка 4G)')}"
         )
@@ -137,32 +159,38 @@ class LinkGenerator:
 
     @classmethod
     def all_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Vision (US напрямую) + Relay RU (обход БС)."""
+        """Vision (US напрямую) + Relay RU + Антизаглушка 4G."""
         links = {
             "vless_reality": cls.vless_reality(uuid, email),
         }
         if RELAY_ENABLED:
             links["vless_relay"] = cls.vless_relay(email, uuid)
+        if ANTI_STUB_ENABLED:
+            links["vless_anti_stub"] = cls.vless_anti_stub(email, uuid)
         return links
 
     @classmethod
     def hiddify_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Vision + Relay RU."""
+        """Vision + Relay RU + Антизаглушка 4G."""
         links = {
             "vless_reality": cls.vless_reality(uuid, email),
         }
         if RELAY_ENABLED:
             links["vless_relay"] = cls.vless_relay(email, uuid)
+        if ANTI_STUB_ENABLED:
+            links["vless_anti_stub"] = cls.vless_anti_stub(email, uuid)
         return links
 
     @classmethod
     def happ_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Vision + Relay RU."""
+        """Vision + Relay RU + Антизаглушка 4G."""
         links = {
             "vless_reality": cls.vless_reality(uuid, email),
         }
         if RELAY_ENABLED:
             links["vless_relay"] = cls.vless_relay(email, uuid)
+        if ANTI_STUB_ENABLED:
+            links["vless_anti_stub"] = cls.vless_anti_stub(email, uuid)
         return links
 
     # ── Текст подписок ───────────────────────────────────────────
