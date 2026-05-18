@@ -13,7 +13,7 @@ from panel.config import RELAY_ENABLED
 
 logger = logging.getLogger("panel.relay_sync")
 
-RELAY_GRPC_HOST = "46.21.244.161:10085"
+RELAY_GRPC_HOST = "51.250.94.182:10085"
 RELAY_INBOUND_TAG = "VLESS-Reality-Relay"
 RELAY_INBOUND_TAG_443 = "VLESS-Reality-Relay-443"
 

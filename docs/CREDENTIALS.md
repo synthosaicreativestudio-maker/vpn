@@ -20,7 +20,7 @@ UUID: eb4a1cf2-4235-4b0a-83b2-0e5a298389ed
 - API Key: b534ef20bdea908d3b9b4f5388467d525ba88f7abaddcc5ca8b4c159b75335c3
 
 ## Relay RU (обход белых списков ТСПУ)
-- IP: `46.21.244.161` SSH: `ubuntu` (ключ ed25519)
+- IP: `51.250.94.182` SSH: `ubuntu` (ключ ed25519)
 - Yandex Cloud (AS200350), зона ru-central1-a
 - Xray relay → US 37.1.212.51
 - Порт: 443

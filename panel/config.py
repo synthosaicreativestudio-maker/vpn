@@ -73,7 +73,7 @@ ENABLE_IP_LIMITS = os.getenv("ENABLE_IP_LIMITS", "True").lower() == "true"
 # Модуль: relay-chain через РФ VPS (Yandex Cloud)
 # Подключение/отключение не влияет на основные каналы
 RELAY_ENABLED = os.getenv("RELAY_ENABLED", "True").lower() == "true"
-RELAY_IP = os.getenv("RELAY_IP", "46.21.244.161")
+RELAY_IP = os.getenv("RELAY_IP", "51.250.94.182")
 RELAY_PORT = int(os.getenv("RELAY_PORT", "443"))
 RELAY_UUID = os.getenv("RELAY_UUID", "57ca4aae-dcb3-4fdd-9e14-f9afb42b703c")
 RELAY_PUBLIC_KEY = os.getenv(
