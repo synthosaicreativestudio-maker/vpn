@@ -13,6 +13,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.filters import Command
 from aiogram.types import BotCommand
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiohttp import web
 
 from bot.config import BOT_TOKEN, PANEL_API_KEY, PANEL_PUBLIC_URL, PANEL_URL, PLANS
 from bot.data.db_manager import DBManager
@@ -321,7 +322,6 @@ async def cb_plan_select(callback: types.CallbackQuery):
 
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(text="💳 Оплатить", url=pay_url))
-    builder.row(types.InlineKeyboardButton(text="✅ Я оплатил", callback_data=f"check_pay_{plan_id}"))
     builder.row(types.InlineKeyboardButton(text="🏠 Отмена", callback_data="menu"))
 
     await callback.message.edit_text(
@@ -331,21 +331,12 @@ async def cb_plan_select(callback: types.CallbackQuery):
         f"📊 Трафик: {plan['traffic_gb']} Гб/мес\n"
         f"📱 Устройства: {plan['ip_limit']}\n\n"
         "<i>Нажмите кнопку «Оплатить», чтобы перейти в безопасный шлюз Т-Банка.\n"
-        "После оплаты вернитесь сюда и нажмите «Я оплатил».</i>",
+        "Сразу после успешной оплаты бот пришлет вам ссылку на VPN.</i>",
         reply_markup=builder.as_markup(),
     )
     await callback.answer()
 
-@dp.callback_query(F.data.startswith("check_pay_"))
-async def cb_check_payment(callback: types.CallbackQuery):
-    """Обработка кнопки 'Я оплатил'."""
-    # В будущем здесь будет логика запроса к API Т-Банка для проверки платежа
-    # пока выдаем сообщение, что платеж в обработке
-    await callback.answer(
-        "⏳ Платеж проверяется... Если вы уже оплатили, доступ будет выдан в течение 5 минут. "
-        "В случае проблем обратитесь в поддержку.", 
-        show_alert=True
-    )
+
 
 
 @dp.callback_query(F.data == "register_os")
@@ -480,6 +471,84 @@ async def cb_status(callback: types.CallbackQuery):
     await callback.answer()
 
 
+# ── Webhook T-Bank ────────────────────────────────────────────
+
+async def tbank_webhook(request: web.Request) -> web.Response:
+    try:
+        data = await request.json()
+        logger.info(f"Webhook from T-Bank: {data}")
+        
+        status = data.get("Status")
+        if status in ("CONFIRMED", "AUTHORIZED"):
+            order_id = data.get("OrderId", "")
+            amount_kopecks = data.get("Amount", 0)
+            amount = amount_kopecks / 100
+            
+            # Парсим tg_id (ожидаем формат TG_12345_123...)
+            if order_id.startswith("TG_"):
+                parts = order_id.split("_")
+                if len(parts) >= 2:
+                    tg_id_str = parts[1]
+                    try:
+                        tg_id = int(tg_id_str)
+                        
+                        # Определяем план по сумме
+                        plan = None
+                        if amount == 200:
+                            plan = PLANS.get("1m")
+                        elif amount == 500:
+                            plan = PLANS.get("3m")
+                        elif amount == 1000:
+                            plan = PLANS.get("5m")
+                        elif amount == 1500:
+                            plan = PLANS.get("12m")
+                            
+                        # Чек
+                        receipt_text = (
+                            "🧾 <b>Электронный чек</b>\n\n"
+                            f"<b>Услуга:</b> IT-консалтинг и безопасность\n"
+                            f"<b>Сумма:</b> {amount:.2f} ₽\n"
+                            f"<b>Заказ №:</b> {order_id}\n"
+                            f"<b>Статус:</b> Оплачено ✅\n\n"
+                        )
+                        
+                        if plan:
+                            email = f"tg_{tg_id}"
+                            # Создаем или обновляем пользователя в панели
+                            result = await panel.create_user(
+                                email=email,
+                                ip_limit=plan["ip_limit"],
+                                expire_days=plan["days"],
+                                description=f"Telegram: {tg_id} (PAID)",
+                            )
+                            if result:
+                                await panel.update_user(email, total_gb=plan["traffic_gb"])
+                                sub_token = result.get("sub_token", "")
+                                sub_url = f"{PANEL_PUBLIC_URL}/sub/{sub_token}"
+                                db.update_subscription(tg_id, result.get("expires_at", ""), sub_url)
+                                
+                                success_text = receipt_text + (
+                                    "🎉 <b>Оплата успешно получена! Подписка активирована.</b>\n\n"
+                                    f"📅 <b>Срок:</b> {plan['days']} дней\n"
+                                    f"📊 <b>Трафик:</b> {plan['traffic_gb']} Гб\n\n"
+                                    f"Ваша уникальная ссылка для подключения (скопируйте её):\n"
+                                    f"<code>{sub_url}</code>\n\n"
+                                    f"Для настройки устройства перейдите в <b>🏠 Главное меню</b> → <b>🔗 Моя подписка</b>."
+                                )
+                                await bot.send_message(tg_id, success_text)
+                            else:
+                                await bot.send_message(tg_id, receipt_text + "❌ Ошибка активации подписки. Свяжитесь с поддержкой.")
+                        else:
+                            await bot.send_message(tg_id, receipt_text + "⏳ Подписка обрабатывается вручную, так как сумма не совпала с тарифом.")
+                            
+                    except ValueError:
+                        pass
+
+        return web.Response(text="OK", status=200)
+    except Exception as e:
+        logger.error(f"Webhook error: {e}")
+        return web.Response(text="OK", status=200)
+
 # ── Запуск ────────────────────────────────────────────────────
 
 
@@ -489,6 +558,16 @@ async def main():
         BotCommand(command="start", description="🏠 Главное меню")
     ]
     await bot.set_my_commands(commands)
+    
+    # Запускаем веб-сервер для Webhook
+    app = web.Application()
+    app.router.add_post('/tbank_webhook', tbank_webhook)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', 8080)
+    await site.start()
+    logger.info("🌐 Webhook server started on port 8080")
+    
     await dp.start_polling(bot)
 
 
