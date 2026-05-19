@@ -314,17 +314,38 @@ async def cb_plan_select(callback: types.CallbackQuery):
             )
         return
 
-    # Платный план — пока показываем информацию (оплата в Фазе 2)
+    # Платный план — генерация ссылки на витрину
+    # Маппинг plan_id (1m, 3m, 5m, 12m) в planId для витрины
+    shop_plan_id = f"it_consulting_{plan_id}"
+    pay_url = f"https://synthosaicreativestudio.github.io/gen-art-suite/?plan={shop_plan_id}&tg_id={user.id}"
+
+    builder = InlineKeyboardBuilder()
+    builder.row(types.InlineKeyboardButton(text="💳 Оплатить", url=pay_url))
+    builder.row(types.InlineKeyboardButton(text="✅ Я оплатил", callback_data=f"check_pay_{plan_id}"))
+    builder.row(types.InlineKeyboardButton(text="🏠 Отмена", callback_data="menu"))
+
     await callback.message.edit_text(
         f"<b>💳 План: {plan['name']}</b>\n\n"
         f"💰 Стоимость: {plan['price']}₽\n"
         f"📅 Срок: {plan['days']} дней\n"
         f"📊 Трафик: {plan['traffic_gb']} Гб/мес\n"
         f"📱 Устройства: {plan['ip_limit']}\n\n"
-        "<i>⏳ Оплата подключается. Для активации свяжитесь с @vera_artpower</i>",
-        reply_markup=_main_keyboard(),
+        "<i>Нажмите кнопку «Оплатить», чтобы перейти в безопасный шлюз Т-Банка.\n"
+        "После оплаты вернитесь сюда и нажмите «Я оплатил».</i>",
+        reply_markup=builder.as_markup(),
     )
     await callback.answer()
+
+@dp.callback_query(F.data.startswith("check_pay_"))
+async def cb_check_payment(callback: types.CallbackQuery):
+    """Обработка кнопки 'Я оплатил'."""
+    # В будущем здесь будет логика запроса к API Т-Банка для проверки платежа
+    # пока выдаем сообщение, что платеж в обработке
+    await callback.answer(
+        "⏳ Платеж проверяется... Если вы уже оплатили, доступ будет выдан в течение 5 минут. "
+        "В случае проблем обратитесь в поддержку.", 
+        show_alert=True
+    )
 
 
 @dp.callback_query(F.data == "register_os")
