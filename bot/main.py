@@ -16,7 +16,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiohttp import web
 import time
 
-from bot.config import BOT_TOKEN, PANEL_API_KEY, PANEL_PUBLIC_URL, PANEL_URL, PLANS
+from bot.config import BOT_TOKEN, PANEL_API_KEY, PANEL_URL, PLANS
 from bot.data.db_manager import DBManager
 from bot.utils.panel_api import PanelAPI
 from bot.tbank import init_tbank_payment
@@ -534,8 +534,11 @@ async def tbank_webhook(request: web.Request) -> web.Response:
                             )
                             if result:
                                 await panel.update_user(email, total_gb=plan["traffic_gb"])
-                                sub_token = result.get("sub_token", "")
-                                sub_url = f"https://37.1.212.51.sslip.io:8086/sub/happ/{sub_token}?routing=ru"
+                                if "sub_happ" in result:
+                                    sub_url = result["sub_happ"]
+                                else:
+                                    sub_token = result.get("sub_token", "")
+                                    sub_url = f"https://37.1.212.51.sslip.io:8086/sub/happ/{sub_token}?routing=ru"
                                 db.update_subscription(tg_id, result.get("expires_at", ""), sub_url)
                                 
                                 success_text = receipt_text + (
