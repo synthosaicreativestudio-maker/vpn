@@ -14,10 +14,12 @@ from aiogram.filters import Command
 from aiogram.types import BotCommand
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiohttp import web
+import time
 
 from bot.config import BOT_TOKEN, PANEL_API_KEY, PANEL_PUBLIC_URL, PANEL_URL, PLANS
 from bot.data.db_manager import DBManager
 from bot.utils.panel_api import PanelAPI
+from bot.tbank import init_tbank_payment
 
 AMNEZIA_VPN_LINK = "vpn://ewogICJjb250YWluZXJzIjogWwogICAgewogICAgICAiY29udGFpbmVyIjogImFtbmV6aWEtYXdnIiwKICAgICAgImluc3RhbGxfaWQiOiAiaW5zdGFsbF8yMDI2XzAzXzIxIiwKICAgICAgInBvcnQiOiAiMzA0NDMiLAogICAgICAicHJvdG9jb2wiOiAiYXdnIiwKICAgICAgInNldHRpbmdzIjogewogICAgICAgICJhZGRyZXNzIjogIjEwLjAuMC4yIiwKICAgICAgICAiaDEiOiAiMSIsCiAgICAgICAgImgyIjogIjIiLAogICAgICAgICJoMyI6ICIzIiwKICAgICAgICAiaDQiOiAiNCIsCiAgICAgICAgImpjIjogIjQiLAogICAgICAgICJqbWF4IjogIjcwIiwKICAgICAgICAiam1pbiI6ICI0MCIsCiAgICAgICAgImxhc3RfY29uZmlnIjogIiIsCiAgICAgICAgIm10dSI6ICIxMjgwIiwKICAgICAgICAicG9ydCI6ICIzMDQ0MyIsCiAgICAgICAgInByaXZhdGVfa2V5IjogIkVKTmlLQ2lBbVhzUThremZoZzQ4dXpSYVlFNWF4anpSbzBpK01OaTVGVVk9IiwKICAgICAgICAicHVibGljX2tleSI6ICJZL1lvalk3Q0lkcmhqdVFjazEwMHkwOERlUmYvWWRJL1R2dXlMMjF1WVZZPSIsCiAgICAgICAgInMxIjogIjUiLAogICAgICAgICJzMiI6ICIxMCIKICAgICAgfQogICAgfQogIF0sCiAgImRlc2NyaXB0aW9uIjogIlByZW1pdW0tVlBOLTIwMjYtQW1uZXppYVdHIiwKICAiaG9zdCI6ICIzNy4xLjIxMi41MSIKfQo="
 
@@ -315,16 +317,25 @@ async def cb_plan_select(callback: types.CallbackQuery):
             )
         return
 
-    # Платный план — генерация ссылки на витрину
-    # Маппинг plan_id (1m, 3m, 5m, 12m) в planId для витрины
-    shop_plan_id = f"it_consulting_{plan_id}"
-    pay_url = f"https://synthosaicreativestudio.github.io/gen-art-suite/?plan={shop_plan_id}&tg_id={user.id}"
+    # Генерируем прямую ссылку на оплату в Т-Банке
+    order_id = f"TG_{user.id}_{int(time.time())}"
+    
+    # Отправляем сообщение об ожидании
+    wait_msg = await callback.message.edit_text("⏳ Инициализация защищенного соединения с Т-Банком...")
+    
+    pay_url = await init_tbank_payment(plan['price'], order_id, "IT-консалтинг и безопасность")
+    
+    if not pay_url:
+        builder = InlineKeyboardBuilder()
+        builder.row(types.InlineKeyboardButton(text="🏠 Назад", callback_data="menu"))
+        await wait_msg.edit_text("❌ Ошибка при создании платежа. Пожалуйста, попробуйте позже.", reply_markup=builder.as_markup())
+        return
 
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(text="💳 Оплатить", url=pay_url))
     builder.row(types.InlineKeyboardButton(text="🏠 Отмена", callback_data="menu"))
 
-    await callback.message.edit_text(
+    await wait_msg.edit_text(
         f"<b>💳 План: {plan['name']}</b>\n\n"
         f"💰 Стоимость: {plan['price']}₽\n"
         f"📅 Срок: {plan['days']} дней\n"
