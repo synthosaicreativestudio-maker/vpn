@@ -295,7 +295,7 @@ async def cb_plan_select(callback: types.CallbackQuery):
                 db.set_user_trial(user.id)
                 sub_token = result.get("sub_token", "")
                 if sub_token:
-                    sub_url = f"{PANEL_PUBLIC_URL}/sub/{sub_token}"
+                    sub_url = f"https://37.1.212.51.sslip.io:8086/sub/happ/{sub_token}?routing=ru"
                     db.update_subscription(user.id, result.get("expires_at", ""), sub_url)
                 await callback.message.edit_text(
                     "✅ <b>Тестовый период активирован!</b>\n\n"
@@ -535,7 +535,7 @@ async def tbank_webhook(request: web.Request) -> web.Response:
                             if result:
                                 await panel.update_user(email, total_gb=plan["traffic_gb"])
                                 sub_token = result.get("sub_token", "")
-                                sub_url = f"{PANEL_PUBLIC_URL}/sub/{sub_token}"
+                                sub_url = f"https://37.1.212.51.sslip.io:8086/sub/happ/{sub_token}?routing=ru"
                                 db.update_subscription(tg_id, result.get("expires_at", ""), sub_url)
                                 
                                 success_text = receipt_text + (
