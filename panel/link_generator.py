@@ -17,6 +17,7 @@ from urllib.parse import quote
 from panel.config import (
     ANTI_STUB_ENABLED,
     ANTI_STUB_FP,
+    ANTI_STUB_IP,
     ANTI_STUB_PORT,
     ANTI_STUB_SNI,
     HYSTERIA2_OBFS_PASSWORD,
@@ -145,7 +146,7 @@ class LinkGenerator:
         Обходит поведенческий анализ ТСПУ на стандартном порту 443.
         """
         return (
-            f"vless://{uuid}@{RELAY_IP}:{ANTI_STUB_PORT}"
+            f"vless://{uuid}@{ANTI_STUB_IP}:{ANTI_STUB_PORT}"
             f"?encryption=none&security=reality"
             f"&sni={ANTI_STUB_SNI}"
             f"&pbk={RELAY_PUBLIC_KEY}"

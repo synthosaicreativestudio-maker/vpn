@@ -87,7 +87,9 @@ RELAY_SNI = os.getenv("RELAY_SNI", "ozon.ru")
 # Тот же relay-сервер, но на порту 8081 с SNI ads.x5.ru
 # Обходит поведенческий анализ ТСПУ на стандартном порту 443
 ANTI_STUB_ENABLED = os.getenv("ANTI_STUB_ENABLED", "True").lower() == "true"
+ANTI_STUB_IP = os.getenv("ANTI_STUB_IP", "51.250.94.182")
 ANTI_STUB_PORT = int(os.getenv("ANTI_STUB_PORT", "8081"))
 ANTI_STUB_SNI = os.getenv("ANTI_STUB_SNI", "ads.x5.ru")
 ANTI_STUB_FP = os.getenv("ANTI_STUB_FP", "edge")
+
 
