@@ -7,7 +7,6 @@ import urllib.error
 import subprocess
 
 OAUTH_TOKEN = "y0__wgBEKLHkMsHGMHdEyDtgJ7LFzDH0sj8BzcedlXM7WCpdcMiDo30tXhV59N_"
-VM_NAME = "relay-anti-stub"
 ZONE = "ru-central1-a"
 WHITELIST_FILE = "/root/whitelist_ips.txt"
 YANDEX_WHITELIST_FILE = "/root/yandex_whitelist_ips.txt"
@@ -44,13 +43,11 @@ def get_folder_id(iam_token):
     print("Получение Folder ID...")
     headers = {"Authorization": f"Bearer {iam_token}"}
     
-    # 1. Получаем список облаков
     clouds_res = request_json("https://resource-manager.api.cloud.yandex.net/resource-manager/v1/clouds", headers=headers)
     if not clouds_res.get("clouds"):
         raise Exception("Облака Yandex Cloud не найдены!")
     cloud_id = clouds_res["clouds"][0]["id"]
     
-    # 2. Получаем список папок
     folders_res = request_json(f"https://resource-manager.api.cloud.yandex.net/resource-manager/v1/folders?cloudId={cloud_id}", headers=headers)
     if not folders_res.get("folders"):
         raise Exception("Папки в облаке не найдены!")
@@ -77,12 +74,12 @@ def wait_operation(iam_token, operation_id):
             return res.get("response")
         time.sleep(3)
 
-def find_instance(iam_token, folder_id):
+def find_instance(iam_token, folder_id, vm_name):
     headers = {"Authorization": f"Bearer {iam_token}"}
     url = f"https://compute.api.cloud.yandex.net/compute/v1/instances?folderId={folder_id}"
     res = request_json(url, headers=headers)
     for inst in res.get("instances", []):
-        if inst["name"] == VM_NAME:
+        if inst["name"] == vm_name:
             return inst
     return None
 
@@ -93,9 +90,9 @@ def get_latest_image_id(iam_token):
     res = request_json(url, headers=headers)
     return res["id"]
 
-def create_instance(iam_token, folder_id, subnet_id):
+def create_instance(iam_token, folder_id, subnet_id, vm_name):
     image_id = get_latest_image_id(iam_token)
-    print(f"Создание виртуальной машины {VM_NAME} с образом {image_id}...")
+    print(f"Создание виртуальной машины {vm_name} с образом {image_id}...")
     headers = {"Authorization": f"Bearer {iam_token}"}
     url = "https://compute.api.cloud.yandex.net/compute/v1/instances"
     
@@ -112,7 +109,7 @@ def create_instance(iam_token, folder_id, subnet_id):
     
     data = {
         "folderId": folder_id,
-        "name": VM_NAME,
+        "name": vm_name,
         "zoneId": ZONE,
         "platformId": "standard-v3",
         "resourcesSpec": {
@@ -221,7 +218,6 @@ def load_whitelist():
 def configure_remote_relay(ip_address):
     print(f"\n=== Начинаем удаленную настройку релея на IP {ip_address} ===")
     
-    # Ожидание доступности SSH (до 2 минут)
     max_wait = 24
     ssh_ok = False
     for i in range(max_wait):
@@ -239,7 +235,6 @@ def configure_remote_relay(ip_address):
     if not ssh_ok:
         raise Exception("❌ Не удалось подключиться к релею по SSH за отведенное время.")
 
-    # Скрипт настройки
     bash_script = """#!/bin/bash
 set -e
 
@@ -360,25 +355,28 @@ echo "=== Настройка релея завершена успешно! ==="
     print("✅ Релей успешно настроен!")
     print(stdout)
 
-def update_panel_config(new_ip):
+def update_panel_config(vm_idx, new_ip):
     config_path = "/root/vpn/panel/config.py"
-    print(f"\n=== Обновление конфигурации панели {config_path} ===")
+    print(f"\n=== Обновление конфигурации панели (релей #{vm_idx} -> {new_ip}) ===")
     
     try:
         with open(config_path, "r") as f:
             content = f.read()
             
         import re
-        # Заменяем ANTI_STUB_IP
-        new_content = re.sub(r'(ANTI_STUB_IP\s*=\s*os\.getenv\("ANTI_STUB_IP",\s*["\']).*?(["\']\))', r'\g<1>' + new_ip + r'\2', content)
+        # Заменяем TEST_RELAY_IP_N
+        pattern = r'(TEST_RELAY_IP_' + str(vm_idx) + r'\s*=\s*os\.getenv\("TEST_RELAY_IP_' + str(vm_idx) + r'",\s*["\']).*?(["\']\))'
+        new_content = re.sub(pattern, r'\g<1>' + new_ip + r'\2', content)
         
-        # Заменяем RELAY_IP (так как у нас одна виртуалка на оба режима)
-        new_content = re.sub(r'(RELAY_IP\s*=\s*os\.getenv\("RELAY_IP",\s*["\']).*?(["\']\))', r'\g<1>' + new_ip + r'\2', new_content)
-        
+        # Для обратной совместимости (если vm_idx == 1, обновляем ANTI_STUB_IP и RELAY_IP)
+        if vm_idx == 1:
+            new_content = re.sub(r'(ANTI_STUB_IP\s*=\s*os\.getenv\("ANTI_STUB_IP",\s*["\']).*?(["\']\))', r'\g<1>' + new_ip + r'\2', new_content)
+            new_content = re.sub(r'(RELAY_IP\s*=\s*os\.getenv\("RELAY_IP",\s*["\']).*?(["\']\))', r'\g<1>' + new_ip + r'\2', new_content)
+            
         with open(config_path, "w") as f:
             f.write(new_content)
             
-        print("✅ Конфигурация панели успешно обновлена.")
+        print(f"✅ Конфигурация для TEST_RELAY_IP_{vm_idx} успешно обновлена.")
     except Exception as e:
         print(f"❌ Ошибка обновления конфигурации: {e}")
         raise e
@@ -399,71 +397,92 @@ def main():
         folder_id = get_folder_id(iam_token)
         subnet_id = get_subnet_id(iam_token, folder_id)
         
-        inst = find_instance(iam_token, folder_id)
-        if not inst:
-            inst = create_instance(iam_token, folder_id, subnet_id)
-            instance_id = inst["id"]
-        else:
-            instance_id = inst["id"]
-            print(f"Виртуальная машина {VM_NAME} найдена: ID {instance_id}")
-            
-        # Запускаем цикл подбора
-        attempts = 0
-        current_ip = get_instance_network_info(iam_token, instance_id)
+        vm_names = ["relay-stub-1", "relay-stub-2", "relay-stub-3"]
         
         while True:
-            if current_ip:
-                print(f"Текущий IP виртуалки: {current_ip}")
-                if current_ip in whitelist:
-                    print(f"🎉 БИНГО! Текущий IP {current_ip} находится в белом списке!")
-                    break
-                else:
-                    print(f"❌ Текущий IP {current_ip} отсутствует в белом списке. Меняем.")
-                    remove_nat(iam_token, instance_id)
-                    current_ip = None
+            print("\n==========================================")
+            print(f"Запуск очередной проверки релеев: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print("==========================================")
             
-            attempts += 1
-            print(f"\n--- Попытка подбора #{attempts} ---")
+            config_changed = False
             
-            # Запрашиваем новый IP с обработкой лимитов скорости API Яндекса
-            while True:
-                try:
-                    add_ephemeral_nat(iam_token, instance_id)
-                    break
-                except Exception as e:
-                    err_msg = str(e)
-                    if "Quota limit" in err_msg or "RESOURCE_EXHAUSTED" in err_msg or "429" in err_msg or "limit exceeded" in err_msg.lower():
-                        print("⚠️ Превышен лимит запросов в Yandex Cloud (Rate Limit). Ожидаем 60 секунд...")
-                        time.sleep(60)
-                    else:
-                        raise e
-            
-            current_ip = get_instance_network_info(iam_token, instance_id)
-            
-            if current_ip in whitelist:
-                print(f"🎉 УРА! Новый IP {current_ip} находится в белом списке ТСПУ!")
-                break
-            else:
-                print(f"❌ IP {current_ip} заблокирован ТСПУ. Пробуем снова.")
-                remove_nat(iam_token, instance_id)
-                current_ip = None
+            for idx, vm_name in enumerate(vm_names, 1):
+                print(f"\nПроверка релея #{idx} ({vm_name})...")
                 
-            time.sleep(10)
+                try:
+                    iam_token = get_iam_token(OAUTH_TOKEN)
+                except Exception as e:
+                    print(f"Ошибка получения IAM-токена: {e}. Попробуем в следующей итерации.")
+                    break
+                
+                inst = find_instance(iam_token, folder_id, vm_name)
+                if not inst:
+                    print(f"Виртуалка {vm_name} не найдена. Создаем.")
+                    inst = create_instance(iam_token, folder_id, subnet_id, vm_name)
+                    instance_id = inst["id"]
+                else:
+                    instance_id = inst["id"]
+                    print(f"Виртуалка {vm_name} найдена: ID {instance_id}")
+                
+                current_ip = get_instance_network_info(iam_token, instance_id)
+                
+                ip_ok = False
+                if current_ip:
+                    if current_ip in whitelist:
+                        print(f"✅ IP {current_ip} для {vm_name} находится в белом списке.")
+                        ip_ok = True
+                    else:
+                        print(f"❌ IP {current_ip} для {vm_name} отсутствует в белом списке.")
+                else:
+                    print(f"⚠️ У {vm_name} нет внешнего IP.")
+                
+                if not ip_ok:
+                    attempts = 0
+                    if current_ip:
+                        remove_nat(iam_token, instance_id)
+                        current_ip = None
+                        
+                    while True:
+                        attempts += 1
+                        print(f"Подбор IP для {vm_name}, попытка #{attempts}...")
+                        
+                        while True:
+                            try:
+                                add_ephemeral_nat(iam_token, instance_id)
+                                break
+                            except Exception as e:
+                                err_msg = str(e)
+                                if "Quota limit" in err_msg or "RESOURCE_EXHAUSTED" in err_msg or "429" in err_msg or "limit exceeded" in err_msg.lower():
+                                    print("⚠️ Rate Limit Yandex Cloud. Ждем 60 секунд...")
+                                    time.sleep(60)
+                                else:
+                                    raise e
+                                    
+                        current_ip = get_instance_network_info(iam_token, instance_id)
+                        if current_ip in whitelist:
+                            print(f"🎉 Найден белый IP {current_ip} для {vm_name}!")
+                            break
+                        else:
+                            print(f"❌ IP {current_ip} заблокирован. Сбрасываем.")
+                            remove_nat(iam_token, instance_id)
+                            current_ip = None
+                            time.sleep(10)
+                    
+                    configure_remote_relay(current_ip)
+                    update_panel_config(idx, current_ip)
+                    config_changed = True
+
+            if config_changed:
+                restart_panel()
+                
+            print("\nВсе релеи проверены. Засыпаем на 10 минут...")
+            time.sleep(600)
             
-        print(f"\n✅ IP-rolling завершен за {attempts} попыток!")
-        print(f"Новый белый IP-адрес релея: {current_ip}")
-        
-        # Запускаем удаленную настройку релея
-        configure_remote_relay(current_ip)
-        
-        # Обновляем конфиг панели подписок
-        update_panel_config(current_ip)
-        
-        # Перезапускаем панель подписок
-        restart_panel()
-        
+    except KeyboardInterrupt:
+        print("\nСкрипт остановлен пользователем.")
+        sys.exit(0)
     except Exception as e:
-        print(f"Критическая ошибка в процессе IP-rolling: {e}")
+        print(f"Критическая ошибка в работе демона: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":

@@ -83,13 +83,22 @@ RELAY_PUBLIC_KEY = os.getenv(
 RELAY_SHORT_ID = os.getenv("RELAY_SHORT_ID", "791cd192259bb2b9")
 RELAY_SNI = os.getenv("RELAY_SNI", "ozon.ru")
 
-# ── Антизаглушка 4G (нестандартный порт + локальный SNI) ──────
-# Тот же relay-сервер, но на порту 8081 с SNI ads.x5.ru
-# Обходит поведенческий анализ ТСПУ на стандартном порту 443
-ANTI_STUB_ENABLED = os.getenv("ANTI_STUB_ENABLED", "True").lower() == "true"
-ANTI_STUB_IP = os.getenv("ANTI_STUB_IP", "51.250.94.182")
-ANTI_STUB_PORT = int(os.getenv("ANTI_STUB_PORT", "8081"))
-ANTI_STUB_SNI = os.getenv("ANTI_STUB_SNI", "ads.x5.ru")
-ANTI_STUB_FP = os.getenv("ANTI_STUB_FP", "edge")
+# ── Тесты обхода белых списков (3 независимых релея) ─────────
+TEST_RELAYS_ENABLED = os.getenv("TEST_RELAYS_ENABLED", "True").lower() == "true"
+TEST_RELAY_IPS = [
+    os.getenv("TEST_RELAY_IP_1", "51.250.94.182"),
+    os.getenv("TEST_RELAY_IP_2", "51.250.94.182"),
+    os.getenv("TEST_RELAY_IP_3", "51.250.94.182"),
+]
+TEST_RELAY_PORT = int(os.getenv("TEST_RELAY_PORT", "8081"))
+TEST_RELAY_SNI = os.getenv("TEST_RELAY_SNI", "ads.x5.ru")
+TEST_RELAY_FP = os.getenv("TEST_RELAY_FP", "edge")
+
+# Обратная совместимость
+ANTI_STUB_ENABLED = TEST_RELAYS_ENABLED
+ANTI_STUB_IP = TEST_RELAY_IPS[0]
+ANTI_STUB_PORT = TEST_RELAY_PORT
+ANTI_STUB_SNI = TEST_RELAY_SNI
+ANTI_STUB_FP = TEST_RELAY_FP
 
 

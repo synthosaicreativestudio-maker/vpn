@@ -15,7 +15,6 @@
 from urllib.parse import quote
 
 from panel.config import (
-    ANTI_STUB_ENABLED,
     ANTI_STUB_FP,
     ANTI_STUB_IP,
     ANTI_STUB_PORT,
@@ -156,42 +155,82 @@ class LinkGenerator:
             f"#{quote(f'📶 {email} (тест обхода белых списков)')}"
         )
 
+    @classmethod
+    def test_relays(cls, email: str, uuid: str) -> list[str]:
+        """9. Список тестовых релеев Яндекса для обхода белых списков."""
+        from panel.config import (
+            RELAY_PUBLIC_KEY,
+            RELAY_SHORT_ID,
+            TEST_RELAY_FP,
+            TEST_RELAY_IPS,
+            TEST_RELAY_PORT,
+            TEST_RELAY_SNI,
+            TEST_RELAYS_ENABLED,
+        )
+
+        links = []
+        if not TEST_RELAYS_ENABLED:
+            return links
+
+        for idx, ip in enumerate(TEST_RELAY_IPS, 1):
+            if ip and ip != "0.0.0.0":
+                links.append(
+                    f"vless://{uuid}@{ip}:{TEST_RELAY_PORT}"
+                    f"?encryption=none&security=reality"
+                    f"&sni={TEST_RELAY_SNI}"
+                    f"&pbk={RELAY_PUBLIC_KEY}"
+                    f"&sid={RELAY_SHORT_ID}"
+                    f"&fp={TEST_RELAY_FP}"
+                    f"&flow=xtls-rprx-vision"
+                    f"#{quote(f'📶 {email} (тест {idx}: {ip})')}"
+                )
+        return links
+
     # ── Наборы ссылок ────────────────────────────────────────────
 
     @classmethod
     def all_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Vision (US напрямую) + Relay RU + Антизаглушка 4G."""
+        """Vision (US напрямую) + Relay RU + 3 тестовых релея."""
         links = {
             "vless_reality": cls.vless_reality(uuid, email),
         }
         if RELAY_ENABLED:
             links["vless_relay"] = cls.vless_relay(email, uuid)
-        if ANTI_STUB_ENABLED:
-            links["vless_anti_stub"] = cls.vless_anti_stub(email, uuid)
+        
+        from panel.config import TEST_RELAYS_ENABLED
+        if TEST_RELAYS_ENABLED:
+            for idx, link in enumerate(cls.test_relays(email, uuid), 1):
+                links[f"vless_test_relay_{idx}"] = link
         return links
 
     @classmethod
     def hiddify_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Vision + Relay RU + Антизаглушка 4G."""
+        """Vision + Relay RU + 3 тестовых релея."""
         links = {
             "vless_reality": cls.vless_reality(uuid, email),
         }
         if RELAY_ENABLED:
             links["vless_relay"] = cls.vless_relay(email, uuid)
-        if ANTI_STUB_ENABLED:
-            links["vless_anti_stub"] = cls.vless_anti_stub(email, uuid)
+        
+        from panel.config import TEST_RELAYS_ENABLED
+        if TEST_RELAYS_ENABLED:
+            for idx, link in enumerate(cls.test_relays(email, uuid), 1):
+                links[f"vless_test_relay_{idx}"] = link
         return links
 
     @classmethod
     def happ_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Vision + Relay RU + Антизаглушка 4G."""
+        """Vision + Relay RU + 3 тестовых релея."""
         links = {
             "vless_reality": cls.vless_reality(uuid, email),
         }
         if RELAY_ENABLED:
             links["vless_relay"] = cls.vless_relay(email, uuid)
-        if ANTI_STUB_ENABLED:
-            links["vless_anti_stub"] = cls.vless_anti_stub(email, uuid)
+        
+        from panel.config import TEST_RELAYS_ENABLED
+        if TEST_RELAYS_ENABLED:
+            for idx, link in enumerate(cls.test_relays(email, uuid), 1):
+                links[f"vless_test_relay_{idx}"] = link
         return links
 
     # ── Текст подписок ───────────────────────────────────────────
