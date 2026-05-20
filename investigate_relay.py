@@ -4,6 +4,10 @@ import json
 import socket
 import urllib.request
 import urllib.error
+import ssl
+
+# Отключение проверки SSL-сертификатов (фикс для macOS Python)
+ssl._create_default_https_context = ssl._create_unverified_context
 
 OAUTH_TOKEN = "y0__wgBEKLHkMsHGMHdEyDtgJ7LFzDH0sj8BzcedlXM7WCpdcMiDo30tXhV59N_"
 ZONE = "ru-central1-a"
