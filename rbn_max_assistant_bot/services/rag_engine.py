@@ -7,8 +7,7 @@ from rank_bm25 import BM25Okapi
 from langchain_community.document_loaders import (
     TextLoader,
     PyPDFLoader,
-    CSVLoader,
-    UnstructuredExcelLoader,
+    Docx2txtLoader,
 )
 from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
@@ -82,8 +81,12 @@ class RAGEngine:
 
     def _all_doc_files(self) -> list[str]:
         files = []
+        allowed_extensions = {".pdf", ".docx", ".md", ".txt"}
         for docs_dir in self._docs_dirs():
-            files.extend(glob.glob(os.path.join(docs_dir, "**/*.*"), recursive=True))
+            for f in glob.glob(os.path.join(docs_dir, "**/*.*"), recursive=True):
+                ext = os.path.splitext(f)[-1].lower()
+                if ext in allowed_extensions:
+                    files.append(f)
         if not files:
             return []
 
@@ -91,7 +94,7 @@ class RAGEngine:
             source_name = os.path.basename(file_path)
             ext = os.path.splitext(source_name)[-1].lower()
             preferred = 0 if source_name in self.PREFERRED_SOURCE_NAMES else 1
-            ext_priority = 0 if ext == ".md" else 1 if ext == ".csv" else 2 if ext in [".txt"] else 3
+            ext_priority = 0 if ext == ".md" else 1 if ext == ".txt" else 2 if ext == ".docx" else 3
             return (preferred, ext_priority, source_name.lower())
 
         return sorted(set(files), key=sort_key)
@@ -134,10 +137,8 @@ class RAGEngine:
         ext = os.path.splitext(file_path)[-1].lower()
         if ext == ".pdf":
             return PyPDFLoader(file_path)
-        elif ext == ".csv":
-            return CSVLoader(file_path)
-        elif ext in [".xlsx", ".xls"]:
-            return UnstructuredExcelLoader(file_path)
+        elif ext in [".docx"]:
+            return Docx2txtLoader(file_path)
         elif ext in [".md", ".txt"]:
             return TextLoader(file_path)
         return None
@@ -149,20 +150,13 @@ class RAGEngine:
     def load_or_build_index(self):
         faiss_path = os.path.join(self.index_dir, "index.faiss")
         if os.path.exists(faiss_path):
-            # Проверяем: не появились ли новые/изменённые документы?
-            if self._docs_newer_than_index(faiss_path):
-                logging.info(
-                    "RAG: Обнаружены новые/изменённые документы. Пересборка индекса..."
-                )
-                self.rebuild_index()
-            else:
-                logging.info("RAG: Загрузка существующей базы знаний...")
-                self.vector_store = FAISS.load_local(
-                    self.index_dir,
-                    self.embeddings,
-                    allow_dangerous_deserialization=True,
-                )
-                self._rebuild_bm25_from_faiss()
+            logging.info("RAG: Загрузка существующей базы знаний...")
+            self.vector_store = FAISS.load_local(
+                self.index_dir,
+                self.embeddings,
+                allow_dangerous_deserialization=True,
+            )
+            self._rebuild_bm25_from_faiss()
         else:
             logging.info("RAG: Локальная база индексов не найдена. Собираем...")
             self.rebuild_index()
