@@ -189,6 +189,7 @@ class RAGEngine:
             logging.warning("RAG: Не удалось восстановить BM25: %s", e)
 
     def rebuild_index(self):
+        self._ensure_initialized()
         os.makedirs(self.index_dir, exist_ok=True)
 
         all_docs = []
