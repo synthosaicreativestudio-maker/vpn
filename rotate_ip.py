@@ -453,8 +453,8 @@ def main():
                             except Exception as e:
                                 err_msg = str(e)
                                 if "Quota limit" in err_msg or "RESOURCE_EXHAUSTED" in err_msg or "429" in err_msg or "limit exceeded" in err_msg.lower():
-                                    print("⚠️ Rate Limit Yandex Cloud. Ждем 60 секунд...")
-                                    time.sleep(60)
+                                    print("⚠️ Превышен лимит запросов Yandex Cloud (Rate Limit / Quota). Ждем 5 минут для сброса скользящего окна...")
+                                    time.sleep(300)
                                 else:
                                     raise e
                                     
