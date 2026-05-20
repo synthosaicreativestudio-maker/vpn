@@ -30,6 +30,10 @@ vpn/
 - [highload_tuning](.agent/skills/security/highload_tuning.md) — Оптимизация под высокие нагрузки (sysctl, BBR, limits)
 - [billing_security](.agent/skills/security/billing_security.md) — Безопасность биллинга и токенов подписок
 - [traffic_obfuscation](.agent/skills/security/traffic_obfuscation.md) — Обфускация трафика (Hysteria2, AmneziaWG, Reality)
+- [client_setup](.agent/skills/security/client_setup.md) — Настройка клиентских приложений и ссылки
+- [backup_recovery](.agent/skills/security/backup_recovery.md) — Резервное копирование и восстановление
+- [monitoring_alerts](.agent/skills/security/monitoring_alerts.md) — Автоматический мониторинг здоровья сервера и алерты
+- [censorship_diagnostics](.agent/skills/security/censorship_diagnostics.md) — Диагностика точечных блокировок IP и TLS-handshake
 
 ### Project Skill
 - [project_context](.agent/skills/project/SKILL.md) — Контекст проекта и инфраструктуры

@@ -18,6 +18,10 @@ version: 1.0.0
 | [highload_tuning.md](highload_tuning.md) | System optimization, BBR, sysctl, file limits |
 | [billing_security.md](billing_security.md) | Subscription security, API keys, rate limit |
 | [traffic_obfuscation.md](traffic_obfuscation.md) | DPI censorship bypass, Hysteria2 obfuscation, AmneziaWG |
+| [client_setup.md](client_setup.md) | Client app configuration, subscription links, iOS/Android setup |
+| [backup_recovery.md](backup_recovery.md) | Automated backups, database backup, system recovery |
+| [monitoring_alerts.md](monitoring_alerts.md) | Xray and panel monitoring, Telegram alerts setup |
+| [censorship_diagnostics.md](censorship_diagnostics.md) | TCP port checks, TLS handshake block test, IP block check |
 
 ## Quick Reference
 
