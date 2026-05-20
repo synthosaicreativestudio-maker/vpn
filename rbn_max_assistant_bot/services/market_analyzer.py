@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import csv
 import logging
+import math
 import os
 import re
 from dataclasses import dataclass
@@ -97,14 +98,18 @@ class MarketAnalyzer:
     # Центральный АО (ЦАО)
     DISTRICT_ALIASES: dict[str, list[str]] = {
         "Восточный р-н": [
-            "восточный", "широтная", "мжк", "тюменский",
+            "восточный", "широтная", "мжк",
             "малахово", "ново-патрушево", "войновка",
             "1 мкр", "2 мкр", "3 мкр", "4 мкр", "5 мкр", "6 мкр",
+            "один микрорайон", "первый мкр",
         ],
         "Калининский округ": [
             "калининский", "док", "плеханово", "южный", "комарово",
             "метелева", "воронина", "княжево", "рощино", "маяк",
             "московский тракт", "червишевский", "тюменская слобода",
+            "дударев", "европейский", "ольховка",
+            "перевалово", "утёшево", "утешево",
+            "тюменский р-н", "тюменский район",
         ],
         "Ленинский округ": [
             "ленинский", "антипино", "гилёво", "гилево", "лесобаза",
@@ -115,6 +120,7 @@ class MarketAnalyzer:
             "центр", "центральный", "заречный", "заречье",
             "студгородок", "историч", "драмтеатр", "кпд",
             "дом печати", "тычковка",
+            "50 лет влксм", "50 лет", "дом обороны",
         ],
     }
 
@@ -354,6 +360,7 @@ class MarketAnalyzer:
         district: str,
         is_gab: bool = False,
         monthly_rent: float = 0,
+        indexation_pct: float = 5.0,
     ) -> str:
         area_val = self._to_float(re.sub(r"[^\d,.]", "", str(area)))
         price_val = self._to_float(re.sub(r"[^\d,.]", "", str(price)))
@@ -392,27 +399,28 @@ class MarketAnalyzer:
         lines: list[str] = []
         lines.append("<b>📊 Аналитика объекта</b>")
         lines.append(f"{canon} · {area_val:.0f} м² · {deal_label}")
-        # Район + грейд района в шапке
+        # Район + грейд
         dist_info = district or "район не указан"
         if dist_grade:
             gl_d = {"A+": "🟢", "A": "🟢", "B": "🟡", "C": "🔴"}
-            dist_info += f" · {gl_d.get(dist_grade.grade, '')} грейд {dist_grade.grade}"
+            dist_info += f" · {gl_d.get(dist_grade.grade, '')} район грейд {dist_grade.grade}"
         lines.append(f"📍 {dist_info}")
         lines.append("")
 
         # ▎1. Спрос
         lines.append("<b>▎Спрос на объект</b>")
-        core_ranges = [g.area_range for g in self._area_grades() if g.deal_type == deal_key and g.obj_type == canon and g.grade in ("A+", "A")]
-        if core_ranges:
-            core_text = ", ".join(core_ranges) + " м²"
-            lines.append(f"    🎯 Ядро спроса ({deal_key}): {core_text}")
-        if area_grade:
-            gl = {"A+": "максимальный (в ядре)", "A": "высокий (в ядре)", "B": "средний", "C": "низкий"}
-            emoji = "🟢" if area_grade.grade in ("A+", "A") else "🟡" if area_grade.grade == "B" else "🔴"
-            lines.append(f"    {emoji} Ваша площадь: грейд {area_grade.grade} — {gl.get(area_grade.grade, '')}")
-            lines.append(f"    Аналогичных конкурентов: {area_grade.count} в диапазоне {area_grade.area_range} м²")
+        user_bucket = self._area_bucket(area_val)
+        user_in_core = area_grade and area_grade.grade in ("A+", "A")
+        if user_in_core:
+            lines.append(f"    🟢 Ваш диапазон {user_bucket} м² — в ядре спроса (грейд {area_grade.grade})")
+        elif area_grade:
+            gl = {"B": "средний спрос", "C": "низкий спрос"}
+            emoji = "🟡" if area_grade.grade == "B" else "🔴"
+            lines.append(f"    {emoji} Ваш диапазон {user_bucket} м² — вне ядра (грейд {area_grade.grade}, {gl.get(area_grade.grade, '')})")
         else:
-            lines.append("    ⚠️ Нет данных для этого диапазона площадей")
+            lines.append(f"    ⚠️ Нет данных для диапазона {user_bucket} м²")
+        if area_grade:
+            lines.append(f"    Конкурентов в диапазоне: {area_grade.count} объектов")
         lines.append("")
 
         # ▎2. Цена и аналоги
@@ -525,7 +533,7 @@ class MarketAnalyzer:
         if not is_rent and price_val > 0:
             map_val = 0
             is_potential = False
-            
+
             if is_gab and monthly_rent > 0:
                 map_val = monthly_rent
             else:
@@ -539,42 +547,59 @@ class MarketAnalyzer:
             if map_val > 0:
                 annual = map_val * 12
                 gy = round(annual / price_val * 100, 1)
-                payback = round(price_val / annual, 1)
-                
-                # Multipliers based on strength
-                if adj_liq >= 7:
-                    mult_lo, mult_hi = 120, 132
-                    strength = "Сильный объект"
-                elif adj_liq >= 4:
-                    mult_lo, mult_hi = 108, 120
-                    strength = "Средний объект"
+                payback_simple = round(price_val / annual, 1)
+                idx = indexation_pct / 100.0
+
+                # Окупаемость С индексацией
+                payback_idx = payback_simple
+                if idx > 0:
+                    ratio = price_val * idx / annual + 1
+                    if ratio > 0:
+                        payback_idx = round(math.log(ratio) / math.log(1 + idx), 1)
+
+                # Целевая ставка для окупаемости 10 лет
+                target_years = 10
+                if idx > 0:
+                    multiplier_10 = ((1 + idx) ** target_years - 1) / idx
                 else:
-                    mult_lo, mult_hi = 84, 108
-                    strength = "Слабый объект"
-                    
-                fair_price_lo = map_val * mult_lo
-                fair_price_hi = map_val * mult_hi
-                
-                title = "<b>▎Справедливая цена инвестора (ГАБ)</b>" if is_gab else "<b>▎Потенциал ГАБ (Справедливая цена)</b>"
+                    multiplier_10 = target_years
+                target_map_10 = round(price_val / (12 * multiplier_10))
+
+                # Справедливая цена при текущей ставке для 10 лет
+                fair_price_10 = round(annual * multiplier_10)
+
+                title = "<b>▎Инвестиционный анализ (ГАБ)</b>" if is_gab else "<b>▎Потенциал ГАБ</b>"
                 lines.append(title)
-                
+
                 map_fmt = f"{map_val:,.0f}".replace(",", " ")
                 lines.append(f"    МАП: {map_fmt} ₽/мес" + (" (расчётный)" if is_potential else ""))
-                lines.append(f"    Сила: {strength} (окупаемость {mult_lo}–{mult_hi} мес.)")
-                
-                f_lo_fmt = f"{(fair_price_lo/1_000_000):.1f}"
-                f_hi_fmt = f"{(fair_price_hi/1_000_000):.1f}"
-                lines.append(f"    Справедливая цена: {f_lo_fmt} – {f_hi_fmt} млн ₽")
-                
-                # Compare user price with fair price
-                if price_val < fair_price_lo:
-                    lines.append("    ✅ Ваша цена ниже инвестиционной (быстрая продажа)")
-                elif price_val > fair_price_hi:
-                    lines.append("    ❌ Ваша цена выше инвестиционной")
+                lines.append(f"    Yield: {gy}% годовых")
+                lines.append("")
+
+                # Окупаемость
+                lines.append(f"    ⏱ Окупаемость (без индексации): {payback_simple} лет")
+                if idx > 0:
+                    lines.append(f"    ⏱ Окупаемость (с индексацией {indexation_pct:.0f}%): {payback_idx} лет")
+                lines.append("")
+
+                # Целевые показатели для 10 лет
+                idx_note = f" (с индексацией {indexation_pct:.0f}%)" if idx > 0 else ""
+                target_fmt = f"{target_map_10:,.0f}".replace(",", " ")
+                lines.append(f"    📌 Для окупаемости {target_years} лет{idx_note}:")
+                lines.append(f"    Нужная ставка аренды: {target_fmt} ₽/мес")
+                fair_fmt = f"{(fair_price_10 / 1_000_000):.1f}"
+                lines.append(f"    Справедливая цена объекта: {fair_fmt} млн ₽")
+                lines.append("")
+
+                # Вердикт по цене
+                if price_val <= fair_price_10:
+                    lines.append("    ✅ Цена в инвестиционном коридоре (≤ 10 лет окупаемости)")
+                elif price_val <= fair_price_10 * 1.3:
+                    over_pct = round((price_val / fair_price_10 - 1) * 100)
+                    lines.append(f"    ⚠️ Цена выше инвестиционной на {over_pct}% — возможен торг")
                 else:
-                    lines.append("    ✅ Ваша цена в инвестиционном коридоре")
-                    
-                lines.append(f"    Текущая окупаемость: {payback} лет (Yield {gy}%)")
+                    over_pct = round((price_val / fair_price_10 - 1) * 100)
+                    lines.append(f"    ❌ Цена выше инвестиционной на {over_pct}%")
             lines.append("")
 
         # ▎Вердикт
