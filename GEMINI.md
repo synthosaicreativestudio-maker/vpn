@@ -27,6 +27,9 @@ vpn/
 - [censorship_evasion](.agent/skills/security/censorship_evasion.md) — Обход DPI и блокировок
 - [osint_recon](.agent/skills/security/osint_recon.md) — OSINT и leak-тесты
 - [server_hardening](.agent/skills/security/server_hardening.md) — Защита сервера
+- [highload_tuning](.agent/skills/security/highload_tuning.md) — Оптимизация под высокие нагрузки (sysctl, BBR, limits)
+- [billing_security](.agent/skills/security/billing_security.md) — Безопасность биллинга и токенов подписок
+- [traffic_obfuscation](.agent/skills/security/traffic_obfuscation.md) — Обфускация трафика (Hysteria2, AmneziaWG, Reality)
 
 ### Project Skill
 - [project_context](.agent/skills/project/SKILL.md) — Контекст проекта и инфраструктуры

@@ -15,6 +15,9 @@ version: 1.0.0
 | [censorship_evasion.md](censorship_evasion.md) | DPI bypass, SNI masking, stealth |
 | [osint_recon.md](osint_recon.md) | IP analysis, leak detection, Shodan |
 | [server_hardening.md](server_hardening.md) | SSH, firewall, fail2ban, updates |
+| [highload_tuning.md](highload_tuning.md) | System optimization, BBR, sysctl, file limits |
+| [billing_security.md](billing_security.md) | Subscription security, API keys, rate limit |
+| [traffic_obfuscation.md](traffic_obfuscation.md) | DPI censorship bypass, Hysteria2 obfuscation, AmneziaWG |
 
 ## Quick Reference
 
