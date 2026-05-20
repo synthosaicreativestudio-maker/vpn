@@ -29,8 +29,8 @@
 | **Hysteria2** | `hysteria2.service` | 10443/UDP | UDP/QUIC VPN + Salamander obfs |
 | **VPN Panel** | `vpn-panel.service` | 8085 | Панель управления подписками |
 | **Caddy** | `caddy.service` | 8086 | HTTPS reverse proxy (sslip.io SSL) |
-| **VPN Bot** | `vpn-bot.service` | — | Telegram бот (⚠️ остановлен, в разработке) |
-| **WARP** | `warp-svc.service` | wg0 | Cloudflare WARP (Google/YouTube routing) |
+| **VPN Bot** | `vpn-bot.service` | — | Telegram бот управления подписками (запущен) |
+| **WARP** | `warp-svc.service` | — | Cloudflare WARP daemon (⚠️ Остановлен для экономии RAM. Маршрутизация Google/YouTube идет через встроенный WireGuard outbound в Xray) |
 
 ### Xray Inbounds (подробно)
 
@@ -44,7 +44,7 @@
 
 ### Xray Routing
 
-- **Google/YouTube/Gemini** → WARP (wg0, IPv4: 162.159.192.1:2408)
+- **Google/YouTube/Gemini** → WARP outbound (прямое WireGuard-соединение с Cloudflare в Xray, endpoint 162.159.192.1:2408)
 - **Приватные IP** → BLOCK
 - **Всё остальное** → DIRECT
 
@@ -53,7 +53,6 @@
 | Путь | Содержание |
 |------|-----------|
 | `/root/vpn/` | Основной проект (panel, bot) — `vpn-panel` и `vpn-bot` работают отсюда |
-| `/opt/openclaw/` | AI-бот OpenClaw + galina_proxy.py |
 | `/etc/xray/config.json` | Конфиг основного Xray |
 | `/etc/hysteria/` | Конфиг + сертификаты Hysteria2 |
 

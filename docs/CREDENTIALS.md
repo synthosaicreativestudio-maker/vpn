@@ -19,6 +19,19 @@ UUID: eb4a1cf2-4235-4b0a-83b2-0e5a298389ed
 - Панель: http://37.1.212.51:8085/admin/ui
 - API Key: b534ef20bdea908d3b9b4f5388467d525ba88f7abaddcc5ca8b4c159b75335c3
 
+## API Ключи и Токены
+- **Telegram Bot Token**: `8232668997:AAH1oMWo7ZqnwjVX2GH3avEjPrCTNK2kVmc` (Username: `@SintaMarketingBot`)
+- **Gemini API Key**: `AIzaSyD5WGVM1AqIjhszcGEprqOo-PwrldExmQs`
+- **Gemini Server Key**: `AIzaSyBu1hTc7tJ87h-4otHp3j36Hs4LDSvyFl4` (установлен локально на сервере US)
+- **Anthropic (Claude) Key**: `sk-ant-api03-***`
+
+## Google Sheets & Drive IDs
+- **Авторизация (список)**: `1_SB04LMuGB7ba3aog2xxN6N3g99ZfOboT-vdWXxrh_8`
+- **Обращения**: `15XxSIpD_gMZaSOIrqDVCNI2EqBzphEGiG0ZNJ3HR8hI`
+- **Акции**: `1V3-cPRq_SmbCbIzn1-CWSqD8pdpDqraq_GJ7LjMmwf8`
+- **Аналитика**: `1Xq6bcxaDV2AEVWGqhaLlFcr6-hTNv0L5frXgPY-z7fU`
+- **Google Drive (KB)**: `1JKjzWs3or3hn5ioCIqPBGHkZmgIN-OFf`
+
 ## Relay RU (обход белых списков ТСПУ)
 - IP: `51.250.94.182` SSH: `ubuntu` (ключ ed25519)
 - Yandex Cloud (AS200350), зона ru-central1-a

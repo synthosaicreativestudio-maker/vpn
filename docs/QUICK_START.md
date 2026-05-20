@@ -1,37 +1,63 @@
-# VPN Quick Start
+# 🚀 Быстрый запуск и управление VPN
 
-## Что использовать сейчас
+Вся инфраструктура VPN автоматизирована. Подписки генерируются динамически панелью управления и выдаются пользователям через Telegram-бота.
 
-- Основной вариант: `configs_2026_03_20/raw_sub.txt`
-- Альтернатива: `configs_2026_03_20/sub.txt`
-- Для Hiddify: `configs_2026_03_20/hiddify_ALL_IN_ONE.json`
-- Для Amnezia / Xray-подобных клиентов:
-  - `_backup_configs/client_config_global.json`
-  - `_backup_configs/client_config_smart_routing_ru.json`
-- Для QR по простому VLESS: `configs_2026_03_20/qr_amnezia_vless.png`
+---
 
-## Коротко по клиентам
+## 📱 Как получить конфигурацию (пользователю)
 
-- Hiddify: используйте HTTP ссылку-подписку из бота
-- Amnezia: используйте `client_config_global.json` или `client_config_smart_routing_ru.json`
-- Happ: используйте HTTPS Base64 ссылку-подписку из бота
+1. **Через Telegram-бота:** `@SintaMarketingBot`
+2. **Через API-панель:** 
+   - Адрес панели: `http://37.1.212.51:8085/admin/ui` (Авторизация по API-ключу из [CREDENTIALS.md](file:///docs/CREDENTIALS.md))
+3. **Формат ссылок подписки:**
+   - **Hiddify:** `http://37.1.212.51:8085/sub/hiddify/{TOKEN}`
+   - **Happ (iOS):** `https://37.1.212.51.sslip.io:8086/sub/happ/{TOKEN}`
 
-## Что не считать активным
+---
 
-- `XHTTP`
-- `Shadow-TLS`
-- `Shadowsocks-2022` как отдельный резервный канал
-- `AmneziaWG` как часть текущего активного пакета
+## 🛠️ Управление сервисами на сервере (`37.1.212.51`)
 
-## Проверка
+Подключитесь по SSH (`root@37.1.212.51`) и используйте следующие команды:
 
-- Откройте любой сайт и проверьте IP
-- Если нужен только простой старт, используйте `VLESS tcp` из `raw_sub.txt`
+### 1. Перезапуск всей цепочки (Рекомендуется при любых изменениях)
+```bash
+systemctl restart xray
+systemctl restart vpn-panel  # ⚠️ ОБЯЗАТЕЛЬНО после xray для синхронизации памяти пользователей!
+systemctl restart vpn-bot
+```
+
+### 2. Проверка статуса сервисов
+```bash
+systemctl status xray vpn-panel vpn-bot caddy
+```
+
+### 3. Просмотр логов в реальном времени
+* **Xray:** `journalctl -u xray -f -n 100`
+* **Панель управления:** `journalctl -u vpn-panel -f -n 100`
+* **Telegram-бот:** `journalctl -u vpn-bot -f -n 100`
+
+---
 
 ## ⚠️ Решение частых проблем
 
-**Проблема:** Канал Hysteria2 работает, а все VLESS-каналы показывают Timeout (ошибку).
-**Причина:** Xray был перезапущен, и его оперативная память с ключами пользователей очистилась.
-**Решение:** Зайдите по SSH на сервер и выполните команду:
-`systemctl restart vpn-panel.service`
-Панель при старте заново пропишет всех актуальных клиентов в память Xray.
+### Проблема: Hysteria2 (UDP) работает, а все VLESS-каналы (TCP) выдают Timeout
+* **Причина:** Xray был перезапущен напрямую, очистив кэш пользователей в памяти, либо сбросились сетевые таблицы.
+* **Решение:** Выполните перезапуск панели для повторной синхронизации пользователей:
+  ```bash
+  systemctl restart vpn-panel
+  ```
+
+### Проблема: Не открываются Google / YouTube / Gemini
+* **Причина:** Проблема с WireGuard-маршрутизацией (WARP).
+* **Решение:** Проверьте доступность интерфейса WARP изнутри Xray или сделайте тестовый запрос:
+  ```bash
+  curl --interface wg0 -I https://www.google.com
+  ```
+
+### Проблема: Бот не реагирует на команды
+* **Причина:** Бот упал или остановлен.
+* **Решение:** Проверьте статус службы и перезапустите:
+  ```bash
+  systemctl status vpn-bot
+  systemctl restart vpn-bot
+  ```
