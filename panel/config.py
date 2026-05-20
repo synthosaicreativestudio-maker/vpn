@@ -86,9 +86,9 @@ RELAY_SNI = os.getenv("RELAY_SNI", "ozon.ru")
 # ── Тесты обхода белых списков (3 независимых релея) ─────────
 TEST_RELAYS_ENABLED = os.getenv("TEST_RELAYS_ENABLED", "True").lower() == "true"
 TEST_RELAY_IPS = [
-    os.getenv("TEST_RELAY_IP_1", "51.250.94.182"),
-    os.getenv("TEST_RELAY_IP_2", "51.250.94.182"),
-    os.getenv("TEST_RELAY_IP_3", "51.250.94.182"),
+    os.getenv("TEST_RELAY_IP_1", "0.0.0.0"),
+    os.getenv("TEST_RELAY_IP_2", "0.0.0.0"),
+    os.getenv("TEST_RELAY_IP_3", "0.0.0.0"),
 ]
 TEST_RELAY_PORT = int(os.getenv("TEST_RELAY_PORT", "8081"))
 TEST_RELAY_SNI = os.getenv("TEST_RELAY_SNI", "ads.x5.ru")
