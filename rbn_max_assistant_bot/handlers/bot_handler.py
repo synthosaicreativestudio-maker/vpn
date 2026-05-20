@@ -21,6 +21,115 @@ from services.description_prompts import (
 
 logger = logging.getLogger(__name__)
 
+
+def clean_number(text_val: str) -> float:
+    """Очищает строку от пробелов, букв и валютных знаков, приводя к float."""
+    if not text_val:
+        return 0.0
+    # Приводим к нижнему регистру
+    val_lower = text_val.lower().strip()
+    
+    # Обработка "млн"
+    if "млн" in val_lower:
+        match = re.search(r"(\d+(?:[.,]\d+)?)", val_lower)
+        if match:
+            try:
+                return float(match.group(1).replace(",", ".")) * 1_000_000
+            except ValueError:
+                pass
+
+    # Убираем все кроме цифр, точек и запятых
+    cleaned = re.sub(r"[^\d.,]", "", text_val).replace(",", ".")
+    
+    # Если точек больше одной, возможно это разделители разрядов (например, 10.290.000)
+    if cleaned.count('.') > 1:
+        parts = cleaned.split('.')
+        # Если последняя часть имеет длину 3, то это разделитель тысяч (10.290.000)
+        if len(parts[-1]) == 3:
+            cleaned = "".join(parts)
+        else:
+            # Иначе соединяем все кроме последней точки
+            cleaned = "".join(parts[:-1]) + "." + parts[-1]
+            
+    try:
+        return float(cleaned)
+    except ValueError:
+        return 0.0
+
+
+def calculate_gab_financials(price_str: str, map_str: str) -> dict:
+    """Вычисляет финансовые параметры ГАБ на основе стоимости и МАП."""
+    price = clean_number(price_str)
+    monthly_rent = clean_number(map_str)
+    
+    if price > 0 and monthly_rent > 0:
+        gap = monthly_rent * 12
+        yield_pct = (gap / price) * 100
+        payback_years = price / gap
+        payback_months = payback_years * 12
+        
+        # Красивое текстовое представление окупаемости
+        years = int(payback_years)
+        months = round((payback_years - years) * 12)
+        if months == 12:
+            years += 1
+            months = 0
+            
+        if years > 0:
+            payback_str = f"{payback_years:.1f} лет"
+            if months > 0:
+                payback_str += f" (или {years} лет и {months} мес.)"
+        else:
+            payback_str = f"{months} мес."
+            
+        return {
+            "price": price,
+            "map": monthly_rent,
+            "gap": gap,
+            "yield": round(yield_pct, 1),
+            "payback_str": payback_str,
+            "payback_years": round(payback_years, 1),
+            "payback_months": round(payback_months)
+        }
+    return {}
+
+
+def extract_gab_inputs(full_text: str) -> tuple[str, str]:
+    """Автоматически парсит цену продажи и МАП из предоставленного текста."""
+    price_str = ""
+    map_str = ""
+    
+    # Извлечение всех числовых кандидатов
+    candidates = re.findall(r"(\d[\d\s.,]{3,}\d)", full_text)
+    numbers = []
+    for c in candidates:
+        val = clean_number(c)
+        if val > 0:
+            numbers.append(val)
+            
+    # 1. Поиск цены продажи
+    price_match = re.search(r"(?:стоимость|цена|продаж[аи]|стоит)\s*[:=-]?\s*(\d[\d\s.,]{5,})", full_text, re.IGNORECASE)
+    if price_match:
+        price_str = price_match.group(1)
+    else:
+        # Если ключевого слова нет, попробуем взять самое большое число >= 500 000
+        large_numbers = [n for n in numbers if n >= 500000]
+        if large_numbers:
+            price_str = str(int(max(large_numbers)))
+            
+    # 2. Поиск МАП
+    map_match = re.search(r"(?:мап|аренд[аы]|арендный поток|арендатор платит|плат[ае] в месяц|мес)\s*[:=-]?\s*(\d[\d\s.,]{4,})", full_text, re.IGNORECASE)
+    if map_match:
+        map_str = map_match.group(1)
+    else:
+        # Если ключевого слова нет, попробуем взять число в диапазоне от 10 000 до 500 000
+        mid_numbers = [n for n in numbers if 10000 <= n < 500000]
+        if mid_numbers:
+            map_str = str(int(mid_numbers[0]))
+            
+    return price_str, map_str
+
+
 # FSM-состояния пользователей: {user_id: {"state": ..., "data": {...}}}
 user_states: dict[int, dict] = {}
 
@@ -833,6 +942,7 @@ async def _generate_description(api: MaxBotAPI, target: dict, user_id: int):
     st = get_state(user_id)
     data = st["data"]
     deal = data.get("desc_deal_type", "аренда")
+    is_gab = data.get("is_gab", False)
 
     if data.get("desc_mode") == "copypaste":
         property_info = f"Данные из CRM:\n{data.get('crm_data', '')}"
@@ -856,7 +966,7 @@ async def _generate_description(api: MaxBotAPI, target: dict, user_id: int):
         property_info = "\n".join(parts)
 
     # ГАБ-данные
-    if data.get("desc_mode") != "copypaste" and data.get("is_gab"):
+    if data.get("desc_mode") != "copypaste" and is_gab:
         gab_parts = [
             f"Арендатор: {data.get('gab_tenant', '')}",
             f"МАП (аренда/мес): {data.get('gab_map', '')}",
@@ -866,13 +976,50 @@ async def _generate_description(api: MaxBotAPI, target: dict, user_id: int):
             gab_parts.append(f"Причина продажи: {data['gab_reason']}")
         property_info += "\n" + "\n".join(gab_parts)
 
-    is_gab = data.get("is_gab", False)
+    # Вычисляем финансовые показатели для ГАБ
+    fin_data = {}
+    if is_gab:
+        price_str = ""
+        map_str = ""
+        
+        if data.get("desc_mode") == "copypaste":
+            # Извлекаем из всего накопленного текста
+            price_str, map_str = extract_gab_inputs(property_info)
+        else:
+            # Берем из пошагового ввода
+            price_str = data.get("desc_price", "")
+            map_str = data.get("gab_map", "")
+            
+        fin_data = calculate_gab_financials(price_str, map_str)
+
     sys_prompt = GAB_DESCRIPTION_PROMPT if is_gab else DESCRIPTION_SYSTEM_PROMPT
 
-    user_msg = (
-        f"Тип сделки: {deal}\n\n{property_info}\n\n"
-        f"Создай продающий заголовок и полное описание из 7 блоков."
-    )
+    # Формируем user_msg с жесткими финансовыми показателями для ГАБ
+    if is_gab and fin_data:
+        financials_block = (
+            "\n=== РАССЧИТАННЫЕ ФИНАНСОВЫЕ ПОКАЗАТЕЛИ (ИСПОЛЬЗУЙ СТРОГО ИХ!):\n"
+            f"• Стоимость объекта: {int(fin_data['price']):,} ₽\n"
+            f"• МАП (месячный арендный поток): {int(fin_data['map']):,} ₽\n"
+            f"• ГАП (годовой арендный поток): {int(fin_data['gap']):,} ₽\n"
+            f"• Чистая доходность: {fin_data['yield']}% годовых\n"
+            f"• Срок окупаемости: {fin_data['payback_str']}\n"
+            "========================================================\n"
+        )
+        
+        user_msg = (
+            f"Тип сделки: {deal}\n\n{property_info}\n\n"
+            f"{financials_block}\n"
+            f"Создай продающий заголовок по формуле:\n"
+            f"📌 ГАБ: [тип/арендатор], [площадь] м², доходность {fin_data['yield']}%\n"
+            f"И напиши полное описание из 7 блоков. Помни: в блоке ФИНАНСОВЫЕ ПОКАЗАТЕЛИ "
+            f"ты должен использовать СТРОГО указанные выше рассчитанные показатели (Стоимость, МАП, ГАП, "
+            f"Доходность и Окупаемость), не пытайся пересчитывать или округлять их самостоятельно!"
+        )
+    else:
+        user_msg = (
+            f"Тип сделки: {deal}\n\n{property_info}\n\n"
+            f"Создай продающий заголовок и полное описание из 7 блоков."
+        )
 
     await api.send_message(**target, text="⏳ Генерирую продающее описание...")
 
