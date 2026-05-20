@@ -72,7 +72,7 @@ ENABLE_IP_LIMITS = os.getenv("ENABLE_IP_LIMITS", "True").lower() == "true"
 # ── Relay RU (обход белых списков ТСПУ) ───────────────────────
 # Модуль: relay-chain через РФ VPS (Yandex Cloud)
 # Подключение/отключение не влияет на основные каналы
-RELAY_ENABLED = os.getenv("RELAY_ENABLED", "True").lower() == "true"
+RELAY_ENABLED = os.getenv("RELAY_ENABLED", "False").lower() == "true"
 RELAY_IP = os.getenv("RELAY_IP", "51.250.94.182")
 RELAY_PORT = int(os.getenv("RELAY_PORT", "443"))
 RELAY_UUID = os.getenv("RELAY_UUID", "57ca4aae-dcb3-4fdd-9e14-f9afb42b703c")
@@ -84,7 +84,7 @@ RELAY_SHORT_ID = os.getenv("RELAY_SHORT_ID", "791cd192259bb2b9")
 RELAY_SNI = os.getenv("RELAY_SNI", "ozon.ru")
 
 # ── Тесты обхода белых списков (3 независимых релея) ─────────
-TEST_RELAYS_ENABLED = os.getenv("TEST_RELAYS_ENABLED", "True").lower() == "true"
+TEST_RELAYS_ENABLED = os.getenv("TEST_RELAYS_ENABLED", "False").lower() == "true"
 TEST_RELAY_IPS = [
     os.getenv("TEST_RELAY_IP_1", "0.0.0.0"),
     os.getenv("TEST_RELAY_IP_2", "0.0.0.0"),
