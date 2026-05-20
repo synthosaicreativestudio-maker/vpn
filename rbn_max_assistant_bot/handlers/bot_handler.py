@@ -117,16 +117,22 @@ def extract_gab_inputs(full_text: str) -> tuple[str, str]:
         if large_numbers:
             price_str = str(int(max(large_numbers)))
             
-    # 2. Поиск МАП
-    map_match = re.search(r"(?:мап|аренд[аы]|арендный поток|арендатор платит|плат[ае] в месяц|мес)\s*[:=-]?\s*(\d[\d\s.,]{4,})", full_text, re.IGNORECASE)
+    # 2. Поиск МАП — ТОЛЬКО по явным ключевым словам, без угадывания
+    map_match = re.search(
+        r"(?:"
+        r"мап"
+        r"|арендн(?:ый|ая)\s*(?:плат|поток|ставк)"
+        r"|плат[аеи]\s*(?:в\s*месяц|ежемесячн)"
+        r"|месячн(?:ая|ый)\s*(?:прибыль|доход|поток|плат|аренд)"
+        r"|прибыль\s*в\s*месяц"
+        r"|ежемесячн\w*\s*(?:плат|доход|прибыль|аренд)"
+        r")"
+        r"\s*[:=-]?\s*(\d[\d\s.,]{3,})",
+        full_text, re.IGNORECASE,
+    )
     if map_match:
         map_str = map_match.group(1)
-    else:
-        # Если ключевого слова нет, попробуем взять число в диапазоне от 10 000 до 500 000
-        mid_numbers = [n for n in numbers if 10000 <= n < 500000]
-        if mid_numbers:
-            map_str = str(int(mid_numbers[0]))
-            
+
     return price_str, map_str
 
 
@@ -319,6 +325,9 @@ async def handle_callback(api: MaxBotAPI, update: dict):
     await api.answer_callback(callback_id)
 
     if payload == "cancel":
+        # Если состояние уже сброшено — игнорируем устаревший callback
+        if get_state(user_id)["state"] == STATE_IDLE:
+            return
         clear_state(user_id)
         await api.send_message_with_keyboard(
             **target,
@@ -823,6 +832,10 @@ async def handle_message(api: MaxBotAPI, update: dict):
 
     if state == STATE_DESC_GAB_MAP:
         st["data"]["gab_map"] = text
+        # В copypaste-режиме остальные данные уже есть — сразу генерируем
+        if st["data"].get("desc_mode") == "copypaste":
+            await _generate_description(api, target, user_id)
+            return
         st["state"] = STATE_DESC_GAB_CONTRACT
         await api.send_message_with_keyboard(
             **target,
@@ -981,15 +994,28 @@ async def _generate_description(api: MaxBotAPI, target: dict, user_id: int):
     if is_gab:
         price_str = ""
         map_str = ""
-        
+
         if data.get("desc_mode") == "copypaste":
-            # Извлекаем из всего накопленного текста
-            price_str, map_str = extract_gab_inputs(property_info)
+            # Цену извлекаем из текста, МАП — ВСЕГДА спрашиваем у пользователя
+            price_str, _ = extract_gab_inputs(property_info)
+
+            # Если МАП ещё не введён пользователем — запрашиваем
+            if not data.get("gab_map"):
+                st["state"] = STATE_DESC_GAB_MAP
+                await api.send_message_with_keyboard(
+                    **target,
+                    text="💰 Укажите ежемесячную арендную плату (МАП):\n"
+                         "<i>Например: 150000</i>",
+                    buttons=get_cancel_keyboard(),
+                )
+                return
+
+            map_str = data["gab_map"]
         else:
             # Берем из пошагового ввода
             price_str = data.get("desc_price", "")
             map_str = data.get("gab_map", "")
-            
+
         fin_data = calculate_gab_financials(price_str, map_str)
 
     sys_prompt = GAB_DESCRIPTION_PROMPT if is_gab else DESCRIPTION_SYSTEM_PROMPT
