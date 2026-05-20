@@ -153,7 +153,7 @@ class LinkGenerator:
             f"&sid={RELAY_SHORT_ID}"
             f"&fp={ANTI_STUB_FP}"
             f"&flow=xtls-rprx-vision"
-            f"#{quote(f'📶 {email} (Антизаглушка 4G)')}"
+            f"#{quote(f'📶 {email} (тест обхода белых списков)')}"
         )
 
     # ── Наборы ссылок ────────────────────────────────────────────
