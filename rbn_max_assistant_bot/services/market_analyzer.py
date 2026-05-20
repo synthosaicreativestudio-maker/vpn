@@ -370,24 +370,17 @@ class MarketAnalyzer:
         closed = self._closed_rent() if is_rent else self._closed_sale()
 
         # Медианы по району
-        active_district = self._filter_objects(active, canon, district, area_val)
         closed_district = self._filter_objects(closed, canon, district, area_val)
-        med_active_d = self._median_price_sqm(active_district)
         med_closed_d = self._median_price_sqm(closed_district)
 
         # Медианы по городу
-        active_city = self._filter_objects(active, canon, area=area_val)
         closed_city = self._filter_objects(closed, canon, area=area_val)
-        med_active_c = self._median_price_sqm(active_city)
         med_closed_c = self._median_price_sqm(closed_city)
 
         # Грейды
         area_grade = self._find_area_grade(canon, area_val, deal_key)
         dist_grade = self._find_district_grade(canon, district, deal_key)
         benchmark = self._find_benchmark(canon, area_val)
-
-        # MOS
-        mos = self._compute_mos(canon, is_rent)
 
         # Ликвидность
         liq = self._calc_liquidity(area_grade, dist_grade, price_sqm, med_closed_d or med_closed_c, benchmark)
