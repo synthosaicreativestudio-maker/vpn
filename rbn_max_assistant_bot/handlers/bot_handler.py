@@ -879,8 +879,14 @@ async def handle_message(api: MaxBotAPI, update: dict):
 
     # Это сохраняет быстрый рабочий сценарий: брокер может просто вставить
     # данные из CRM одним сообщением и получить анализ без прохождения опросника.
-    await api.send_message(**target, text="⏳ Анализирую ваш вопрос...")
+    logger.info("SENDING typing indicator to user_id=%s", user_id)
+    try:
+        typing_res = await api.send_message(**target, text="⏳ Анализирую ваш вопрос...")
+        logger.info("Typing indicator sent, result: %s", str(typing_res)[:200])
+    except Exception:
+        logger.exception("Failed to send typing indicator")
     result = await ai_engine.get_mentor_answer(text, user_id=user_id)
+    logger.info("AI response generated, length=%d, sending to user_id=%s", len(result), user_id)
     await _safe_send(api, target, result)
 
 
@@ -1076,16 +1082,19 @@ async def _generate_description(api: MaxBotAPI, target: dict, user_id: int):
 
 async def _safe_send(api: MaxBotAPI, target: dict, text: str):
     """Отправляет ответ с HTML. При ошибке — без форматирования."""
+    logger.info("_safe_send called, text_len=%d, target=%s", len(text), target)
     try:
-        await api.send_message_with_keyboard(
+        res = await api.send_message_with_keyboard(
             **target, text=text, buttons=get_main_keyboard()
         )
+        logger.info("_safe_send OK: %s", str(res)[:200])
     except Exception:
         logger.warning("HTML-разметка невалидна, отправляю без форматирования")
         try:
-            await api.send_message_with_keyboard(
+            res = await api.send_message_with_keyboard(
                 **target, text=text, format="", buttons=get_main_keyboard()
             )
+            logger.info("_safe_send (plain) OK: %s", str(res)[:200])
         except Exception:
             logger.exception("Ошибка отправки сообщения в Max")
             await api.send_message_with_keyboard(
