@@ -52,6 +52,7 @@ class RAGEngine:
         self.bm25 = None
         self.bm25_chunks = []
         self._initialized = False
+        self.local_only = False
 
     def _docs_dirs(self) -> list[str]:
         """Возвращает список директорий, где могут лежать знания для MAX-бота."""
@@ -109,7 +110,9 @@ class RAGEngine:
             logging.info("RAG: Инициализация моделей (Gemini Embeddings)...")
             api_key = os.getenv("GEMINI_API_KEY")
             if not api_key:
-                logging.warning("RAG: GEMINI_API_KEY не найден. RAG отключен.")
+                logging.warning("RAG: GEMINI_API_KEY не найден. Переходим в локальный режим BM25.")
+                self.local_only = True
+                self.load_or_build_index()
                 return
                 
             self.embeddings = GoogleGenerativeAIEmbeddings(
@@ -122,12 +125,17 @@ class RAGEngine:
         except Exception as e:
             logging.error(
                 "RAG: Не удалось загрузить модели (%s). "
-                "Бот продолжит работу без RAG.",
+                "Переходим в локальный режим BM25.",
                 e,
             )
             self.embeddings = None
             self.vector_store = None
-            self.bm25 = None
+            self.local_only = True
+            try:
+                self.load_or_build_index()
+            except Exception as e2:
+                logging.error("RAG: Не удалось запустить локальный BM25: %s", e2)
+                self.bm25 = None
 
     # ------------------------------------------------------------------
     #  Загрузчики файлов
@@ -149,7 +157,7 @@ class RAGEngine:
 
     def load_or_build_index(self):
         faiss_path = os.path.join(self.index_dir, "index.faiss")
-        if os.path.exists(faiss_path):
+        if not self.local_only and os.path.exists(faiss_path):
             logging.info("RAG: Загрузка существующей базы знаний...")
             self.vector_store = FAISS.load_local(
                 self.index_dir,
@@ -158,7 +166,7 @@ class RAGEngine:
             )
             self._rebuild_bm25_from_faiss()
         else:
-            logging.info("RAG: Локальная база индексов не найдена. Собираем...")
+            logging.info("RAG: Собираем локальную базу знаний...")
             self.rebuild_index()
 
     def _docs_newer_than_index(self, faiss_path: str) -> bool:
@@ -224,21 +232,25 @@ class RAGEngine:
         # --- Умное чанкование ---
         chunks = self._smart_split(all_docs)
 
-        logging.info("RAG: Создание эмбеддингов для %d фрагментов...", len(chunks))
-
-        # FAISS (dense)
-        self.vector_store = FAISS.from_documents(chunks, self.embeddings)
-        self.vector_store.save_local(self.index_dir)
-
         # BM25 (sparse)
         self.bm25_chunks = chunks
         tokenized = [self._tokenize(doc.page_content) for doc in chunks]
         self.bm25 = BM25Okapi(tokenized)
 
-        logging.info(
-            "RAG: Гибридная база знаний собрана! FAISS + BM25 (%d чанков).",
-            len(chunks),
-        )
+        if not self.local_only and self.embeddings:
+            logging.info("RAG: Создание эмбеддингов для %d фрагментов...", len(chunks))
+            # FAISS (dense)
+            self.vector_store = FAISS.from_documents(chunks, self.embeddings)
+            self.vector_store.save_local(self.index_dir)
+            logging.info(
+                "RAG: Гибридная база знаний собрана! FAISS + BM25 (%d чанков).",
+                len(chunks),
+            )
+        else:
+            logging.info(
+                "RAG: Локальная база знаний собрана! Только BM25 (%d чанков).",
+                len(chunks),
+            )
 
     def _smart_split(self, all_docs):
         """Разбивает документы на чанки с учётом структуры Markdown."""
@@ -290,28 +302,28 @@ class RAGEngine:
         """Гибридный поиск по базе знаний с re-ranking.
 
         Pipeline:
-            1. FAISS → top-10 семантически похожих
+            1. FAISS → top-10 семантически похожих (пропускается в local_only)
             2. BM25  → top-10 по ключевым словам
             3. Reciprocal Rank Fusion → объединение
-            4. Cross-Encoder → пересортировка → top-K
         """
         self._ensure_initialized()
-        if not self.vector_store:
+        if not self.vector_store and not self.bm25:
             return ""
 
         candidates = {}
 
         # --- Stage 1a: FAISS (dense search) ---
-        try:
-            faiss_results = self.vector_store.similarity_search(query, k=10)
-            for rank, doc in enumerate(faiss_results):
-                doc_id = id(doc)
-                candidates[doc_id] = {
-                    "doc": doc,
-                    "rrf_score": self._rrf_score(rank) + doc.metadata.get("source_priority", 0),
-                }
-        except Exception as e:
-            logging.warning("RAG FAISS search error: %s", e)
+        if not self.local_only and self.vector_store:
+            try:
+                faiss_results = self.vector_store.similarity_search(query, k=10)
+                for rank, doc in enumerate(faiss_results):
+                    doc_id = id(doc)
+                    candidates[doc_id] = {
+                        "doc": doc,
+                        "rrf_score": self._rrf_score(rank) + doc.metadata.get("source_priority", 0),
+                    }
+            except Exception as e:
+                logging.warning("RAG FAISS search error: %s", e)
 
         # --- Stage 1b: BM25 (sparse search) ---
         if self.bm25 and self.bm25_chunks:
