@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import csv
 import logging
-import math
 import os
 import re
 from dataclasses import dataclass
@@ -529,77 +528,92 @@ class MarketAnalyzer:
                 lines.append(f"    В районе: {active_dist} активных vs {closed_dist} {verb} ({ratio}:1)")
         lines.append("")
 
-        # ▎4. Доходность (только продажа)
+        # ▎4. Доходность и финансовая модель (только продажа)
         if not is_rent and price_val > 0:
-            map_val = 0
+            map_val = 0.0
             is_potential = False
 
             if is_gab and monthly_rent > 0:
                 map_val = monthly_rent
             else:
-                # Potential GAB
+                # Potential GAB: ищем рыночную ставку
                 rent_objs = self._filter_objects(self._all_rent(), canon, district, area_val)
                 med_rent_sqm = self._median_price_sqm(rent_objs)
                 if med_rent_sqm and med_rent_sqm > 0:
                     map_val = med_rent_sqm * area_val
                     is_potential = True
-
-            if map_val > 0:
-                annual = map_val * 12
-                gy = round(annual / price_val * 100, 1)
-                payback_simple = round(price_val / annual, 1)
-                idx = indexation_pct / 100.0
-
-                # Окупаемость С индексацией
-                payback_idx = payback_simple
-                if idx > 0:
-                    ratio = price_val * idx / annual + 1
-                    if ratio > 0:
-                        payback_idx = round(math.log(ratio) / math.log(1 + idx), 1)
-
-                # Целевая ставка для окупаемости 10 лет
-                target_years = 10
-                if idx > 0:
-                    multiplier_10 = ((1 + idx) ** target_years - 1) / idx
                 else:
-                    multiplier_10 = target_years
-                target_map_10 = round(price_val / (12 * multiplier_10))
+                    # Дефолтные ставки по Тюмени на основе бенчмарков 2026
+                    default_rates = {
+                        "Офисное помещение": 850.0,
+                        "Торговое помещение": 1300.0,
+                        "База/склад/производство": 450.0,
+                        "Свободного назначения": 1100.0
+                    }
+                    rate = default_rates.get(canon, 1000.0)
+                    map_val = rate * area_val
+                    is_potential = True
 
-                # Справедливая цена при текущей ставке для 10 лет
-                fair_price_10 = round(annual * multiplier_10)
+            gpi = map_val * 12
+            opex = gpi * 0.15  # 15% OPEX по умолчанию
+            noi = gpi - opex
+            cap_rate = (noi / price_val) * 100 if price_val > 0 else 0.0
+            payback = price_val / noi if noi > 0 else 0.0
 
-                title = "<b>▎Инвестиционный анализ (ГАБ)</b>" if is_gab else "<b>▎Потенциал ГАБ</b>"
-                lines.append(title)
+            # Справедливая цена для инвестора по типам ГАБ
+            # Strong ГАБ (окупаемость 7-9 лет, в месяцах: ×120 - ×132)
+            fair_strong_min = map_val * 120
+            fair_strong_max = map_val * 132
+            # Medium ГАБ (окупаемость 9-10 лет, в месяцах: ×108 - ×120)
+            fair_medium_min = map_val * 108
+            fair_medium_max = map_val * 120
+            # Weak ГАБ (окупаемость 10-12 лет, в месяцах: ×84 - ×108)
+            fair_weak_min = map_val * 84
+            fair_weak_max = map_val * 108
 
-                map_fmt = f"{map_val:,.0f}".replace(",", " ")
-                lines.append(f"    МАП: {map_fmt} ₽/мес" + (" (расчётный)" if is_potential else ""))
-                lines.append(f"    Yield: {gy}% годовых")
-                lines.append("")
+            # Добавляем в lines метаданные для ИИ
+            lines.append("<!-- GAB_FINANCIAL_CALCULATIONS")
+            lines.append(f"MAP_VAL={map_val:.2f}")
+            lines.append(f"IS_POTENTIAL={is_potential}")
+            lines.append(f"GPI={gpi:.2f}")
+            lines.append(f"OPEX={opex:.2f}")
+            lines.append(f"NOI={noi:.2f}")
+            lines.append(f"CAP_RATE={cap_rate:.2f}")
+            lines.append(f"PAYBACK={payback:.2f}")
+            lines.append(f"FAIR_STRONG_MIN={fair_strong_min:.2f}")
+            lines.append(f"FAIR_STRONG_MAX={fair_strong_max:.2f}")
+            lines.append(f"FAIR_MEDIUM_MIN={fair_medium_min:.2f}")
+            lines.append(f"FAIR_MEDIUM_MAX={fair_medium_max:.2f}")
+            lines.append(f"FAIR_WEAK_MIN={fair_weak_min:.2f}")
+            lines.append(f"FAIR_WEAK_MAX={fair_weak_max:.2f}")
+            lines.append("-->")
 
-                # Окупаемость
-                lines.append(f"    ⏱ Окупаемость (без индексации): {payback_simple} лет")
-                if idx > 0:
-                    lines.append(f"    ⏱ Окупаемость (с индексацией {indexation_pct:.0f}%): {payback_idx} лет")
-                lines.append("")
+            # Резервный текстовый отчет
+            title = "<b>▎Инвестиционная модель (ГАБ)</b>" if is_gab else "<b>▎Потенциал упаковки ГАБ</b>"
+            lines.append(title)
+            map_status = " (рыночный, расчетный)" if is_potential else " (фактический)"
+            lines.append(f"    • Месячный арендный поток (МАП): {map_val:,.0f} ₽/мес{map_status}")
+            lines.append(f"    • Валовой годовой доход (GPI): {gpi:,.0f} ₽/год")
+            lines.append(f"    • Расходы и резервы (OPEX 15%): {opex:,.0f} ₽/год")
+            lines.append(f"    • Чистый операционный доход (NOI): {noi:,.0f} ₽/год")
+            lines.append(f"    • Доходность (Cap Rate): {cap_rate:.1f}% годовых")
+            lines.append(f"    • Окупаемость: {payback:.1f} лет")
+            lines.append("")
 
-                # Целевые показатели для 10 лет
-                idx_note = f" (с индексацией {indexation_pct:.0f}%)" if idx > 0 else ""
-                target_fmt = f"{target_map_10:,.0f}".replace(",", " ")
-                lines.append(f"    📌 Для окупаемости {target_years} лет{idx_note}:")
-                lines.append(f"    Нужная ставка аренды: {target_fmt} ₽/мес")
-                fair_fmt = f"{(fair_price_10 / 1_000_000):.1f}"
-                lines.append(f"    Справедливая цена объекта: {fair_fmt} млн ₽")
-                lines.append("")
+            lines.append("<b>▎Справедливая цена объекта для инвестора:</b>")
+            lines.append(f"    • 🟢 Strong объект (окупаемость 7-9 лет): {fair_strong_min/1_000_000:.2f} – {fair_strong_max/1_000_000:.2f} млн ₽")
+            lines.append(f"    • 🟡 Medium объект (окупаемость 9-10 лет): {fair_medium_min/1_000_000:.2f} – {fair_medium_max/1_000_000:.2f} млн ₽")
+            lines.append(f"    • 🔴 Weak объект (окупаемость 10-12 лет): {fair_weak_min/1_000_000:.2f} – {fair_weak_max/1_000_000:.2f} млн ₽")
+            lines.append("")
 
-                # Вердикт по цене
-                if price_val <= fair_price_10:
-                    lines.append("    ✅ Цена в инвестиционном коридоре (≤ 10 лет окупаемости)")
-                elif price_val <= fair_price_10 * 1.3:
-                    over_pct = round((price_val / fair_price_10 - 1) * 100)
-                    lines.append(f"    ⚠️ Цена выше инвестиционной на {over_pct}% — возможен торг")
-                else:
-                    over_pct = round((price_val / fair_price_10 - 1) * 100)
-                    lines.append(f"    ❌ Цена выше инвестиционной на {over_pct}%")
+            # Анализ цены vs справедливой
+            if price_val <= fair_strong_max:
+                lines.append("    ✅ Объект находится в привлекательном инвестиционном коридоре (Strong ГАБ)")
+            elif price_val <= fair_medium_max:
+                lines.append("    🟡 Объект в рынке, окупаемость средняя (Medium ГАБ)")
+            else:
+                over_pct = round((price_val / fair_medium_max - 1) * 100) if fair_medium_max > 0 else 0
+                lines.append(f"    ⚠️ Запрашиваемая цена завышена на {over_pct}% относительно рыночных ГАБ-метрик")
             lines.append("")
 
         # ▎Вердикт
