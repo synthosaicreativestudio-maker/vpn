@@ -82,6 +82,9 @@ RELAY_PUBLIC_KEY = os.getenv(
 )
 RELAY_SHORT_ID = os.getenv("RELAY_SHORT_ID", "791cd192259bb2b9")
 RELAY_SNI = os.getenv("RELAY_SNI", "ozon.ru")
+RELAY_GRPC_ENABLED = os.getenv("RELAY_GRPC_ENABLED", "False").lower() == "true"
+RELAY_GRPC_HOST = os.getenv("RELAY_GRPC_HOST", "51.250.94.182:10085")
+
 
 # ── Тесты обхода белых списков (3 независимых релея) ─────────
 TEST_RELAYS_ENABLED = os.getenv("TEST_RELAYS_ENABLED", "False").lower() == "true"

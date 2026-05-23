@@ -9,11 +9,10 @@
 
 import logging
 
-from panel.config import RELAY_ENABLED
+from panel.config import RELAY_ENABLED, RELAY_GRPC_ENABLED, RELAY_GRPC_HOST
 
 logger = logging.getLogger("panel.relay_sync")
 
-RELAY_GRPC_HOST = "51.250.94.182:10085"
 RELAY_INBOUND_TAG = "VLESS-Reality-Relay"
 RELAY_INBOUND_TAG_443 = "VLESS-Reality-Relay-443"
 
@@ -23,7 +22,7 @@ _relay_client = None
 def get_relay_client():
     """Ленивое создание relay gRPC клиента."""
     global _relay_client
-    if _relay_client is None and RELAY_ENABLED:
+    if _relay_client is None and RELAY_ENABLED and RELAY_GRPC_ENABLED:
         try:
             from panel.xray_client import XrayClient
             _relay_client = XrayClient(RELAY_GRPC_HOST)
