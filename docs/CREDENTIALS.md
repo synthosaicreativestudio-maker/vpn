@@ -32,16 +32,17 @@ UUID: eb4a1cf2-4235-4b0a-83b2-0e5a298389ed
 - **Аналитика**: `1Xq6bcxaDV2AEVWGqhaLlFcr6-hTNv0L5frXgPY-z7fU`
 - **Google Drive (KB)**: `1JKjzWs3or3hn5ioCIqPBGHkZmgIN-OFf`
 
-## Relay RU (обход белых списков ТСПУ)
-- IP: `51.250.94.182` SSH: `ubuntu` (ключ ed25519)
-- Yandex Cloud (AS200350), зона ru-central1-a
-- Xray relay → US 37.1.212.51
-- Порт: 443
-- UUID: `57ca4aae-dcb3-4fdd-9e14-f9afb42b703c`
-- Reality: pbk=p2EEfvTbaG9Qca4xKM4AxHVX1wFOqFut0Z4TX6T1wUg sid=791cd192259bb2b9
-- Private Key: `6BsVfWmKPVpqNTMAZL2vW9Q2ROUMCQRhlrUhtlolUXc`
-- SNI: ozon.ru (+ wildberries.ru, ads.x5.ru)
+## Relay RU (обход белых списков ТСПУ) — VLESS Reality Bridge
+- IP: `111.88.145.206` SSH: `ubuntu` (ключ ed25519 через US)
+- Yandex Cloud, зона ru-central1-b, VM: epdmhc1f3rhjgkt36n95
+- Xray VLESS Reality bridge → US 37.1.212.51:8443 (xHTTP)
+- Порты: 443 (Vision), 2053 (gRPC), 8443 (xHTTP)
+- UUID клиентский: `57ca4aae-dcb3-4fdd-9e14-f9afb42b703c`
+- Reality: pbk=t4Icv6qrpPcxWOp9uxyLbL2cWJ5_QRcXcC1gJ06To1g sid=abcdef0123456789
+- Private Key: `MF55pnfDEDvTYSeSuae0woG9LLlwyl6uWMLrESKeQkg`
+- SNI: ozon.ru (+ www.ozon.ru, wildberries.ru, www.wildberries.ru)
 - relay-bridge user на US: UUID eb4a1cf2-4235-4b0a-83b2-0e5a298389ed
+- Outbound: VLESS xHTTP Reality к US:8443 (без flow)
 
 ## Важно
 - При перезагрузке xray: systemctl restart vpn-panel.service
