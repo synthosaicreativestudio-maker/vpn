@@ -274,10 +274,11 @@ class LinkGenerator:
 
     @classmethod
     def happ_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Каналы для Happ (без gRPC): Vision, xHTTP, WS, Hysteria2, Shadowsocks + релеи."""
+        """Все каналы для Happ: Vision, xHTTP, gRPC, WS, Hysteria2, Shadowsocks + релеи."""
         links = {
             "vless_reality": cls.vless_reality(uuid, email),
             "vless_xhttp": cls.vless_xhttp(uuid, email),
+            "vless_grpc": cls.vless_grpc(uuid, email),
             "vless_ws": cls.vless_ws(uuid, email),
             "hysteria2": cls.hysteria2(email),
             "shadowsocks": cls.shadowsocks(email),
@@ -285,6 +286,7 @@ class LinkGenerator:
         if RELAY_ENABLED:
             links["vless_relay"] = cls.vless_relay(email, uuid)
             links["vless_relay_xhttp"] = cls.vless_relay_xhttp(email, uuid)
+            links["vless_relay_grpc"] = cls.vless_relay_grpc(email, uuid)
             links["hysteria2_relay"] = cls.hysteria2_relay(email)
         
         from panel.config import TEST_RELAYS_ENABLED

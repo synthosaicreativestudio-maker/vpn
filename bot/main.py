@@ -96,6 +96,18 @@ async def _get_happ_url(user: types.User) -> str | None:
     return None
 
 
+async def _get_hiddify_url(user: types.User) -> str | None:
+    """Получить актуальную Hiddify-ссылку из панели."""
+    email = await _resolve_email(user)
+    user_info = await panel.get_user(email)
+    if user_info and user_info.get("sub_token"):
+        return (
+            f"http://37.1.212.51:8085/sub/hiddify/"
+            f"{user_info['sub_token']}?routing=ru"
+        )
+    return None
+
+
 def _main_keyboard() -> types.InlineKeyboardMarkup:
     """Главное меню бота."""
     builder = InlineKeyboardBuilder()
@@ -401,7 +413,7 @@ async def cb_os_selection(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data == "my_links")
 async def cb_my_links(callback: types.CallbackQuery):
-    """Показать ссылку подписки пользователя."""
+    """Показать выбор ОС перед выдачей ссылки подписки."""
     sub_url_happ = await _get_happ_url(callback.from_user)
 
     if not sub_url_happ:
@@ -411,17 +423,12 @@ async def cb_my_links(callback: types.CallbackQuery):
         )
         return
 
-    text = (
-        "<b>🔗 Ваша подписка (Happ):</b>\n\n"
-        "Скопируйте ссылку из следующего сообщения и добавьте её в Happ.\n\n"
-        "<i>Для обновления конфигов нажмите 🔄 в приложении Happ</i>"
-    )
-
     await callback.message.edit_text(
-        text,
-        reply_markup=_apps_keyboard(),
+        "📱 <b>На каком устройстве настраиваем подписку?</b>\n\n"
+        "Выберите вашу операционную систему для получения оптимальной ссылки и инструкции:",
+        reply_markup=_os_keyboard(),
     )
-    await callback.message.answer(f"<code>{sub_url_happ}</code>")
+    await callback.answer()
 
 
 # ── Статус ────────────────────────────────────────────────────
