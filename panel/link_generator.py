@@ -230,9 +230,24 @@ class LinkGenerator:
     # ── Наборы ссылок ────────────────────────────────────────────
 
     @classmethod
-    def all_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Все доступные каналы: Vision, xHTTP, gRPC, WS, Hysteria2, Shadowsocks + релеи."""
-        links = {
+    def _relay_links(cls, uuid: str, email: str) -> dict[str, str]:
+        """Relay-ссылки (через Яндекс ВМ) — приоритетные для мобильных операторов."""
+        links: dict[str, str] = {}
+        if RELAY_ENABLED:
+            links["vless_relay"] = cls.vless_relay(email, uuid)
+            links["vless_relay_xhttp"] = cls.vless_relay_xhttp(email, uuid)
+            links["vless_relay_grpc"] = cls.vless_relay_grpc(email, uuid)
+
+        from panel.config import TEST_RELAYS_ENABLED
+        if TEST_RELAYS_ENABLED:
+            for idx, link in enumerate(cls.test_relays(email, uuid), 1):
+                links[f"vless_test_relay_{idx}"] = link
+        return links
+
+    @classmethod
+    def _direct_links(cls, uuid: str, email: str) -> dict[str, str]:
+        """Прямые ссылки (к US серверу) — резервные для WiFi/стабильных сетей."""
+        return {
             "vless_reality": cls.vless_reality(uuid, email),
             "vless_xhttp": cls.vless_xhttp(uuid, email),
             "vless_grpc": cls.vless_grpc(uuid, email),
@@ -240,62 +255,38 @@ class LinkGenerator:
             "hysteria2": cls.hysteria2(email),
             "shadowsocks": cls.shadowsocks(email),
         }
-        if RELAY_ENABLED:
-            links["vless_relay"] = cls.vless_relay(email, uuid)
-            links["vless_relay_xhttp"] = cls.vless_relay_xhttp(email, uuid)
-            links["vless_relay_grpc"] = cls.vless_relay_grpc(email, uuid)
-            links["hysteria2_relay"] = cls.hysteria2_relay(email)
-        
-        from panel.config import TEST_RELAYS_ENABLED
-        if TEST_RELAYS_ENABLED:
-            for idx, link in enumerate(cls.test_relays(email, uuid), 1):
-                links[f"vless_test_relay_{idx}"] = link
+
+    @classmethod
+    def all_links(cls, uuid: str, email: str) -> dict[str, str]:
+        """Все каналы: сначала relay (мобильные операторы), потом direct (WiFi).
+
+        Порядок важен — Happ/Hiddify при автовыборе берёт
+        первый работающий, поэтому relay идут первыми.
+        """
+        links: dict[str, str] = {}
+        links.update(cls._relay_links(uuid, email))
+        links.update(cls._direct_links(uuid, email))
         return links
 
     @classmethod
     def hiddify_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Все каналы для Hiddify: Vision, xHTTP, gRPC, WS, Hysteria2, Shadowsocks + релеи."""
-        links = {
-            "vless_reality": cls.vless_reality(uuid, email),
-            "vless_xhttp": cls.vless_xhttp(uuid, email),
-            "vless_grpc": cls.vless_grpc(uuid, email),
-            "vless_ws": cls.vless_ws(uuid, email),
-            "hysteria2": cls.hysteria2(email),
-            "shadowsocks": cls.shadowsocks(email),
-        }
-        if RELAY_ENABLED:
-            links["vless_relay"] = cls.vless_relay(email, uuid)
-            links["vless_relay_xhttp"] = cls.vless_relay_xhttp(email, uuid)
-            links["vless_relay_grpc"] = cls.vless_relay_grpc(email, uuid)
-            links["hysteria2_relay"] = cls.hysteria2_relay(email)
-        
-        from panel.config import TEST_RELAYS_ENABLED
-        if TEST_RELAYS_ENABLED:
-            for idx, link in enumerate(cls.test_relays(email, uuid), 1):
-                links[f"vless_test_relay_{idx}"] = link
+        """Все каналы для Hiddify: relay первыми, direct вторыми."""
+        links: dict[str, str] = {}
+        links.update(cls._relay_links(uuid, email))
+        links.update(cls._direct_links(uuid, email))
         return links
 
     @classmethod
     def happ_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Все каналы для Happ: Vision, xHTTP, gRPC, WS, Hysteria2, Shadowsocks + релеи."""
-        links = {
-            "vless_reality": cls.vless_reality(uuid, email),
-            "vless_xhttp": cls.vless_xhttp(uuid, email),
-            "vless_grpc": cls.vless_grpc(uuid, email),
-            "vless_ws": cls.vless_ws(uuid, email),
-            "hysteria2": cls.hysteria2(email),
-            "shadowsocks": cls.shadowsocks(email),
-        }
-        if RELAY_ENABLED:
-            links["vless_relay"] = cls.vless_relay(email, uuid)
-            links["vless_relay_xhttp"] = cls.vless_relay_xhttp(email, uuid)
-            links["vless_relay_grpc"] = cls.vless_relay_grpc(email, uuid)
-            links["hysteria2_relay"] = cls.hysteria2_relay(email)
-        
-        from panel.config import TEST_RELAYS_ENABLED
-        if TEST_RELAYS_ENABLED:
-            for idx, link in enumerate(cls.test_relays(email, uuid), 1):
-                links[f"vless_test_relay_{idx}"] = link
+        """Все каналы для Happ: relay первыми, direct вторыми.
+
+        Happ при нажатии «Подключиться» автоматически пингует
+        все профили и выбирает с лучшим пингом.
+        Relay идут первыми для приоритета в UI.
+        """
+        links: dict[str, str] = {}
+        links.update(cls._relay_links(uuid, email))
+        links.update(cls._direct_links(uuid, email))
         return links
 
     # ── Текст подписок ───────────────────────────────────────────
@@ -317,3 +308,4 @@ class LinkGenerator:
         """Текст подписки оптимизированный для Happ."""
         links = cls.happ_links(uuid, email)
         return "\n".join(links.values())
+
