@@ -190,9 +190,14 @@ class LinkGenerator:
 
     @classmethod
     def all_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Vision (US напрямую) + Relay RU + 3 тестовых релея."""
+        """Все доступные каналы: Vision, xHTTP, gRPC, WS, Hysteria2, Shadowsocks + релеи."""
         links = {
             "vless_reality": cls.vless_reality(uuid, email),
+            "vless_xhttp": cls.vless_xhttp(uuid, email),
+            "vless_grpc": cls.vless_grpc(uuid, email),
+            "vless_ws": cls.vless_ws(uuid, email),
+            "hysteria2": cls.hysteria2(email),
+            "shadowsocks": cls.shadowsocks(email),
         }
         if RELAY_ENABLED:
             links["vless_relay"] = cls.vless_relay(email, uuid)
@@ -205,9 +210,14 @@ class LinkGenerator:
 
     @classmethod
     def hiddify_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Vision + Relay RU + 3 тестовых релея."""
+        """Все каналы для Hiddify: Vision, xHTTP, gRPC, WS, Hysteria2, Shadowsocks + релеи."""
         links = {
             "vless_reality": cls.vless_reality(uuid, email),
+            "vless_xhttp": cls.vless_xhttp(uuid, email),
+            "vless_grpc": cls.vless_grpc(uuid, email),
+            "vless_ws": cls.vless_ws(uuid, email),
+            "hysteria2": cls.hysteria2(email),
+            "shadowsocks": cls.shadowsocks(email),
         }
         if RELAY_ENABLED:
             links["vless_relay"] = cls.vless_relay(email, uuid)
@@ -220,9 +230,13 @@ class LinkGenerator:
 
     @classmethod
     def happ_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Vision + Relay RU + 3 тестовых релея."""
+        """Каналы для Happ (без gRPC): Vision, xHTTP, WS, Hysteria2, Shadowsocks + релеи."""
         links = {
             "vless_reality": cls.vless_reality(uuid, email),
+            "vless_xhttp": cls.vless_xhttp(uuid, email),
+            "vless_ws": cls.vless_ws(uuid, email),
+            "hysteria2": cls.hysteria2(email),
+            "shadowsocks": cls.shadowsocks(email),
         }
         if RELAY_ENABLED:
             links["vless_relay"] = cls.vless_relay(email, uuid)
