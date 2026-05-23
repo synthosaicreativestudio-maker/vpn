@@ -186,6 +186,44 @@ class LinkGenerator:
                 )
         return links
 
+    @staticmethod
+    def vless_relay_xhttp(email: str, uuid: str) -> str:
+        """10. VLESS + Reality + xHTTP через РФ-релей Яндекс ВМ (для МТС)."""
+        return (
+            f"vless://{uuid}@{RELAY_IP}:8443"
+            f"?encryption=none&security=reality"
+            f"&sni={RELAY_SNI}"
+            f"&pbk={RELAY_PUBLIC_KEY}"
+            f"&sid={RELAY_SHORT_ID}"
+            f"&fp=chrome"
+            f"&type=xhttp&mode=stream-up&path=/secretpath2026"
+            f"#{quote(f'🕵️ {email} (xHTTP Relay RU)')}"
+        )
+
+    @staticmethod
+    def vless_relay_grpc(email: str, uuid: str) -> str:
+        """11. VLESS + Reality + gRPC через РФ-релей Яндекс ВМ (для МТС)."""
+        return (
+            f"vless://{uuid}@{RELAY_IP}:2053"
+            f"?encryption=none&security=reality"
+            f"&sni={RELAY_SNI}"
+            f"&pbk={RELAY_PUBLIC_KEY}"
+            f"&sid={RELAY_SHORT_ID}"
+            f"&fp=chrome"
+            f"&type=grpc&serviceName=vpn-grpc"
+            f"#{quote(f'📡 {email} (gRPC Relay RU)')}"
+        )
+
+    @staticmethod
+    def hysteria2_relay(email: str) -> str:
+        """12. Hysteria2 через РФ-релей Яндекс ВМ (для МТС)."""
+        return (
+            f"hysteria2://{HYSTERIA2_PASSWORD}@{RELAY_IP}:10443"
+            f"?sni={RELAY_SNI}&insecure=1"
+            f"&obfs=salamander&obfs-password={HYSTERIA2_OBFS_PASSWORD}"
+            f"#{quote(f'🚀 {email} (Hysteria2 Relay RU)')}"
+        )
+
     # ── Наборы ссылок ────────────────────────────────────────────
 
     @classmethod
@@ -201,6 +239,9 @@ class LinkGenerator:
         }
         if RELAY_ENABLED:
             links["vless_relay"] = cls.vless_relay(email, uuid)
+            links["vless_relay_xhttp"] = cls.vless_relay_xhttp(email, uuid)
+            links["vless_relay_grpc"] = cls.vless_relay_grpc(email, uuid)
+            links["hysteria2_relay"] = cls.hysteria2_relay(email)
         
         from panel.config import TEST_RELAYS_ENABLED
         if TEST_RELAYS_ENABLED:
@@ -221,6 +262,9 @@ class LinkGenerator:
         }
         if RELAY_ENABLED:
             links["vless_relay"] = cls.vless_relay(email, uuid)
+            links["vless_relay_xhttp"] = cls.vless_relay_xhttp(email, uuid)
+            links["vless_relay_grpc"] = cls.vless_relay_grpc(email, uuid)
+            links["hysteria2_relay"] = cls.hysteria2_relay(email)
         
         from panel.config import TEST_RELAYS_ENABLED
         if TEST_RELAYS_ENABLED:
@@ -240,6 +284,8 @@ class LinkGenerator:
         }
         if RELAY_ENABLED:
             links["vless_relay"] = cls.vless_relay(email, uuid)
+            links["vless_relay_xhttp"] = cls.vless_relay_xhttp(email, uuid)
+            links["hysteria2_relay"] = cls.hysteria2_relay(email)
         
         from panel.config import TEST_RELAYS_ENABLED
         if TEST_RELAYS_ENABLED:
