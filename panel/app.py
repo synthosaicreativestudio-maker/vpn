@@ -667,6 +667,7 @@ _HAPP_ROUTING_PROFILE = {
     "DnsHosts": {
         "cloudflare-dns.com": "1.1.1.1",
         "dns.google": "8.8.8.8",
+        "37.1.212.51.sslip.io": "111.88.145.206",
     },
     "DirectSites": [
         # Все домены зоны .ru — напрямую без VPN
