@@ -72,6 +72,31 @@ def _reset_bot_trial(email: str):
         logger.warning("Failed to reset bot trial for %s: %s", clean, e)
 
 
+def _build_userinfo(user: dict) -> str:
+    """Формирует Subscription-UserInfo с реальными данными пользователя.
+
+    Happ/Sing-Box парсит этот заголовок для отображения статуса:
+    - upload/download — трафик в байтах
+    - total — лимит трафика в байтах
+    - expire — Unix timestamp истечения подписки
+    """
+    used_bytes = int((user.get("used_gb") or 0) * (1024 ** 3))
+    total_bytes = int((user.get("total_gb") or 0) * (1024 ** 3))
+    expire_ts = 0
+    raw_expires = user.get("expires_at")
+    if raw_expires:
+        try:
+            clean = raw_expires.replace("Z", "+00:00")
+            # Добавляем UTC, если timezone отсутствует
+            if "+" not in clean[10:] and "-" not in clean[11:]:
+                clean += "+00:00"
+            dt = datetime.fromisoformat(clean)
+            expire_ts = int(dt.timestamp())
+        except (ValueError, OSError):
+            pass
+    return f"upload=0; download={used_bytes}; total={total_bytes}; expire={expire_ts}"
+
+
 # ── Templates ─────────────────────────────────────────────────
 _TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "templates")
 templates = Jinja2Templates(directory=_TEMPLATES_DIR)
@@ -476,7 +501,8 @@ async def subscription_endpoint(
         "Content-Disposition": f'attachment; filename="{user["email"]}.txt"',
         "Profile-Title": profile_title,
         "Profile-Update-Interval": "12",
-        "Subscription-UserInfo": "upload=0; download=0; total=0; expire=0",
+        "Subscription-UserInfo": _build_userinfo(user),
+        "Profile-Web-Page-Url": f"https://{SERVER_IP}.sslip.io:8086/admin/ui",
     }
 
     if routing == "ru":
@@ -523,7 +549,8 @@ async def subscription_hiddify_endpoint(
         "Content-Disposition": f'attachment; filename="{user["email"]}_hiddify.txt"',
         "Profile-Title": profile_title,
         "Profile-Update-Interval": "12",
-        "Subscription-UserInfo": "upload=0; download=0; total=0; expire=0",
+        "Subscription-UserInfo": _build_userinfo(user),
+        "Profile-Web-Page-Url": f"https://{SERVER_IP}.sslip.io:8086/admin/ui",
     }
 
     if routing == "ru":
@@ -571,10 +598,11 @@ async def subscription_happ_endpoint(
         profile_title = f"Happ VPN {user['email']}"
 
     headers = {
-        "Content-Disposition": f'attachment; filename="{user["email"]}_happ.txt"',
+        "Content-Disposition": f'inline; filename="{user["email"]}_happ.txt"',
         "Profile-Title": profile_title,
         "Profile-Update-Interval": "12",
-        "Subscription-UserInfo": "upload=0; download=0; total=0; expire=0",
+        "Subscription-UserInfo": _build_userinfo(user),
+        "Profile-Web-Page-Url": f"https://{SERVER_IP}.sslip.io:8086/admin/ui",
     }
 
     if routing == "ru":
@@ -667,10 +695,14 @@ _HAPP_ROUTING_PROFILE = {
         # 2ГИС — карты, навигация, справочник
         "domain:2gis.ru", "domain:2gis.com",
         "domain:2gis.io", "domain:2gis.pro",
+        # URL подписки — чтобы Happ мог обновлять профиль при активном VPN
+        "domain:sslip.io",
     ],
     "DirectIp": [
         # Автоматическое определение российских IP через geoip
         "geoip:ru",
+        # IP VPN-сервера — для обновления подписки при активном VPN
+        "37.1.212.51",
         "10.0.0.0/8",
         "172.16.0.0/12",
         "192.168.0.0/16",
