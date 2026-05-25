@@ -16,7 +16,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiohttp import web
 import time
 
-from bot.config import BOT_TOKEN, PANEL_API_KEY, PANEL_URL, PLANS
+from bot.config import BOT_TOKEN, PANEL_API_KEY, PANEL_URL, PLANS, SUB_HOST
 from bot.data.db_manager import DBManager
 from bot.utils.panel_api import PanelAPI
 from bot.tbank import init_tbank_payment
@@ -90,7 +90,7 @@ async def _get_happ_url(user: types.User) -> str | None:
     user_info = await panel.get_user(email)
     if user_info and user_info.get("sub_token"):
         return (
-            f"https://37.1.212.51.sslip.io:8086/sub/happ/"
+            f"https://{SUB_HOST}:8086/sub/happ/"
             f"{user_info['sub_token']}?routing=ru"
         )
     return None
@@ -307,7 +307,7 @@ async def cb_plan_select(callback: types.CallbackQuery):
                 db.set_user_trial(user.id)
                 sub_token = result.get("sub_token", "")
                 if sub_token:
-                    sub_url = f"https://37.1.212.51.sslip.io:8086/sub/happ/{sub_token}?routing=ru"
+                    sub_url = f"https://{SUB_HOST}:8086/sub/happ/{sub_token}?routing=ru"
                     db.update_subscription(user.id, result.get("expires_at", ""), sub_url)
                 await callback.message.edit_text(
                     "✅ <b>Тестовый период активирован!</b>\n\n"
@@ -545,7 +545,7 @@ async def tbank_webhook(request: web.Request) -> web.Response:
                                     sub_url = result["sub_happ"]
                                 else:
                                     sub_token = result.get("sub_token", "")
-                                    sub_url = f"https://37.1.212.51.sslip.io:8086/sub/happ/{sub_token}?routing=ru"
+                                    sub_url = f"https://{SUB_HOST}:8086/sub/happ/{sub_token}?routing=ru"
                                 db.update_subscription(tg_id, result.get("expires_at", ""), sub_url)
                                 
                                 success_text = receipt_text + (

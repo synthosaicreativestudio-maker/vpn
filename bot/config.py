@@ -36,3 +36,13 @@ PLANS = {
 TBANK_TERMINAL_KEY = os.getenv("TBANK_TERMINAL_KEY", "1778844937330DEMO")
 TBANK_PASSWORD = os.getenv("TBANK_PASSWORD", "oBDLqS9c34ydSNdZ")
 TBANK_API_URL = "https://securepay.tinkoff.ru/v2/"
+
+# Relay configuration for subscription links
+RELAY_ENABLED = os.getenv("RELAY_ENABLED", "True").lower() == "true"
+RELAY_IP = os.getenv("RELAY_IP", "111.88.145.206")
+SERVER_IP = os.getenv("SERVER_IP", "37.1.212.51")
+
+if RELAY_ENABLED:
+    SUB_HOST = f"{RELAY_IP}.sslip.io"
+else:
+    SUB_HOST = f"{SERVER_IP}.sslip.io"

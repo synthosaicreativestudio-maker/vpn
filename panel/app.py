@@ -37,6 +37,7 @@ from panel.config import (
     INBOUND_TAG_WS,
     INBOUND_TAG_XHTTP,
     SERVER_IP,
+    SUB_HOST,
     XRAY_GRPC_HOST,
 )
 from panel.db import PanelDB
@@ -461,7 +462,7 @@ async def get_user_links(email: str):
     token = user["sub_token"]
     return SubscriptionLinks(
         email=email,
-        sub_happ=f"https://{SERVER_IP}.sslip.io:8086/sub/happ/{token}?routing=ru",
+        sub_happ=f"https://{SUB_HOST}:8086/sub/happ/{token}?routing=ru",
         **links,
         all_links=list(links.values()),
     )
@@ -502,7 +503,7 @@ async def subscription_endpoint(
         "Profile-Title": profile_title,
         "Profile-Update-Interval": "12",
         "Subscription-UserInfo": _build_userinfo(user),
-        "Profile-Web-Page-Url": f"https://{SERVER_IP}.sslip.io:8086/admin/ui",
+        "Profile-Web-Page-Url": f"https://{SUB_HOST}:8086/admin/ui",
     }
 
     if routing == "ru":
@@ -550,7 +551,7 @@ async def subscription_hiddify_endpoint(
         "Profile-Title": profile_title,
         "Profile-Update-Interval": "12",
         "Subscription-UserInfo": _build_userinfo(user),
-        "Profile-Web-Page-Url": f"https://{SERVER_IP}.sslip.io:8086/admin/ui",
+        "Profile-Web-Page-Url": f"https://{SUB_HOST}:8086/admin/ui",
     }
 
     if routing == "ru":
@@ -602,7 +603,7 @@ async def subscription_happ_endpoint(
         "Profile-Title": profile_title,
         "Profile-Update-Interval": "12",
         "Subscription-UserInfo": _build_userinfo(user),
-        "Profile-Web-Page-Url": f"https://{SERVER_IP}.sslip.io:8086/admin/ui",
+        "Profile-Web-Page-Url": f"https://{SUB_HOST}:8086/admin/ui",
     }
 
     if routing == "ru":
