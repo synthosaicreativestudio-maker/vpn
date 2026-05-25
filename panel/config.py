@@ -77,7 +77,7 @@ RELAY_IP = os.getenv("RELAY_IP", "111.88.145.206")
 RELAY_PORT = int(os.getenv("RELAY_PORT", "443"))
 
 if RELAY_ENABLED:
-    SUB_HOST = f"{RELAY_IP}.nip.io"
+    SUB_HOST = "sub.synthosai.ru"
 else:
     SUB_HOST = f"{SERVER_IP}.sslip.io"
 RELAY_UUID = os.getenv("RELAY_UUID", "57ca4aae-dcb3-4fdd-9e14-f9afb42b703c")

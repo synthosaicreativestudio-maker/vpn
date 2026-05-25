@@ -1,20 +1,7 @@
-{
-    email vera.koroleva.work@gmail.com
-}
-
-37.1.212.51.sslip.io:8086, 111.88.145.206.sslip.io:8086 {
-    tls {
-        ca https://acme.zerossl.com/v2/DV90
-    }
-    log {
-        output file /var/log/caddy_8086.log
-    }
+37.1.212.51.sslip.io:8086, 111.88.145.206.nip.io:8086, sub.synthosai.ru:8086 {
     reverse_proxy 127.0.0.1:8085
 }
 
 :80 {
-    log {
-        output file /var/log/caddy_80.log
-    }
     respond "OK" 200
 }

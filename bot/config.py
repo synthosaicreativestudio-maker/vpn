@@ -43,6 +43,6 @@ RELAY_IP = os.getenv("RELAY_IP", "111.88.145.206")
 SERVER_IP = os.getenv("SERVER_IP", "37.1.212.51")
 
 if RELAY_ENABLED:
-    SUB_HOST = f"{RELAY_IP}.sslip.io"
+    SUB_HOST = "sub.synthosai.ru"
 else:
     SUB_HOST = f"{SERVER_IP}.sslip.io"
