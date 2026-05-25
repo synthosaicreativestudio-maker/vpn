@@ -257,7 +257,28 @@ app.add_middleware(
 # 2. TrustedHost отключен, так как мы за Caddy
 
 
-# 3. Security Headers
+# 3. HEAD → GET для подписок (Happ/iOS шлёт HEAD для проверки URL)
+@app.middleware("http")
+async def handle_head_for_subscriptions(request: Request, call_next):
+    """Поддержка HEAD для /sub/ endpoints.
+
+    iOS Happ клиент шлёт HEAD перед GET для валидации URL подписки.
+    FastAPI по умолчанию возвращает 405 для HEAD на @app.get() маршрутах.
+    Middleware конвертирует HEAD → GET и возвращает только заголовки.
+    """
+    is_head = request.method == "HEAD"
+    if is_head and request.url.path.startswith("/sub/"):
+        request._method = "GET"
+        request.scope["method"] = "GET"
+    response = await call_next(request)
+    if is_head and request.url.path.startswith("/sub/"):
+        response.body = b""
+        if "content-length" in response.headers:
+            response.headers["content-length"] = "0"
+    return response
+
+
+# 4. Security Headers
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     """Добавляет security headers ко всем ответам."""
