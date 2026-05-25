@@ -257,28 +257,7 @@ app.add_middleware(
 # 2. TrustedHost отключен, так как мы за Caddy
 
 
-# 3. HEAD → GET для подписок (Happ/iOS шлёт HEAD для проверки URL)
-@app.middleware("http")
-async def handle_head_for_subscriptions(request: Request, call_next):
-    """Поддержка HEAD для /sub/ endpoints.
-
-    iOS Happ клиент шлёт HEAD перед GET для валидации URL подписки.
-    FastAPI по умолчанию возвращает 405 для HEAD на @app.get() маршрутах.
-    Middleware конвертирует HEAD → GET и возвращает только заголовки.
-    """
-    is_head = request.method == "HEAD"
-    if is_head and request.url.path.startswith("/sub/"):
-        request._method = "GET"
-        request.scope["method"] = "GET"
-    response = await call_next(request)
-    if is_head and request.url.path.startswith("/sub/"):
-        response.body = b""
-        if "content-length" in response.headers:
-            response.headers["content-length"] = "0"
-    return response
-
-
-# 4. Security Headers
+# 3. Security Headers
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     """Добавляет security headers ко всем ответам."""
@@ -489,8 +468,9 @@ async def get_user_links(email: str):
     )
 
 
-@app.get(
+@app.api_route(
     "/sub/{token}",
+    methods=["GET", "HEAD"],
     tags=["Подписки"],
     summary="Публичная подписка (универсальная)",
     description="Все ссылки для любого клиента. Добавьте ?routing=ru для обхода РФ",
@@ -538,8 +518,9 @@ async def subscription_endpoint(
     )
 
 
-@app.get(
+@app.api_route(
     "/sub/hiddify/{token}",
+    methods=["GET", "HEAD"],
     tags=["Подписки"],
     summary="Подписка для Hiddify",
     description="Оптимизированный набор ссылок для Hiddify. Добавьте ?routing=ru для обхода РФ",
@@ -586,8 +567,9 @@ async def subscription_hiddify_endpoint(
     )
 
 
-@app.get(
+@app.api_route(
     "/sub/happ/{token}",
+    methods=["GET", "HEAD"],
     tags=["Подписки"],
     summary="Подписка для Happ (Base64)",
     description="Оптимизированный набор ссылок для Happ/Sing-Box. Добавьте ?routing=ru для обхода РФ",
@@ -638,8 +620,9 @@ async def subscription_happ_endpoint(
     )
 
 
-@app.get(
+@app.api_route(
     "/sub/amnezia/{token}",
+    methods=["GET", "HEAD"],
     tags=["Подписки"],
     summary="Подписка для AmneziaVPN",
     description="Список ссылок в чистом виде для парсера Amnezia",
