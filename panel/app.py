@@ -468,6 +468,33 @@ async def get_user_links(email: str):
     )
 
 
+def _find_user_by_token_or_email(token_or_email: str) -> Optional[dict]:
+    """Умный поиск пользователя по токену подписки или по email.
+
+    Поддерживает:
+    - Поиск по sub_token (e.g. sDVR8UVcriZHSkba9rCAe-ldGozaU_4X)
+    - Поиск по email (e.g. @vitaly_gmyza)
+    - Поиск по email без собачки (e.g. vitaly_gmyza)
+    """
+    # 1. Поиск по sub_token
+    user = db.get_user_by_token(token_or_email)
+    if user:
+        return user
+
+    # 2. Поиск по email
+    user = db.get_user(token_or_email)
+    if user:
+        return user
+
+    # 3. Поиск по email с собачкой
+    if not token_or_email.startswith("@"):
+        user = db.get_user(f"@{token_or_email}")
+        if user:
+            return user
+
+    return None
+
+
 @app.api_route(
     "/sub/{token}",
     methods=["GET", "HEAD"],
@@ -486,7 +513,7 @@ async def subscription_endpoint(
     ?routing=ru — включает профиль маршрутизации (обход РФ).
     """
 
-    user = db.get_user_by_token(token)
+    user = _find_user_by_token_or_email(token)
     if not user:
         raise HTTPException(status_code=404, detail="Subscription not found")
 
@@ -535,7 +562,7 @@ async def subscription_hiddify_endpoint(
     ?routing=ru — включает профиль маршрутизации (обход РФ).
     """
 
-    user = db.get_user_by_token(token)
+    user = _find_user_by_token_or_email(token)
     if not user:
         raise HTTPException(status_code=404, detail="Subscription not found")
 
@@ -586,7 +613,7 @@ async def subscription_happ_endpoint(
     """
     import base64
 
-    user = db.get_user_by_token(token)
+    user = _find_user_by_token_or_email(token)
     if not user:
         raise HTTPException(status_code=404, detail="Subscription not found")
 
@@ -630,7 +657,7 @@ async def subscription_happ_endpoint(
 @limiter.limit("30/minute")
 async def subscription_amnezia_endpoint(request: Request, token: str):
 
-    user = db.get_user_by_token(token)
+    user = _find_user_by_token_or_email(token)
     if not user:
         raise HTTPException(status_code=404, detail="Subscription not found")
 
