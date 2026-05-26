@@ -263,16 +263,31 @@ def build_investment_report(
         )
     lines.append("")
     
-    lines.append("<b>2. Сводное сравнение стратегий переупаковки</b>")
+    # Расчет CAPEX и окупаемости новых вложений собственника
+    # Вариант А: ГАБ (комиссия брокера + каникулы = 2 месяца аренды)
+    capex_a = market.map_value * 2
+    delta_map_a = max(0.0, market.map_value - decision_base.map_value)
+    payback_capex_a = f"{capex_a / delta_map_a:.1f} мес." if delta_map_a > 0 else "сразу"
+    
+    # Вариант Б: Деление (5 000 руб./м2 на строительно-монтажные работы и перегородки)
     rate_b = market_rate * 1.35
     map_b = rate_b * area_val
     noi_b = map_b * 12 * (1 - DEFAULT_EXPENSE_RATE)
-    payback_b = price_val / noi_b
+    payback_b = price_val / noi_b if noi_b > 0 else 0.0
     fair_9_b = noi_b * 9
-    lines.append("Стратегия | Ставка аренды | Месячный доход (МАП) | Окупаемость объекта | Стоимость как бизнеса")
-    lines.append(f"Текущее состояние | {_rate(rent_rate_for_gap)} | {_money(decision_base.map_value)} | {_years(decision_base.payback)} | {_money(decision_base.noi * 9)}")
-    lines.append(f"Вариант А: ГАБ | {_rate(market_rate)} | {_money(market.map_value)} | {_years(market.payback)} | {_money(market.noi * 9)}")
-    lines.append(f"Вариант Б: Деление | {_rate(rate_b)} | {_money(map_b)} | {_years(payback_b)} | {_money(fair_9_b)}")
+
+    capex_b = 5000 * area_val
+    delta_map_b = max(0.0, map_b - decision_base.map_value)
+    payback_capex_b = f"{capex_b / delta_map_b:.1f} мес." if delta_map_b > 0 else "сразу"
+
+    lines.append("<b>2. Сводное сравнение стратегий переупаковки</b>")
+    lines.append("Показатель | Текущее состояние | Вариант А: Упаковка ГАБ | Вариант Б: Деление на блоки")
+    lines.append(f"Ставка аренды | {_rate(rent_rate_for_gap)} | {_rate(market_rate)} | {_rate(rate_b)}")
+    lines.append(f"Месячный доход (МАП) | {_money(decision_base.map_value)} | {_money(market.map_value)} | {_money(map_b)}")
+    lines.append(f"Окупаемость объекта | {_years(decision_base.payback)} | {_years(market.payback)} | {_years(payback_b)}")
+    lines.append(f"Стоимость как бизнеса (9 лет) | {_money(decision_base.noi * 9)} | {_money(market.noi * 9)} | {_money(fair_9_b)}")
+    lines.append(f"Инвестиции в запуск (CAPEX) | 0 ₽ | {_money(capex_a)} | {_money(capex_b)}")
+    lines.append(f"Срок окупаемости CAPEX | — | {payback_capex_a} | {payback_capex_b}")
     lines.append("")
 
     # === ЧАСТЬ 1. ДЕТАЛЬНЫЙ ИНВЕСТИЦИОННЫЙ АНАЛИЗ ===
@@ -442,17 +457,17 @@ def build_investment_report(
     lines.append(f"- Ожидаемый ежемесячный доход (МАП): {_money(market.map_value)}")
     lines.append(f"- Окупаемость объекта по текущей цене снизится до {_years(market.payback)} (вместо {_years(decision_base.payback)}).")
     lines.append(f"- Ценность объекта как ГАБ для инвесторов составит около {_money(market.noi * 9)} (окупаемость 9 лет).")
+    lines.append(f"- Необходимые вложения (CAPEX на запуск / каникулы + брокер): {_money(capex_a)}")
+    lines.append(f"- Срок окупаемости этих вложений за счет прироста аренды: {payback_capex_a}")
     lines.append("")
     lines.append("<b>15. Вариант Б: Деление площади на мелкие блоки (Редевелопмент)</b>")
     lines.append("Суть: нарезка помещения на 3-4 независимых мини-офиса или торговых блока с отдельными входами/мокрыми точками. Ставка на мелкий формат всегда выше среднерыночной на 35%. Это также диверсифицирует риски простоя.")
-    rate_b = market_rate * 1.35
-    map_b = rate_b * area_val
-    noi_b = map_b * 12 * (1 - DEFAULT_EXPENSE_RATE)
-    payback_b = price_val / noi_b
-    fair_9_b = noi_b * 9
+
     lines.append(f"- Целевая ставка аренды мелких блоков: {_rate(rate_b)} (+35% к рынку)")
     lines.append(f"- Суммарный ежемесячный доход (МАП): {_money(map_b)}")
     lines.append(f"- Стоимость объекта после редевелопмента возрастет до {_money(fair_9_b)}.")
+    lines.append(f"- Необходимые вложения (CAPEX на СМР, перегородки и мокрые точки): {_money(capex_b)}")
+    lines.append(f"- Срок окупаемости этих вложений за счет прироста аренды: {payback_capex_b}")
     lines.append("")
 
     return "\n".join(lines)
