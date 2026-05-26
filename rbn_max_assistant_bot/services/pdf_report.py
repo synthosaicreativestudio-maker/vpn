@@ -91,10 +91,12 @@ def create_investment_pdf(text: str, title: str = "Инвестиционный 
         'RBNTitle',
         parent=styles['Normal'],
         fontName=font_name,
-        fontSize=15,
-        leading=18,
+        fontSize=18,
+        leading=22,
         textColor=colors.HexColor('#0F172A'),  # Slate 900
-        spaceAfter=15
+        alignment=1,  # По центру!
+        spaceBefore=120,  # Отступ сверху на обложке
+        spaceAfter=20
     )
 
     part_title_style = ParagraphStyle(
@@ -330,21 +332,8 @@ def create_investment_pdf(text: str, title: str = "Инвестиционный 
         if h_match:
             section_title = h_match.group(1)
             
-            # Принудительный перенос страницы перед ключевыми логическими блоками
-            if len(story) > 0 and not isinstance(story[-1], PageBreak) and not isinstance(story[-1], Table):
-                if any(k in section_title for k in [
-                    "3. Финансовая", 
-                    "6. Сценарный", 
-                    "8. Доход за 10", 
-                    "11. Ступенчатая", 
-                    "13. Итоговый",
-                    "14. Вариант А",
-                    "15. Вариант Б",
-                    "16. Сравнение"
-                ]):
-                    story.append(PageBreak())
-                else:
-                    story.append(Spacer(1, 8))
+            if len(story) > 0 and not isinstance(story[-1], PageBreak):
+                story.append(Spacer(1, 8))
                     
             story.append(Paragraph(section_title, h1_style))
             story.append(Spacer(1, 4))

@@ -91,6 +91,7 @@ regex
 requests
 requests-oauthlib
 requests-toolbelt
+reportlab
 rich
 ruff
 safetensors

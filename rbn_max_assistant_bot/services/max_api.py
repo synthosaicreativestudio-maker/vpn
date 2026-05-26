@@ -5,7 +5,10 @@
 """
 
 import logging
+import mimetypes
+import os
 import ssl
+import asyncio
 
 import aiohttp
 
@@ -202,11 +205,11 @@ class MaxBotAPI:
     #  Отправка изображений
     # ------------------------------------------------------------------
 
-    async def upload_image(self, file_path: str) -> str | None:
-        """Загружает изображение в Max и возвращает token."""
+    async def upload_attachment(self, file_path: str, upload_type: str) -> str | None:
+        """Загружает вложение в Max и возвращает token."""
         session = await self._get_session()
         async with session.post(
-            f"{BASE_URL}/uploads", params={"type": "image"}
+            f"{BASE_URL}/uploads", params={"type": upload_type}
         ) as resp:
             data = await resp.json()
             upload_url = data.get("url")
@@ -216,23 +219,69 @@ class MaxBotAPI:
 
         import aiohttp as _aiohttp
         form = _aiohttp.FormData()
-        form.add_field("data", open(file_path, "rb"), filename="chart.png", content_type="image/png")
-        conn = _aiohttp.TCPConnector(ssl=self._ssl_ctx)
-        async with _aiohttp.ClientSession(connector=conn) as upload_session:
-            async with upload_session.post(upload_url, data=form) as resp:
-                result = await resp.json()
-                token = None
-                if isinstance(result, dict):
-                    token = result.get("token")
-                    if not token and "photos" in result:
-                        photos = result["photos"]
-                        if isinstance(photos, dict):
-                            token = photos.get("token")
-                        elif isinstance(photos, list) and photos:
-                            token = photos[0].get("token")
-                if not token:
-                    logger.error("Не удалось получить token: %s", result)
-                return token
+        filename = os.path.basename(file_path)
+        content_type = mimetypes.guess_type(file_path)[0] or "application/octet-stream"
+        with open(file_path, "rb") as file_obj:
+            form.add_field(
+                "data",
+                file_obj,
+                filename=filename,
+                content_type=content_type,
+            )
+            conn = _aiohttp.TCPConnector(ssl=self._ssl_ctx)
+            async with _aiohttp.ClientSession(connector=conn) as upload_session:
+                async with upload_session.post(upload_url, data=form) as resp:
+                    result = await resp.json()
+                    token = None
+                    if isinstance(result, dict):
+                        token = result.get("token")
+                        if not token and "photos" in result:
+                            photos = result["photos"]
+                            if isinstance(photos, dict):
+                                token = photos.get("token")
+                            elif isinstance(photos, list) and photos:
+                                token = photos[0].get("token")
+                    if not token:
+                        logger.error("Не удалось получить token: %s", result)
+                    return token
+
+    async def upload_image(self, file_path: str) -> str | None:
+        """Загружает изображение в Max и возвращает token."""
+        return await self.upload_attachment(file_path, "image")
+
+    async def upload_file(self, file_path: str) -> str | None:
+        """Загружает файл в Max и возвращает token."""
+        return await self.upload_attachment(file_path, "file")
+
+    async def send_file(
+        self,
+        *,
+        user_id: int | None = None,
+        chat_id: int | None = None,
+        token: str,
+        text: str = "PDF-отчёт",
+    ) -> dict:
+        """Отправляет файл в чат."""
+        attachments = [{"type": "file", "payload": {"token": token}}]
+        last_result = {}
+        for attempt in range(8):
+            if attempt:
+                await asyncio.sleep(2 * attempt)
+            last_result = await self.send_message(
+                user_id=user_id,
+                chat_id=chat_id,
+                text=text,
+                attachments=attachments,
+            )
+            if not isinstance(last_result, dict):
+                return last_result
+
+            code = str(last_result.get("code", ""))
+            message = str(last_result.get("message", ""))
+            not_ready = code == "attachment.not.ready" or "not.processed" in message
+            if not not_ready:
+                return last_result
+        return last_result
 
     async def send_image(
         self,
