@@ -95,7 +95,7 @@ def create_investment_pdf(text: str, title: str = "Инвестиционный 
         leading=22,
         textColor=colors.HexColor('#0F172A'),  # Slate 900
         alignment=1,  # По центру!
-        spaceBefore=120,  # Отступ сверху на обложке
+        spaceBefore=270,  # Идеальное центрирование по вертикали
         spaceAfter=20
     )
 
@@ -306,8 +306,8 @@ def create_investment_pdf(text: str, title: str = "Инвестиционный 
             i += 1
             continue
 
-        # 1.5 Крупные заголовки ЧАСТЕЙ (например, ЧАСТЬ 1 / ЧАСТЬ 2)
-        if "ЧАСТЬ" in line:
+        # 1.5 Крупные заголовки ЧАСТЕЙ и САММЕРИ (например, ЧАСТЬ 1 / ЧАСТЬ 2 / САММЕРИ)
+        if "ЧАСТЬ" in line or "САММЕРИ" in line:
             clean_part = line.replace('<b>', '').replace('</b>', '').upper()
             if len(story) > 0 and not isinstance(story[-1], PageBreak):
                 story.append(PageBreak())

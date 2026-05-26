@@ -182,7 +182,6 @@ def build_investment_report(
     target_9_rate = _required_rate_for_payback(area_val, price_val, 9)
     target_10_rate = _required_rate_for_payback(area_val, price_val, 10)
     deposit_rate_required = (price_val * (DEPOSIT_RATE / 100)) / (area_val * 12 * (1 - DEFAULT_EXPENSE_RATE))
-    key_rate_required = (price_val * (KEY_RATE / 100)) / (area_val * 12 * (1 - DEFAULT_EXPENSE_RATE))
 
     factual = None
     if rent_rate_current > 0:
@@ -245,9 +244,12 @@ def build_investment_report(
     lines: list[str] = []
     lines.append("<b>Инвестиционный расчет коммерческого объекта</b>")
     lines.append("")
-    lines.append("<b>ЧАСТЬ 1. ИНВЕСТИЦИОННЫЙ АНАЛИЗ ОБЪЕКТА</b>")
+    
+    # === САММЕРИ. КРАТКОЕ РЕЗЮМЕ ПРОЕКТА (EXECUTIVE SUMMARY) ===
+    lines.append("<b>САММЕРИ. КРАТКОЕ РЕЗЮМЕ ПРОЕКТА (EXECUTIVE SUMMARY)</b>")
+    lines.append("Краткая выжимка ключевых показателей и стратегий переупаковки для быстрого ознакомления с инвестиционным потенциалом объекта:")
     lines.append("")
-    lines.append("<b>1. Краткий вывод</b>")
+    lines.append("<b>1. Краткий инвестиционный вердикт</b>")
     lines.append(
         f"Объект: {obj_type}, {area_val:.1f} м², {district or 'район не указан'}, цена {_money(price_val)}. "
         f"При {current_label} чистый доход объекта = {_money(decision_base.noi)} в год, "
@@ -260,6 +262,22 @@ def build_investment_report(
             f"{_money(target_9.map_value)}, то есть +{_money(map_gap_9)} к текущему уровню."
         )
     lines.append("")
+    
+    lines.append("<b>2. Сводное сравнение стратегий переупаковки</b>")
+    rate_b = market_rate * 1.35
+    map_b = rate_b * area_val
+    noi_b = map_b * 12 * (1 - DEFAULT_EXPENSE_RATE)
+    payback_b = price_val / noi_b
+    fair_9_b = noi_b * 9
+    lines.append("Стратегия | Ставка аренды | Месячный доход (МАП) | Окупаемость объекта | Стоимость как бизнеса")
+    lines.append(f"Текущее состояние | {_rate(rent_rate_for_gap)} | {_money(decision_base.map_value)} | {_years(decision_base.payback)} | {_money(decision_base.noi * 9)}")
+    lines.append(f"Вариант А: ГАБ | {_rate(market_rate)} | {_money(market.map_value)} | {_years(market.payback)} | {_money(market.noi * 9)}")
+    lines.append(f"Вариант Б: Деление | {_rate(rate_b)} | {_money(map_b)} | {_years(payback_b)} | {_money(fair_9_b)}")
+    lines.append("")
+
+    # === ЧАСТЬ 1. ДЕТАЛЬНЫЙ ИНВЕСТИЦИОННЫЙ АНАЛИЗ ===
+    lines.append("<b>ЧАСТЬ 1. ДЕТАЛЬНЫЙ ИНВЕСТИЦИОННЫЙ АНАЛИЗ</b>")
+    lines.append("")
 
     lines.append("<b>2. Исходные данные и допущения</b>")
     lines.append("Показатель | Значение")
@@ -269,9 +287,9 @@ def build_investment_report(
     if factual:
         lines.append(f"Фактический МАП | {_money(factual.map_value)}")
         lines.append(f"Фактическая ставка | {_rate(factual.rent_rate)}")
-    lines.append(f"Контрольная ставка | 1000 ₽/м²")
+    lines.append("Контрольная ставка | 1000 ₽/м²")
     lines.append(f"Рыночный ориентир аренды | {_rate(market_rate)}")
-    lines.append(f"Расходы на содержание объекта | 15% от валового годового дохода (допущение)")
+    lines.append("Расходы на содержание объекта | 15% от валового годового дохода (допущение)")
     lines.append(f"Ключевая ставка ЦБ РФ | {_pct(KEY_RATE)}")
     lines.append(f"Ориентир по депозитам | {_pct(DEPOSIT_RATE)}")
     lines.append("")
@@ -434,15 +452,7 @@ def build_investment_report(
     fair_9_b = noi_b * 9
     lines.append(f"- Целевая ставка аренды мелких блоков: {_rate(rate_b)} (+35% к рынку)")
     lines.append(f"- Суммарный ежемесячный доход (МАП): {_money(map_b)}")
-    lines.append(f"- Окупаемость объекта по текущей цене сократится до {_years(payback_b)} — идеальный рыночный показатель!")
     lines.append(f"- Стоимость объекта после редевелопмента возрастет до {_money(fair_9_b)}.")
     lines.append("")
-    lines.append("<b>16. Сравнение стратегий переупаковки</b>")
-    lines.append("Стратегия | Ставка аренды | Месячный доход (МАП) | Окупаемость объекта | Стоимость как бизнеса")
-    lines.append(f"Текущее состояние | {_rate(rent_rate_for_gap)} | {_money(decision_base.map_value)} | {_years(decision_base.payback)} | {_money(decision_base.noi * 9)}")
-    lines.append(f"Вариант А: ГАБ | {_rate(market_rate)} | {_money(market.map_value)} | {_years(market.payback)} | {_money(market.noi * 9)}")
-    lines.append(f"Вариант Б: Деление | {_rate(rate_b)} | {_money(map_b)} | {_years(payback_b)} | {_money(fair_9_b)}")
-
-    return "\n".join(lines)
 
     return "\n".join(lines)
