@@ -505,18 +505,7 @@ class MarketAnalyzer:
         for r in reasons:
             lines.append(f"    {r}")
 
-        # Прогноз экспозиции
-        if delta_pct <= -10:
-            exp_text = "14–30 дней (ниже рынка — быстрый выход)"
-        elif delta_pct <= 5:
-            exp_text = "30–60 дней (цена в рынке)"
-        elif delta_pct <= 20:
-            exp_text = "60–120 дней (выше рынка, торг)"
-        elif delta_pct <= 50:
-            exp_text = "120–180 дней (значительно выше рынка)"
-        else:
-            exp_text = "180+ дней — продажа по текущей цене маловероятна"
-        lines.append(f"    Прогноз: {exp_text}")
+
 
         # Конкуренция по району
         if district:
