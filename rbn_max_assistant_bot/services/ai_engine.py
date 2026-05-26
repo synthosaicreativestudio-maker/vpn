@@ -115,55 +115,77 @@ class AIEngine:
                 messages.append({"role": msg["role"], "content": msg["content"]})
         messages.append({"role": "user", "content": user_message})
 
-        model_to_use = self.model
-        if model_to_use == "llama-3.1-8b-instant":
-            model_to_use = "llama-3.3-70b-versatile"
+        base_model = self.model
+        if base_model == "llama-3.1-8b-instant":
+            base_model = "llama-3.3-70b-versatile"
 
-        try:
-            response = await self.client.chat.completions.create(
-                model=model_to_use,
-                messages=messages,
-                temperature=0.7,
-                max_tokens=8192,
-            )
-            return response.choices[0].message.content
-        except Exception as groq_err:
-            logging.warning("Ошибка Groq (%s), пробуем резервный Gemini...", groq_err)
-            
-            if self.gemini_client:
-                try:
-                    gemini_contents = []
-                    for msg in messages:
-                        if msg["role"] == "system":
-                            continue
-                        role = "user" if msg["role"] == "user" else "model"
-                        gemini_contents.append(
-                            types.Content(
-                                role=role,
-                                parts=[types.Part.from_text(text=msg["content"])]
-                            )
+        # Список моделей Groq для автоматического перебора при ошибке (например, 429 Rate Limit)
+        models_to_try = [
+            base_model,
+            "llama-3.3-70b-specdec",
+            "mixtral-8x7b-32768",
+            "llama-3.1-70b-versatile",
+            "gemma2-9b-it"
+        ]
+        
+        # Гарантируем уникальность и сохраняем исходный порядок
+        seen = set()
+        unique_models = [m for m in models_to_try if not (m in seen or seen.add(m))]
+
+        last_groq_err = None
+        for model_to_use in unique_models:
+            try:
+                response = await self.client.chat.completions.create(
+                    model=model_to_use,
+                    messages=messages,
+                    temperature=0.7,
+                    max_tokens=8192,
+                )
+                return response.choices[0].message.content
+            except Exception as groq_err:
+                last_groq_err = groq_err
+                err_msg = str(groq_err)
+                logging.warning("Модель Groq %s выдала ошибку: %s. Пробуем резервную модель...", model_to_use, err_msg)
+                # Если это ошибка 429 (рейтлимит) или любая сетевая ошибка — пробуем следующую модель
+                continue
+
+        # Если все модели Groq выдали ошибку, пробуем резервный Gemini (хоть он и с ошибками)
+        logging.error("Все доступные модели Groq исчерпали лимиты или выдали ошибки. Пробуем Gemini...")
+        
+        if self.gemini_client:
+            try:
+                gemini_contents = []
+                for msg in messages:
+                    if msg["role"] == "system":
+                        continue
+                    role = "user" if msg["role"] == "user" else "model"
+                    gemini_contents.append(
+                        types.Content(
+                            role=role,
+                            parts=[types.Part.from_text(text=msg["content"])]
                         )
-                    
-                    config = types.GenerateContentConfig(
-                        system_instruction=system_prompt,
-                        temperature=0.7,
-                        max_output_tokens=8192,
                     )
-                    
-                    async with self.gemini_client.aio as aclient:
-                        response = await aclient.models.generate_content(
-                            model=self.gemini_model,
-                            contents=gemini_contents,
-                            config=config
-                        )
-                        if response.text:
-                            logging.info("Успешный fallback ответ от Gemini")
-                            return response.text
-                except Exception as gemini_err:
-                    logging.exception("Ошибка резервного ИИ-сервиса (Gemini)")
-                    return f"❌ Ошибка ИИ-сервиса: Groq ({groq_err!s}) | Gemini ({gemini_err!s})"
-            
-            return f"❌ Ошибка ИИ-сервиса (Groq): {groq_err!s}"
+                
+                config = types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    temperature=0.7,
+                    max_output_tokens=8192,
+                )
+                
+                async with self.gemini_client.aio as aclient:
+                    response = await aclient.models.generate_content(
+                        model=self.gemini_model,
+                        contents=gemini_contents,
+                        config=config
+                    )
+                    if response.text:
+                        logging.info("Успешный fallback ответ от Gemini")
+                        return response.text
+            except Exception as gemini_err:
+                logging.exception("Ошибка резервного ИИ-сервиса (Gemini)")
+                return f"❌ Ошибка ИИ-сервисов (Все модели Groq и Gemini исчерпаны).\nПоследняя ошибка Groq: {last_groq_err!s}\nОшибка Gemini: {gemini_err!s}"
+        
+        return f"❌ Ошибка ИИ-сервисов (Все модели Groq исчерпаны). Последняя ошибка: {last_groq_err!s}"
 
     async def generate_with_prompt(self, system_prompt: str, user_message: str, user_id: int = None) -> str:
         """Универсальный вызов LLM. Если передан user_id, учитывает историю диалога."""
