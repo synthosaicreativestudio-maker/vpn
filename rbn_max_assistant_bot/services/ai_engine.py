@@ -115,17 +115,15 @@ class AIEngine:
                 messages.append({"role": msg["role"], "content": msg["content"]})
         messages.append({"role": "user", "content": user_message})
 
-        base_model = self.model
-        if base_model == "llama-3.1-8b-instant":
-            base_model = "llama-3.3-70b-versatile"
+        base_model = self.model or "llama-3.3-70b-versatile"
 
         # Список моделей Groq для автоматического перебора при ошибке (например, 429 Rate Limit)
         models_to_try = [
             base_model,
-            "llama-3.3-70b-specdec",
-            "mixtral-8x7b-32768",
-            "llama-3.1-70b-versatile",
-            "gemma2-9b-it"
+            "llama-3.3-70b-versatile",
+            "qwen/qwen3-32b",
+            "llama-3.1-8b-instant",
+            "openai/gpt-oss-120b"
         ]
         
         # Гарантируем уникальность и сохраняем исходный порядок
