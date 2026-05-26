@@ -269,24 +269,25 @@ class LinkGenerator:
         return links
 
     @classmethod
-    def hiddify_links(cls, uuid: str, email: str) -> dict[str, str]:
+    def hiddify_links(cls, uuid: str, email: str, routing: str = None) -> dict[str, str]:
         """Все каналы для Hiddify: relay первыми, direct вторыми."""
         links: dict[str, str] = {}
         links.update(cls._relay_links(uuid, email))
-        links.update(cls._direct_links(uuid, email))
+        if routing != "ru":
+            links.update(cls._direct_links(uuid, email))
         return links
 
     @classmethod
-    def happ_links(cls, uuid: str, email: str) -> dict[str, str]:
+    def happ_links(cls, uuid: str, email: str, routing: str = None) -> dict[str, str]:
         """Все каналы для Happ: relay первыми, direct вторыми.
 
-        Happ при нажатии «Подключиться» автоматически пингует
-        все профили и выбирает с лучшим пингом.
-        Relay идут первыми для приоритета в UI.
+        Если routing == "ru", то прямые (заблокированные в РФ) каналы исключаются,
+        чтобы не засорять интерфейс Happ красными пингами.
         """
         links: dict[str, str] = {}
         links.update(cls._relay_links(uuid, email))
-        links.update(cls._direct_links(uuid, email))
+        if routing != "ru":
+            links.update(cls._direct_links(uuid, email))
         return links
 
     # ── Текст подписок ───────────────────────────────────────────
@@ -298,14 +299,14 @@ class LinkGenerator:
         return "\n".join(links.values())
 
     @classmethod
-    def subscription_text_hiddify(cls, uuid: str, email: str) -> str:
+    def subscription_text_hiddify(cls, uuid: str, email: str, routing: str = None) -> str:
         """Текст подписки оптимизированный для Hiddify."""
-        links = cls.hiddify_links(uuid, email)
+        links = cls.hiddify_links(uuid, email, routing)
         return "\n".join(links.values())
 
     @classmethod
-    def subscription_text_happ(cls, uuid: str, email: str) -> str:
+    def subscription_text_happ(cls, uuid: str, email: str, routing: str = None) -> str:
         """Текст подписки оптимизированный для Happ."""
-        links = cls.happ_links(uuid, email)
+        links = cls.happ_links(uuid, email, routing)
         return "\n".join(links.values())
 

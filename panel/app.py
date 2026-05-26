@@ -569,11 +569,8 @@ async def subscription_hiddify_endpoint(
     if not user["is_active"]:
         raise HTTPException(status_code=403, detail="Subscription expired")
 
-    text = LinkGenerator.subscription_text_hiddify(user["uuid"], user["email"])
-    if routing == "ru":
-        profile_title = f"Hiddify + Obhod RF {user['email']}"
-    else:
-        profile_title = f"Hiddify VPN {user['email']}"
+    text = LinkGenerator.subscription_text_hiddify(user["uuid"], user["email"], routing=routing)
+    profile_title = user["email"]
 
     headers = {
         "Content-Disposition": f'attachment; filename="{user["email"]}_hiddify.txt"',
@@ -620,13 +617,10 @@ async def subscription_happ_endpoint(
     if not user["is_active"]:
         raise HTTPException(status_code=403, detail="Subscription expired")
 
-    text = LinkGenerator.subscription_text_happ(user["uuid"], user["email"])
+    text = LinkGenerator.subscription_text_happ(user["uuid"], user["email"], routing=routing)
     b64_text = base64.b64encode(text.encode("utf-8")).decode("utf-8")
 
-    if routing == "ru":
-        profile_title = f"Happ + Obhod RF {user['email']}"
-    else:
-        profile_title = f"Happ VPN {user['email']}"
+    profile_title = user["email"]
 
     headers = {
         "Content-Disposition": f'inline; filename="{user["email"]}_happ.txt"',
@@ -689,14 +683,14 @@ _HAPP_ROUTING_PROFILE = {
     "DomesticDNSType": "DoH",
     "DomesticDNSDomain": "https://dns.google/dns-query",
     "DomesticDNSIP": "8.8.8.8",
-    "Geoipurl": "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat",
-    "Geositeurl": "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat",
     "DnsHosts": {
         "cloudflare-dns.com": "1.1.1.1",
         "dns.google": "8.8.8.8",
         "37.1.212.51.sslip.io": "111.88.145.206",
     },
     "DirectSites": [
+        # Наш домен подписки — всегда напрямую (без VPN), чтобы избежать петель маршрутизации
+        "domain:synthosai.ru",
         # Все домены зоны .ru — напрямую без VPN
         "domain:ru",
         # Автоматическое определение российских сайтов через geosite
@@ -728,8 +722,6 @@ _HAPP_ROUTING_PROFILE = {
         # 2ГИС — карты, навигация, справочник
         "domain:2gis.ru", "domain:2gis.com",
         "domain:2gis.io", "domain:2gis.pro",
-        # НЕ добавляем sslip.io/IP сервера в Direct —
-        # при блокировке IP обновление подписки должно идти через VPN-туннель (relay)
     ],
     "DirectIp": [
         # Автоматическое определение российских IP через geoip

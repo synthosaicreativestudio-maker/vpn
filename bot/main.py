@@ -102,7 +102,7 @@ async def _get_hiddify_url(user: types.User) -> str | None:
     user_info = await panel.get_user(email)
     if user_info and user_info.get("sub_token"):
         return (
-            f"http://37.1.212.51:8085/sub/hiddify/"
+            f"https://{SUB_HOST}:8086/sub/hiddify/"
             f"{user_info['sub_token']}?routing=ru"
         )
     return None
@@ -169,6 +169,22 @@ def _os_keyboard() -> types.InlineKeyboardMarkup:
     builder.row(
         types.InlineKeyboardButton(text="🍏 iOS (iPhone/iPad)", callback_data="os_ios"),
         types.InlineKeyboardButton(text="🤖 Android", callback_data="os_android")
+    )
+    builder.row(
+        types.InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")
+    )
+    return builder.as_markup()
+
+
+def _app_select_keyboard(os_type: str) -> types.InlineKeyboardMarkup:
+    """Выбор приложения (Happ или Hiddify) для конкретной ОС."""
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        types.InlineKeyboardButton(text="📱 Happ", callback_data=f"app_happ_{os_type}"),
+        types.InlineKeyboardButton(text="🛡 Hiddify", callback_data=f"app_hiddify_{os_type}")
+    )
+    builder.row(
+        types.InlineKeyboardButton(text="🔄 Изменить ОС", callback_data="register_os")
     )
     builder.row(
         types.InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")
@@ -374,38 +390,87 @@ async def cb_register_os(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data.startswith("os_"))
 async def cb_os_selection(callback: types.CallbackQuery):
-    """Выдача инструкции по ОС (только Happ)."""
+    """Переход на выбор приложения для выбранной ОС."""
     os_type = callback.data.split("_")[1]
-    sub_url_happ = await _get_happ_url(callback.from_user)
-
-    if not sub_url_happ:
-        await callback.answer("❌ Профиль не найден. Нажмите «Получить VPN».", show_alert=True)
-        return
-
-    happ_ios = "https://apps.apple.com/app/happ-proxy-utility/id6553971216"
-    happ_android = "https://play.google.com/store/apps/details?id=com.happ.proxy"
-
-    if os_type == "ios":
-        app_link = happ_ios
-        os_name = "iOS (AppStore)"
-    else:
-        app_link = happ_android
-        os_name = "Android (Google Play)"
 
     text = (
-        f"📱 Инструкция для <b>{os_name}</b>:\n\n"
-        f"<b>Шаг 1:</b> Скачайте <b>Happ</b> по кнопке ниже.\n\n"
-        f"<b>Шаг 2:</b> Скопируйте ссылку подписки (она в следующем сообщении).\n\n"
-        f"<b>Шаг 3:</b> Откройте Happ → <b>+</b> → <b>Добавить из буфера обмена</b> → нажмите кнопку подключения."
+        "<b>🎨 Выберите приложение для настройки:</b>\n\n"
+        "Мы поддерживаем два современных и удобных приложения:\n\n"
+        "1. <b>Happ</b> (Sing-Box) — Рекомендуемое легкое приложение с красивым интерфейсом.\n"
+        "2. <b>Hiddify</b> — Мощный кроссплатформенный клиент с глубокой аналитикой.\n\n"
+        "Выберите оболочку, которую хотите настроить:"
     )
+    await callback.message.edit_text(text, reply_markup=_app_select_keyboard(os_type))
+    await callback.answer()
 
-    builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text="📥 Скачать Happ", url=app_link))
-    builder.row(types.InlineKeyboardButton(text="🔄 Другое устройство", callback_data="register"))
-    builder.row(types.InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu"))
 
-    await callback.message.edit_text(text, reply_markup=builder.as_markup())
-    await callback.message.answer(f"<code>{sub_url_happ}</code>")
+@dp.callback_query(F.data.startswith("app_"))
+async def cb_app_selection(callback: types.CallbackQuery):
+    """Выдача инструкции и ссылки для выбранного приложения и ОС."""
+    parts = callback.data.split("_")
+    if len(parts) < 3:
+        await callback.answer("❌ Неверный запрос", show_alert=True)
+        return
+
+    client = parts[1]      # "happ" или "hiddify"
+    os_type = parts[2]     # "ios" or "android"
+    user = callback.from_user
+
+    if client == "happ":
+        sub_url = await _get_happ_url(user)
+        if not sub_url:
+            await callback.answer("❌ Профиль не найден. Нажмите «Получить VPN».", show_alert=True)
+            return
+
+        happ_ios = "https://apps.apple.com/app/happ-proxy-utility/id6553971216"
+        happ_android = "https://play.google.com/store/apps/details?id=com.happ.proxy"
+
+        app_link = happ_ios if os_type == "ios" else happ_android
+        os_name = "iOS (AppStore)" if os_type == "ios" else "Android (Google Play)"
+
+        text = (
+            f"📱 Инструкция для <b>Happ ({os_name})</b>:\n\n"
+            f"<b>Шаг 1:</b> Скачайте <b>Happ</b> по кнопке ниже.\n\n"
+            f"<b>Шаг 2:</b> Скопируйте ссылку подписки (она в следующем сообщении).\n\n"
+            f"<b>Шаг 3:</b> Откройте Happ → нажмите <b>+</b> → <b>Добавить из буфера обмена</b> → нажмите кнопку подключения."
+        )
+
+        builder = InlineKeyboardBuilder()
+        builder.row(types.InlineKeyboardButton(text="📥 Скачать Happ", url=app_link))
+        builder.row(types.InlineKeyboardButton(text="🔄 Изменить приложение", callback_data=f"os_{os_type}"))
+        builder.row(types.InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu"))
+
+        await callback.message.edit_text(text, reply_markup=builder.as_markup())
+        await callback.message.answer(f"<code>{sub_url}</code>")
+
+    elif client == "hiddify":
+        sub_url = await _get_hiddify_url(user)
+        if not sub_url:
+            await callback.answer("❌ Профиль не найден. Нажмите «Получить VPN».", show_alert=True)
+            return
+
+        hiddify_ios = "https://apps.apple.com/app/hiddify-next/id6475092033"
+        hiddify_android = "https://play.google.com/store/apps/details?id=app.hiddify.com"
+
+        app_link = hiddify_ios if os_type == "ios" else hiddify_android
+        os_name = "iOS (AppStore)" if os_type == "ios" else "Android (Google Play)"
+
+        text = (
+            f"📱 Инструкция для <b>Hiddify ({os_name})</b>:\n\n"
+            f"<b>Шаг 1:</b> Скачайте <b>Hiddify</b> по кнопке ниже.\n\n"
+            f"<b>Шаг 2:</b> Скопируйте ссылку подписки (она в следующем сообщении).\n\n"
+            f"<b>Шаг 3:</b> Откройте Hiddify → нажмите <b>Новый профиль</b> → <b>Добавить из буфера обмена</b> (или нажмите <b>+ Добавить профиль</b> и вставьте ссылку) → нажмите кнопку подключения."
+        )
+
+        builder = InlineKeyboardBuilder()
+        builder.row(types.InlineKeyboardButton(text="📥 Скачать Hiddify", url=app_link))
+        builder.row(types.InlineKeyboardButton(text="🔄 Изменить приложение", callback_data=f"os_{os_type}"))
+        builder.row(types.InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu"))
+
+        await callback.message.edit_text(text, reply_markup=builder.as_markup())
+        await callback.message.answer(f"<code>{sub_url}</code>")
+
+    await callback.answer()
 
 
 # ── Мои ссылки ────────────────────────────────────────────────
