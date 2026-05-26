@@ -40,7 +40,7 @@ def _find_font() -> str | None:
     return None
 
 
-def create_investment_pdf(text: str, title: str = "Инвестиционный анализ объекта") -> str | None:
+def create_investment_pdf(text: str, title: str = "Инвестиционный анализ объекта", file_name: str = None) -> str | None:
     """Create a PDF report and return its temporary file path.
 
     Returns None if the optional PDF dependency is not available.
@@ -74,8 +74,15 @@ def create_investment_pdf(text: str, title: str = "Инвестиционный 
         except Exception:
             logger.exception("Could not register PDF font: %s", font_path)
 
-    fd, pdf_path = tempfile.mkstemp(prefix="rbn_invest_report_", suffix=".pdf")
-    os.close(fd)
+    temp_dir = tempfile.mkdtemp(prefix="rbn_report_")
+    if not file_name:
+        file_name = "Инвестиционный анализ объекта"
+        
+    file_name = re.sub(r'[\\/*?:"<>|]', "", file_name)
+    if not file_name.lower().endswith(".pdf"):
+        file_name += ".pdf"
+        
+    pdf_path = os.path.join(temp_dir, file_name)
 
     # Инициализация стилей
     styles = getSampleStyleSheet()
@@ -84,21 +91,30 @@ def create_investment_pdf(text: str, title: str = "Инвестиционный 
         'RBNTitle',
         parent=styles['Normal'],
         fontName=font_name,
-        fontSize=16,
-        leading=20,
+        fontSize=15,
+        leading=18,
         textColor=colors.HexColor('#0F172A'),  # Slate 900
         spaceAfter=15
+    )
+
+    part_title_style = ParagraphStyle(
+        'RBNPartTitle',
+        parent=styles['Normal'],
+        fontName=font_name,
+        fontSize=11,
+        leading=14,
+        textColor=colors.HexColor('#0F172A'),  # Slate 900
     )
     
     h1_style = ParagraphStyle(
         'RBNHeading1',
         parent=styles['Normal'],
         fontName=font_name,
-        fontSize=10.5,
-        leading=13,
+        fontSize=10,
+        leading=12,
         textColor=colors.HexColor('#1E293B'),  # Slate 800
-        spaceBefore=10,
-        spaceAfter=5,
+        spaceBefore=8,
+        spaceAfter=4,
         keepWithNext=True
     )
     
@@ -199,7 +215,7 @@ def create_investment_pdf(text: str, title: str = "Инвестиционный 
                 if row_idx == 0:
                     p_style = header_style
                 else:
-                    is_bold = "Итого" in clean_cell or "Факт" in clean_cell or "Депозит" in clean_cell or "Ключевая ставка" in clean_cell
+                    is_bold = "Итого" in clean_cell or "Факт" in clean_cell or "Депозит" in clean_cell or "Ключевая ставка" in clean_cell or "Вариант" in clean_cell or "Текущее" in clean_cell
                     p_style = cell_bold_style if is_bold else cell_style
                 formatted_row.append(Paragraph(clean_cell, p_style))
             
@@ -215,8 +231,14 @@ def create_investment_pdf(text: str, title: str = "Инвестиционный 
             col_widths = [available_width * 0.4, available_width * 0.3, available_width * 0.3]
         elif col_count == 4:
             col_widths = [available_width * 0.25, available_width * 0.25, available_width * 0.25, available_width * 0.25]
-        elif col_count == 5:
-            col_widths = [available_width * 0.2, available_width * 0.2, available_width * 0.2, available_width * 0.2, available_width * 0.2]
+        elif col_count == 5: # Сводная таблица сравнения вариантов переупаковки
+            col_widths = [
+                available_width * 0.26, # Стратегия
+                available_width * 0.17, # Ставка аренды
+                available_width * 0.20, # Месячный доход (МАП)
+                available_width * 0.17, # Окупаемость объекта
+                available_width * 0.20  # Стоимость как бизнеса
+            ]
         elif col_count == 7:  # Сценарный анализ
             col_widths = [
                 available_width * 0.22,
@@ -244,9 +266,9 @@ def create_investment_pdf(text: str, title: str = "Инвестиционный 
         
         for row_idx in range(1, len(data)):
             first_cell = data[row_idx][0].lower() if len(data[row_idx]) > 0 else ""
-            if "факт" in first_cell:
+            if "факт" in first_cell or "текущее" in first_cell:
                 bg_color = colors.HexColor('#FEF2F2')  # Red 50
-            elif "цель 9 лет" in first_cell or "рыночная" in first_cell or "цель 8 лет" in first_cell:
+            elif "цель 9 лет" in first_cell or "рыночная" in first_cell or "цель 8 лет" in first_cell or "вариант" in first_cell:
                 bg_color = colors.HexColor('#ECFDF5')  # Emerald 50
             elif "депозит" in first_cell or "ключевая" in first_cell:
                 bg_color = colors.HexColor('#EFF6FF')  # Blue 50
@@ -281,6 +303,27 @@ def create_investment_pdf(text: str, title: str = "Инвестиционный 
             story.append(Spacer(1, 10))
             i += 1
             continue
+
+        # 1.5 Крупные заголовки ЧАСТЕЙ (например, ЧАСТЬ 1 / ЧАСТЬ 2)
+        if "ЧАСТЬ" in line:
+            clean_part = line.replace('<b>', '').replace('</b>', '').upper()
+            if len(story) > 0 and not isinstance(story[-1], PageBreak):
+                story.append(PageBreak())
+                
+            part_p = Paragraph(f"<b>{clean_part}</b>", part_title_style)
+            part_table = Table([[part_p]], colWidths=[515])
+            part_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F1F5F9')),  # Slate 100
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ('LINEBEFORE', (0, 0), (0, -1), 3.0, colors.HexColor('#EF4444')),  # Red 500
+            ]))
+            story.append(part_table)
+            story.append(Spacer(1, 8))
+            i += 1
+            continue
             
         # 2. Заголовок раздела
         h_match = re.match(r'^<b>(\d+\.\s+[^<]+)</b>', line)
@@ -288,13 +331,16 @@ def create_investment_pdf(text: str, title: str = "Инвестиционный 
             section_title = h_match.group(1)
             
             # Принудительный перенос страницы перед ключевыми логическими блоками
-            if len(story) > 0 and not isinstance(story[-1], PageBreak):
+            if len(story) > 0 and not isinstance(story[-1], PageBreak) and not isinstance(story[-1], Table):
                 if any(k in section_title for k in [
                     "3. Финансовая", 
                     "6. Сценарный", 
                     "8. Доход за 10", 
                     "11. Ступенчатая", 
-                    "13. Итоговый"
+                    "13. Итоговый",
+                    "14. Вариант А",
+                    "15. Вариант Б",
+                    "16. Сравнение"
                 ]):
                     story.append(PageBreak())
                 else:
@@ -307,7 +353,7 @@ def create_investment_pdf(text: str, title: str = "Инвестиционный 
             if "1. Краткий" in section_title:
                 i += 1
                 conclusion_lines = []
-                while i < n and not lines[i].strip().startswith("<b>"):
+                while i < n and not lines[i].strip().startswith("<b>") and "ЧАСТЬ" not in lines[i]:
                     l_text = lines[i].strip()
                     if l_text:
                         conclusion_lines.append(l_text)
@@ -364,18 +410,33 @@ def create_investment_pdf(text: str, title: str = "Инвестиционный 
         canvas.setTitle(title)
         canvas.setAuthor("RBN MAX Assistant Bot")
         
-        # Верхняя шапка
+        # ЛОГОТИП РБН ИЗ СКРИНА (векторная отрисовка в шапке)
+        # Буквы "РБН" (Красный цвет, жирный шрифт)
+        canvas.setFont(font_name, 11)
+        canvas.setFillColor(colors.HexColor("#EF4444"))  # Яркий красный
+        canvas.drawString(40, A4[1] - 25, "РБН")
+        
+        # Подпись справа от РБН
+        canvas.setFont(font_name, 5.5)
+        canvas.setFillColor(colors.HexColor("#64748B"))  # Slate 500
+        canvas.drawString(70, A4[1] - 20, "Федеральная сеть")
+        
+        canvas.setFont(font_name, 6.5)
+        canvas.setFillColor(colors.HexColor("#0F172A"))  # Slate 900
+        canvas.drawString(70, A4[1] - 27, "Регион Бизнес Недвижимость")
+        
+        # Дата и время справа в шапке
         canvas.setFont(font_name, 8)
-        canvas.setFillColor(colors.HexColor("#475569"))  # Slate 600
-        canvas.drawString(40, A4[1] - 25, "РБН ИНВЕСТИЦИИ  •  АНАЛИТИЧЕСКИЙ ОТЧЕТ ОБЪЕКТА")
+        canvas.setFillColor(colors.HexColor("#64748B"))
         canvas.drawRightString(A4[0] - 40, A4[1] - 25, datetime.now().strftime("%d.%m.%Y %H:%M"))
         
         # Разделитель шапки
-        canvas.setStrokeColor(colors.HexColor("#E2E8F0"))  # Slate 200
+        canvas.setStrokeColor(colors.HexColor("#CBD5E1"))  # Slate 300
         canvas.setLineWidth(0.5)
-        canvas.line(40, A4[1] - 30, A4[0] - 40, A4[1] - 30)
+        canvas.line(40, A4[1] - 32, A4[0] - 40, A4[1] - 32)
         
         # Нижний подвал
+        canvas.setFont(font_name, 7)
         canvas.drawString(40, 18, "Регион Бизнес Недвижимость  •  Подготовлено AI-системой MAX")
         canvas.drawRightString(A4[0] - 40, 18, f"Страница {doc.page}")
         

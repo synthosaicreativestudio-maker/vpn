@@ -3,7 +3,7 @@
 FSM-состояния хранятся в in-memory словаре (по user_id).
 Реализует ту же логику что и Telegram-бот:
   - Приветствие (bot_started)
-  - Калькулятор ликвидности (пошаговый ввод)
+  - Инвест-калькулятор объекта (пошаговый ввод)
   - Генератор продающих описаний КН
   - Свободный вопрос ИИ-ментору
 """
@@ -35,6 +35,15 @@ def clean_number(text_val: str) -> float:
         if match:
             try:
                 return float(match.group(1).replace(",", ".")) * 1_000_000
+            except ValueError:
+                pass
+
+    # Обработка "150тр", "150 т.р.", "150 тыс"
+    if re.search(r"(?<=\d)\s*(?:т\.?\s*р\.?|тр|тыс)", val_lower):
+        match = re.search(r"(\d+(?:[.,]\d+)?)", val_lower)
+        if match:
+            try:
+                return float(match.group(1).replace(",", ".")) * 1_000
             except ValueError:
                 pass
 
@@ -133,7 +142,67 @@ def extract_gab_inputs(full_text: str) -> tuple[str, str]:
     if map_match:
         map_str = map_match.group(1)
 
+    if not map_str:
+        map_patterns = [
+            r"(?:сдан[^\n]{0,80}?за|сдан[^\n]{0,80}?аренд[ау]|за)\s*(\d+(?:[.,]\d+)?\s*(?:т\.?\s*р\.?|тр|тыс))\s*/?\s*(?:мес|месяц)",
+            r"(?:мап|аренд[аы]\s+в\s+месяц|плат[аеи]\s+в\s+месяц|ежемесячн\w*\s+аренд[аы])\s*[:=-]?\s*(\d[\d\s.,]{2,}\s*(?:т\.?\s*р\.?|тр|тыс)?)",
+        ]
+        for pattern in map_patterns:
+            map_match = re.search(pattern, full_text, re.IGNORECASE)
+            if map_match:
+                map_str = map_match.group(1)
+                break
+
     return price_str, map_str
+
+
+def extract_rent_input(full_text: str, area: float) -> float:
+    """Парсит аренду для ветки аренды: ставку за м² или МАП."""
+    if area <= 0:
+        return 0.0
+
+    # Ставка за м²: "1000 ₽/м²", "ставка 1000 руб за м2"
+    rate_match = None
+    for pattern in (
+        r"(?:ставк[аи]|арендн(?:ая|ую)\s+ставк[ау])\s*[:=-]?\s*(\d[\d\s.,]{2,})\s*(?:₽|руб|р\.?)?\s*(?:/|за)\s*(?:м2|м²|кв\.?\s*м\.?|м\.?\s*кв\.?)",
+        r"(\d[\d\s.,]{2,})\s*(?:₽|руб|р\.?)\s*(?:/|за)\s*(?:м2|м²|кв\.?\s*м\.?|м\.?\s*кв\.?)",
+        r"ставк[аи][^\n]{0,70}(?:м2|м²|кв\.?\s*м\.?|м\.?\s*кв\.?)[^\d]{0,30}(\d[\d\s.,]{2,})",
+    ):
+        rate_match = re.search(pattern, full_text, re.IGNORECASE)
+        if rate_match:
+            break
+
+    if rate_match:
+        rate = clean_number(rate_match.group(1))
+        if 100 <= rate <= 20_000:
+            return rate * area
+
+    # Месячный платеж: "МАП 60 000", "аренда в месяц 60000"
+    _, map_str = extract_gab_inputs(full_text)
+    monthly_rent = clean_number(map_str) if map_str else 0
+    if monthly_rent > 0:
+        return monthly_rent
+
+    return 0.0
+
+
+def looks_like_sale_listing(full_text: str, params: dict) -> bool:
+    """Определяет CRM/листинг продажи, который можно сразу отправлять в инвест-калькулятор."""
+    if not params or not params.get("area") or not params.get("price"):
+        return False
+    if float(params.get("price") or 0) < 500_000:
+        return False
+
+    lower = full_text.lower()
+    has_sale_marker = re.search(
+        r"прода[её]т|продаж|цена\s+объект|стоимост|тип\s+продажи|₽",
+        lower,
+    )
+    has_property_marker = re.search(
+        r"м²|м2|кв\.?\s*м|офис|коммерц|помещ|склад|торгов|стрит|псн|арендатор|габ",
+        lower,
+    )
+    return bool(has_sale_marker and has_property_marker)
 
 
 # FSM-состояния пользователей: {user_id: {"state": ..., "data": {...}}}
@@ -178,7 +247,7 @@ STATE_DESC_GAB_REASON = "desc_gab_reason"
 def get_main_keyboard() -> list[list[dict]]:
     """Главное меню бота — inline-кнопки."""
     return [
-        [MaxBotAPI.callback_button("🧮 Оценка объекта (Ликвидность)", "calc_start")],
+        [MaxBotAPI.callback_button("🧮 Инвест-калькулятор объекта", "calc_start")],
         [MaxBotAPI.callback_button("✍️ Описание объекта", "desc_start")],
         [MaxBotAPI.callback_button("📚 Задать вопрос ИИ-ментору", "mentor_start")],
     ]
@@ -295,8 +364,8 @@ async def handle_bot_started(api: MaxBotAPI, update: dict):
     text = (
         f"👋 Приветствую, <b>{name}</b>!\n\n"
         "Я — ИИ-ассистент брокеров коммерческой недвижимости <b>РБН</b>.\n\n"
-        "🔹 <b>Оценка объекта</b> — рассчитаю ликвидность, "
-        "целевых арендаторов и сравню цену с рынком Тюмени.\n"
+        "🔹 <b>Инвест-калькулятор</b> — рассчитаю доходность, окупаемость, "
+        "справедливую цену, риски и ликвидность объекта.\n"
         "🔹 <b>Задать вопрос</b> — проконсультирую по маркетингу, "
         "скриптам или аналитике рынка."
     )
@@ -345,9 +414,9 @@ async def handle_callback(api: MaxBotAPI, update: dict):
         ]
         await api.send_message_with_keyboard(
             **target,
-            text="Выберите способ оценки:\n\n"
+            text="Выберите способ инвестиционного анализа:\n\n"
                  "📋 <b>Вставить данные</b> — скопируйте информацию из CRM\n"
-                 "📝 <b>Пошагово</b> — я задам вопросы по каждому параметру",
+                 "📝 <b>Пошагово</b> — я задам вопросы по площади, цене и району",
             buttons=buttons,
         )
         return
@@ -573,10 +642,38 @@ async def handle_callback(api: MaxBotAPI, update: dict):
 
 
 async def _send_analysis_with_chart(api: MaxBotAPI, target: dict, result_tuple):
-    """Отправляет текст отчёта + scatter-plot график."""
+    """Отправляет PDF-отчёт, а при ошибке — текст отчёта + scatter-plot график."""
     import os
-    text, chart_path = result_tuple
-    await _safe_send(api, target, text)
+    text = result_tuple[0]
+    chart_path = result_tuple[1] if len(result_tuple) > 1 else None
+    pdf_path = result_tuple[2] if len(result_tuple) > 2 else None
+
+    pdf_sent = False
+    if pdf_path and os.path.exists(pdf_path):
+        try:
+            token = await api.upload_file(pdf_path)
+            if token:
+                send_result = await api.send_file(
+                    **target,
+                    token=token,
+                    text="PDF-отчёт по объекту",
+                )
+                if isinstance(send_result, dict) and not send_result.get("code"):
+                    await api.send_message_with_keyboard(
+                        **target,
+                        text="✅ Инвестиционный анализ готов.",
+                        buttons=get_main_keyboard(),
+                    )
+                    pdf_sent = True
+                else:
+                    logger.error("PDF-отчёт не отправлен: %s", send_result)
+            os.unlink(pdf_path)
+        except Exception:
+            logger.exception("Ошибка отправки PDF-отчёта")
+
+    if not pdf_sent:
+        await _safe_send(api, target, text)
+
     if chart_path and os.path.exists(chart_path):
         try:
             token = await api.upload_image(chart_path)
@@ -636,11 +733,44 @@ async def handle_message(api: MaxBotAPI, update: dict):
     if state == STATE_CALC_COPYPASTE:
         await api.send_message(**target, text="⏳ Извлекаю параметры из текста...")
         params = await ai_engine.extract_calc_params(text)
+        lower_text = text.lower()
+        deal_type = st["data"].get("deal_type", "продажа")
+        is_rent_deal = "аренд" in deal_type.lower() or "сдать" in deal_type.lower()
+        price_value = float(params.get("price") or 0) if params else 0
+        area_value = float(params.get("area") or 0) if params else 0
+        rent_price = extract_rent_input(text, area_value) if is_rent_deal else 0
+        if is_rent_deal and rent_price > 0:
+            params["price"] = rent_price
+            price_value = rent_price
+
+        has_sale_price_marker = re.search(
+            r"стоимост|продаж|прода[её]т|купить|покупк|цена|стоит|млн",
+            lower_text,
+        )
+        has_rent_marker = re.search(r"сда[её]т|аренд|мап", lower_text)
+        # В ГАБ-текстах слова "аренда", "арендатор" и "МАП" нормальны.
+        # Отсекаем только явную аренду без крупной цены продажи.
+        looks_rent_only = (
+            not is_rent_deal
+            and not st["data"].get("is_gab", False)
+            and has_rent_marker
+            and not has_sale_price_marker
+            and price_value < 500_000
+        )
         
-        if not params or not params.get("area") or not params.get("price"):
+        if not params or not params.get("area") or not params.get("price") or looks_rent_only:
+            error_text = (
+                "❌ Не удалось распознать площадь и ставку аренды/МАП. "
+                "Для аренды укажите площадь и ставку за м² или месячную аренду."
+                if is_rent_deal
+                else
+                "❌ Не удалось надёжно распознать площадь и текущую цену объекта. "
+                "Для инвест-калькулятора нужна именно цена продажи/покупки, а не ставка аренды. "
+                "Попробуйте ввести данные пошагово."
+            )
             await api.send_message_with_keyboard(
                 **target, 
-                text="❌ Не удалось распознать площадь и цену. Попробуйте ввести данные пошагово.",
+                text=error_text,
                 buttons=get_cancel_keyboard()
             )
             return
@@ -651,10 +781,11 @@ async def handle_message(api: MaxBotAPI, update: dict):
         st["data"]["obj_type"] = params.get("obj_type", "Свободного назначения")
         
         is_gab = st["data"].get("is_gab", False)
-        monthly_rent = 0
+        _, map_str = extract_gab_inputs(text)
+        monthly_rent = clean_number(map_str) if map_str else 0
         
-        # Для ГАБ из CRM: спрашиваем МАП отдельно
-        if is_gab:
+        # Для ГАБ из CRM спрашиваем МАП только если он не найден в тексте.
+        if is_gab and monthly_rent <= 0:
             st["state"] = STATE_CALC_GAB_MAP
             await api.send_message_with_keyboard(
                 **target,
@@ -666,14 +797,17 @@ async def handle_message(api: MaxBotAPI, update: dict):
         
         st["state"] = STATE_IDLE
         await api.send_message(**target, text="⏳ Анализирую объект по базе РБН...")
+        address = ai_engine.extract_address_from_text(text)
         result = await ai_engine.analyze_property(
-            deal_type=st["data"].get("deal_type", "аренда"),
+            deal_type=deal_type,
             obj_type=st["data"]["obj_type"],
             area=st["data"]["area"],
             price=st["data"]["price"],
             district=st["data"]["district"],
             user_id=user_id,
-            is_gab=False,
+            is_gab=is_gab,
+            monthly_rent=monthly_rent,
+            address=address,
         )
         clear_state(user_id)
         await _send_analysis_with_chart(api, target, result)
@@ -683,16 +817,35 @@ async def handle_message(api: MaxBotAPI, update: dict):
     if state == STATE_AREA:
         st["data"]["area"] = text
         st["state"] = STATE_PRICE
+        deal_type = st["data"].get("deal_type", "продажа")
+        is_rent_deal = "аренд" in deal_type.lower() or "сдать" in deal_type.lower()
+        prompt_text = (
+            "Укажите арендную ставку за м² или месячную аренду.\n"
+            "Например: <b>1000</b> за м² или <b>60000</b> в месяц."
+            if is_rent_deal
+            else
+            "Укажите текущую цену объекта / цену продажи (только цифры, в рублях):"
+        )
         await api.send_message_with_keyboard(
             **target,
-            text="Укажите желаемую цену (только цифры, в рублях):",
+            text=prompt_text,
             buttons=get_cancel_keyboard(),
         )
         return
 
     # --- Калькулятор: цена ---
     if state == STATE_PRICE:
-        st["data"]["price"] = text
+        deal_type = st["data"].get("deal_type", "продажа")
+        is_rent_deal = "аренд" in deal_type.lower() or "сдать" in deal_type.lower()
+        if is_rent_deal:
+            area_value = clean_number(str(st["data"].get("area", "")))
+            rent_value = clean_number(text)
+            # Для аренды значение до 20 000 считаем ставкой за м², больше — МАП.
+            if area_value > 0 and 0 < rent_value <= 20_000:
+                rent_value *= area_value
+            st["data"]["price"] = str(rent_value)
+        else:
+            st["data"]["price"] = text
         st["state"] = STATE_DISTRICT
         buttons = [
             [
@@ -877,6 +1030,39 @@ async def handle_message(api: MaxBotAPI, update: dict):
         )
         return
 
+    # Быстрый сценарий: пользователь просто вставил CRM/листинг продажи.
+    # Тогда нужен инвест-калькулятор с PDF, а не свободный ответ ИИ-ментора.
+    params = await ai_engine.extract_calc_params(text)
+    if looks_like_sale_listing(text, params):
+        await api.send_message(**target, text="⏳ Запускаю инвестиционный расчёт и готовлю PDF...")
+        area_value = float(params.get("area") or 0)
+        _, map_str = extract_gab_inputs(text)
+        monthly_rent = clean_number(map_str) if map_str else 0
+        if monthly_rent <= 0:
+            monthly_rent = extract_rent_input(text, area_value)
+
+        lower_text = text.lower()
+        is_gab = bool(
+            monthly_rent > 0
+            or re.search(r"с\s+арендатор|арендатор|сдан[ао]?\s+в\s+аренду|готовый\s+арендный\s+бизнес", lower_text)
+        )
+
+        address = ai_engine.extract_address_from_text(text)
+        result = await ai_engine.analyze_property(
+            deal_type="продажа",
+            obj_type=params.get("obj_type", "Свободного назначения"),
+            area=str(params["area"]),
+            price=str(params["price"]),
+            district=params.get("district", "Центр"),
+            user_id=user_id,
+            is_gab=is_gab,
+            monthly_rent=monthly_rent,
+            address=address,
+        )
+        clear_state(user_id)
+        await _send_analysis_with_chart(api, target, result)
+        return
+
     # Это сохраняет быстрый рабочий сценарий: брокер может просто вставить
     # данные из CRM одним сообщением и получить анализ без прохождения опросника.
     logger.info("SENDING typing indicator to user_id=%s", user_id)
@@ -897,9 +1083,19 @@ async def handle_message(api: MaxBotAPI, update: dict):
 async def _proceed_after_calc_deal(api: MaxBotAPI, target: dict, st: dict):
     if st["data"]["calc_mode"] == "copypaste":
         st["state"] = STATE_CALC_COPYPASTE
+        deal_type = st["data"].get("deal_type", "продажа")
+        is_rent_deal = "аренд" in deal_type.lower() or "сдать" in deal_type.lower()
+        hint = (
+            "Важно: для аренды нужны площадь и ставка аренды за м² или месячная аренда."
+            if is_rent_deal
+            else
+            "Важно: для инвест-расчёта нужны площадь и текущая цена объекта. "
+            "Если есть фактический МАП — тоже вставьте; я всё равно посчитаю "
+            "сценарии 1000 ₽/м², 400 ₽/м² и 500 ₽/м²."
+        )
         await api.send_message_with_keyboard(
             **target,
-            text="Вставьте текст объявления или информацию из CRM:",
+            text=f"Вставьте текст объявления или информацию из CRM.\n\n{hint}",
             buttons=get_cancel_keyboard(),
         )
     else:
@@ -1083,17 +1279,46 @@ async def _generate_description(api: MaxBotAPI, target: dict, user_id: int):
 async def _safe_send(api: MaxBotAPI, target: dict, text: str):
     """Отправляет ответ с HTML. При ошибке — без форматирования."""
     logger.info("_safe_send called, text_len=%d, target=%s", len(text), target)
+
+    def chunks(src: str, limit: int = 3600) -> list[str]:
+        result: list[str] = []
+        current = ""
+        for line in src.splitlines():
+            candidate = f"{current}\n{line}" if current else line
+            if len(candidate) > limit and current:
+                result.append(current)
+                current = line
+            else:
+                current = candidate
+        if current:
+            result.append(current)
+        return result or [src]
+
+    async def send_part(part: str, *, is_last: bool, fmt: str = "html") -> dict:
+        if is_last:
+            res = await api.send_message_with_keyboard(
+                **target, text=part, format=fmt, buttons=get_main_keyboard()
+            )
+        else:
+            res = await api.send_message(**target, text=part, format=fmt)
+        if isinstance(res, dict) and res.get("code"):
+            raise RuntimeError(str(res))
+        return res
+
     try:
-        res = await api.send_message_with_keyboard(
-            **target, text=text, buttons=get_main_keyboard()
-        )
+        parts = chunks(text)
+        res = {}
+        for idx, part in enumerate(parts):
+            res = await send_part(part, is_last=idx == len(parts) - 1)
         logger.info("_safe_send OK: %s", str(res)[:200])
     except Exception:
         logger.warning("HTML-разметка невалидна, отправляю без форматирования")
         try:
-            res = await api.send_message_with_keyboard(
-                **target, text=text, format="", buttons=get_main_keyboard()
-            )
+            plain = re.sub(r"</?[^>]+>", "", text)
+            parts = chunks(plain)
+            res = {}
+            for idx, part in enumerate(parts):
+                res = await send_part(part, is_last=idx == len(parts) - 1, fmt="")
             logger.info("_safe_send (plain) OK: %s", str(res)[:200])
         except Exception:
             logger.exception("Ошибка отправки сообщения в Max")
