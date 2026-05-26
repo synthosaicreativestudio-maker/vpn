@@ -441,6 +441,7 @@ class AIEngine:
                     price=price,
                     district=district,
                     monthly_rent=monthly_rent,
+                    is_gab=is_gab,
                 )
                 pdf_path = create_investment_pdf(investment_report, file_name=file_name)
                 return investment_report, chart_path, pdf_path
