@@ -295,6 +295,27 @@
     .link-value:hover { color: var(--accent); }
     .link-value:active { opacity: 0.7; }
 
+    /* ── Accordion ──────────────────────────────────────── */
+    .accordion-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; padding: 10px 0; user-select: none;
+    }
+    .accordion-toggle:hover .accordion-title { color: var(--accent); }
+    .accordion-title {
+      font-size: 14px; font-weight: 600;
+      transition: color .2s;
+    }
+    .accordion-arrow {
+      font-size: 12px; color: var(--muted);
+      transition: transform .25s ease;
+    }
+    .accordion-toggle.open .accordion-arrow { transform: rotate(180deg); }
+    .accordion-body {
+      max-height: 0; overflow: hidden;
+      transition: max-height .3s ease;
+    }
+    .accordion-body.open { max-height: 600px; }
+
     /* ── Toast ──────────────────────────────────────────── */
     .toast {
       position: fixed; bottom: 24px; right: 24px;
@@ -721,29 +742,28 @@
       title: '📋 Стандартные подписки',
       subtitle: 'Весь трафик через VPN',
       links: {
-        sub_happ:    '🍏 Happ (iOS)',
+        sub_happ:    '🍏 Happ',
         sub_hiddify: '🧲 Hiddify / V2Ray',
-        sub_url:     '📄 Универсальная',
-        sub_amnezia: '🛡 AmneziaVPN',
       }
     },
     {
       title: '🇷🇺 С маршрутизацией (обход РФ)',
       subtitle: 'РФ сайты напрямую, остальное через VPN',
       links: {
-        sub_happ_routing:    '🍏 Happ (iOS) + обход РФ',
+        sub_happ_routing:    '🍏 Happ + обход РФ',
         sub_hiddify_routing: '🧲 Hiddify + обход РФ',
-        sub_url_routing:     '📄 Универсальная + обход РФ',
       }
     },
     {
       title: '🔗 Отдельные протоколы',
       subtitle: 'Ручная настройка',
+      accordion: true,
       links: {
         vless_reality: '🔌 VLESS Reality Vision',
         vless_xhttp:   '🕵️ VLESS xHTTP',
         vless_grpc:    '📡 VLESS gRPC',
         vless_ws:      '🌐 VLESS WebSocket',
+        vless_relay:   '📶 VLESS Relay RU',
         hysteria2:     '🚀 Hysteria2',
         shadowsocks:   '🔒 Shadowsocks 2022',
       }
@@ -768,17 +788,37 @@
           }
         }
         if (sectionHtml) {
-          html += `<div style="margin-bottom:18px;">
-            <div style="font-size:14px;font-weight:600;margin-bottom:4px;">${section.title}</div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">${section.subtitle}</div>
-            ${sectionHtml}
-          </div>`;
+          if (section.accordion) {
+            const uid = 'acc_' + Math.random().toString(36).slice(2,8);
+            html += `<div style="margin-bottom:18px;border-top:1px solid var(--border);padding-top:12px;">
+              <div class="accordion-toggle" onclick="toggleAccordion(this)">
+                <div>
+                  <span class="accordion-title">${section.title}</span>
+                  <div style="font-size:11px;color:var(--muted);margin-top:2px;">${section.subtitle}</div>
+                </div>
+                <span class="accordion-arrow">▼</span>
+              </div>
+              <div class="accordion-body">${sectionHtml}</div>
+            </div>`;
+          } else {
+            html += `<div style="margin-bottom:18px;">
+              <div style="font-size:14px;font-weight:600;margin-bottom:4px;">${section.title}</div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">${section.subtitle}</div>
+              ${sectionHtml}
+            </div>`;
+          }
         }
       }
       document.getElementById('linksContainer').innerHTML = html || '<p style="color:var(--muted)">Ссылок нет</p>';
     } catch(e) {
       document.getElementById('linksContainer').innerHTML = `<p style="color:var(--red)">${e.message}</p>`;
     }
+  }
+
+  function toggleAccordion(el) {
+    el.classList.toggle('open');
+    const body = el.nextElementSibling;
+    body.classList.toggle('open');
   }
 
   // ── Create modal ───────────────────────────────────────

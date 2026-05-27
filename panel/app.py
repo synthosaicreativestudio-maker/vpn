@@ -486,9 +486,18 @@ async def get_user_links(email: str):
 
     links = LinkGenerator.all_links(user["uuid"], email)
     token = user["sub_token"]
+    base = f"https://{SUB_HOST}:8086/sub"
     return SubscriptionLinks(
         email=email,
-        sub_happ=f"https://{SUB_HOST}:8086/sub/happ/{token}?routing=ru",
+        # Стандартные подписки
+        sub_happ=f"{base}/happ/{token}",
+        sub_hiddify=f"{base}/hiddify/{token}",
+        sub_url=f"{base}/{token}",
+        # С маршрутизацией (обход РФ)
+        sub_happ_routing=f"{base}/happ/{token}?routing=ru",
+        sub_hiddify_routing=f"{base}/hiddify/{token}?routing=ru",
+        sub_url_routing=f"{base}/{token}?routing=ru",
+        # Отдельные протоколы
         **links,
         all_links=list(links.values()),
     )
