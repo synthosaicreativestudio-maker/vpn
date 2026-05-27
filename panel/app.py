@@ -566,7 +566,6 @@ async def subscription_endpoint(
         "Profile-Title": profile_title,
         "Profile-Update-Interval": "24",
         "Subscription-UserInfo": _build_userinfo(user),
-        "Profile-Web-Page-Url": f"https://{SUB_HOST}:8086/admin/ui",
     }
 
     if routing == "ru":
@@ -612,7 +611,6 @@ async def subscription_hiddify_endpoint(
         "Profile-Title": profile_title,
         "Profile-Update-Interval": "24",
         "Subscription-UserInfo": _build_userinfo(user),
-        "Profile-Web-Page-Url": f"https://{SUB_HOST}:8086/admin/ui",
     }
 
     if routing == "ru":
@@ -662,7 +660,6 @@ async def subscription_happ_endpoint(
         "Profile-Title": profile_title,
         "Profile-Update-Interval": "24",
         "Subscription-UserInfo": _build_userinfo(user),
-        "Profile-Web-Page-Url": f"https://{SUB_HOST}:8086/admin/ui",
     }
 
     if routing == "ru":
