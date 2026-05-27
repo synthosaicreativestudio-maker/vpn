@@ -143,17 +143,33 @@ async def _traffic_monitor_task():
     """Фоновая задача опроса статистики Xray и обновления БД."""
     while True:
         try:
-            if ENABLE_TRAFFIC_LIMITS and xray_client and xray_client.is_connected():
-                stats = xray_client.query_stats(reset=True)
+            if ENABLE_TRAFFIC_LIMITS:
                 traffic_by_email = {}
-                for stat in stats:
-                    parts = stat["name"].split(">>>")
-                    # name format: user>>>email>>>traffic>>>downlink
-                    if len(parts) == 4 and parts[0] == "user" and parts[2] == "traffic":
-                        email = parts[1]
-                        value_gb = stat["value"] / (1024**3)
+                
+                # 1. Сбор локального трафика (US сервер)
+                if xray_client and xray_client.is_connected():
+                    try:
+                        stats = xray_client.query_stats(reset=True)
+                        for stat in stats:
+                            parts = stat["name"].split(">>>")
+                            # name format: user>>>email>>>traffic>>>downlink
+                            if len(parts) == 4 and parts[0] == "user" and parts[2] == "traffic":
+                                email = parts[1]
+                                value_gb = stat["value"] / (1024**3)
+                                traffic_by_email[email] = traffic_by_email.get(email, 0.0) + value_gb
+                    except Exception as e:
+                        logger.error("Error querying local traffic stats: %s", e)
+                
+                # 2. Сбор трафика с Relay
+                try:
+                    from panel.relay_sync import get_relay_traffic_stats
+                    relay_stats = get_relay_traffic_stats()
+                    for email, value_gb in relay_stats.items():
                         traffic_by_email[email] = traffic_by_email.get(email, 0.0) + value_gb
+                except Exception as e:
+                    logger.error("Error querying relay traffic stats: %s", e)
 
+                # 3. Применение лимитов и обновление БД
                 for email, added_gb in traffic_by_email.items():
                     if added_gb <= 0:
                         continue
@@ -166,7 +182,12 @@ async def _traffic_monitor_task():
                     if total_gb > 0 and new_used >= total_gb and user.get("is_active"):
                         logger.warning("User %s exceeded traffic limit (%.2f/%.2f GB). Disabling.", email, new_used, total_gb)
                         db.update_user(email, used_gb=new_used, is_active=0)
-                        xray_client.remove_user_all_inbounds(email, ALL_INBOUND_TAGS)
+                        if xray_client:
+                            xray_client.remove_user_all_inbounds(email, ALL_INBOUND_TAGS)
+                        try:
+                            remove_user_from_relay(email)
+                        except Exception as e:
+                            logger.error("Failed to remove user %s from relay: %s", email, e)
                     else:
                         db.update_user(email, used_gb=new_used)
         except Exception as e:
@@ -200,6 +221,14 @@ async def _periodic_xray_sync_task():
                         added += 1
                 if added > 0:
                     logger.info("🔄 Periodic sync: added %d missing users to Xray", added)
+                
+                # Синхронизация с Relay (если включен)
+                try:
+                    relay_added = sync_all_users_to_relay(active_users)
+                    if relay_added > 0:
+                        logger.info("🔄 Periodic Relay sync: added %d users to Relay", relay_added)
+                except Exception as e:
+                    logger.error("Error in periodic Relay sync: %s", e)
         except Exception as e:
             logger.error("Error in periodic Xray sync: %s", e)
         await asyncio.sleep(300)  # 5 минут

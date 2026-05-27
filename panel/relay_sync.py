@@ -7,14 +7,15 @@
 Модуль отключается если RELAY_ENABLED=False.
 """
 
+import json
 import logging
+import subprocess
 
-from panel.config import RELAY_ENABLED, RELAY_GRPC_ENABLED, RELAY_GRPC_HOST
+from panel.config import RELAY_ENABLED, RELAY_GRPC_ENABLED, RELAY_GRPC_HOST, RELAY_IP
 
 logger = logging.getLogger("panel.relay_sync")
 
-RELAY_INBOUND_TAG = "VLESS-Reality-Relay"
-RELAY_INBOUND_TAG_443 = "VLESS-Reality-Relay-443"
+RELAY_INBOUND_TAGS = ["relay-vision", "relay-grpc", "relay-xhttp", "relay-test-8081"]
 
 _relay_client = None
 
@@ -33,51 +34,111 @@ def get_relay_client():
 
 
 def add_user_to_relay(email: str, uuid: str) -> bool:
-    """Добавить пользователя в оба relay inbound (8081 + 443)."""
+    """Добавить пользователя во все relay inbounds."""
     if not RELAY_ENABLED:
         return True
     client = get_relay_client()
     if not client:
         return False
-    # Добавляем в оба inbound
-    ok1 = client.add_user(RELAY_INBOUND_TAG, email, uuid, flow="xtls-rprx-vision")
-    ok2 = client.add_user(RELAY_INBOUND_TAG_443, email, uuid, flow="xtls-rprx-vision")
-    if ok1 or ok2:
-        logger.info("User %s added to relay (8081=%s, 443=%s)", email, ok1, ok2)
-    return ok1 or ok2
+    
+    success = False
+    for tag in RELAY_INBOUND_TAGS:
+        flow = "xtls-rprx-vision" if ("vision" in tag.lower() or "8081" in tag) else ""
+        ok = client.add_user(tag, email, uuid, flow=flow)
+        if ok:
+            success = True
+    
+    if success:
+        logger.info("User %s added to relay inbounds", email)
+    return success
 
 
 def remove_user_from_relay(email: str) -> bool:
-    """Удалить пользователя из обоих relay inbound."""
+    """Удалить пользователя из всех relay inbounds."""
     if not RELAY_ENABLED:
         return True
     client = get_relay_client()
     if not client:
         return False
-    ok1 = client.remove_user(RELAY_INBOUND_TAG, email)
-    ok2 = client.remove_user(RELAY_INBOUND_TAG_443, email)
-    if ok1 or ok2:
-        logger.info("User %s removed from relay", email)
-    return ok1 or ok2
+    
+    success = False
+    for tag in RELAY_INBOUND_TAGS:
+        ok = client.remove_user(tag, email)
+        if ok:
+            success = True
+            
+    if success:
+        logger.info("User %s removed from relay inbounds", email)
+    return success
 
 
 def sync_all_users_to_relay(users: list[dict]) -> int:
-    """Синхронизировать всех активных пользователей на оба relay inbound."""
+    """Синхронизировать всех активных пользователей во все relay inbounds."""
     if not RELAY_ENABLED:
         return 0
     client = get_relay_client()
     if not client:
         logger.warning("Relay sync skipped: client not available")
         return 0
+    
     count = 0
     for user in users:
         if not user.get("is_active"):
             continue
         email = user["email"]
         uuid = user["uuid"]
-        ok1 = client.add_user(RELAY_INBOUND_TAG, email, uuid, flow="xtls-rprx-vision")
-        ok2 = client.add_user(RELAY_INBOUND_TAG_443, email, uuid, flow="xtls-rprx-vision")
-        if ok1 or ok2:
+        
+        user_synced = False
+        for tag in RELAY_INBOUND_TAGS:
+            flow = "xtls-rprx-vision" if ("vision" in tag.lower() or "8081" in tag) else ""
+            ok = client.add_user(tag, email, uuid, flow=flow)
+            if ok:
+                user_synced = True
+                
+        if user_synced:
             count += 1
+            
     logger.info("Relay sync complete: %d users added", count)
     return count
+
+
+def get_relay_traffic_stats() -> dict[str, float]:
+    """Получить статистику трафика по пользователям с Relay сервера через SSH."""
+    if not RELAY_ENABLED:
+        return {}
+    try:
+        cmd = [
+            "ssh",
+            "-o", "StrictHostKeyChecking=no",
+            "-i", "/root/.ssh/id_ed25519",
+            f"ubuntu@{RELAY_IP}",
+            "xray api statsquery --server=127.0.0.1:10085 -reset"
+        ]
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        if res.returncode != 0:
+            logger.error("Failed to query relay stats: %s", res.stderr)
+            return {}
+            
+        output = res.stdout.strip()
+        if not output or output == "{}":
+            return {}
+            
+        data = json.loads(output)
+        stats = data.get("stat", [])
+        
+        traffic_by_email = {}
+        for stat in stats:
+            name = stat.get("name", "")
+            value = stat.get("value", 0)
+            parts = name.split(">>>")
+            # user>>>email>>>traffic>>>downlink/uplink
+            if len(parts) == 4 and parts[0] == "user" and parts[2] == "traffic":
+                email = parts[1]
+                value_gb = value / (1024**3)
+                traffic_by_email[email] = traffic_by_email.get(email, 0.0) + value_gb
+                
+        return traffic_by_email
+    except Exception as e:
+        logger.error("Error collecting relay traffic: %s", e)
+        return {}
+

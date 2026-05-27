@@ -37,7 +37,6 @@ from panel.config import (
     RELAY_PUBLIC_KEY,
     RELAY_SHORT_ID,
     RELAY_SNI,
-    RELAY_UUID,
     SERVER_IP,
     SHADOWSOCKS_METHOD,
     SHADOWSOCKS_PASSWORD,
@@ -125,11 +124,9 @@ class LinkGenerator:
 
         Использует РФ VPS как входную точку с whitelisted IP/SNI,
         трафик пробрасывается на US сервер.
-        UUID фиксированный — relay принимает единый RELAY_UUID,
-        затем пересылает на US как relay-bridge.
         """
         return (
-            f"vless://{RELAY_UUID}@{RELAY_IP}:{RELAY_PORT}"
+            f"vless://{uuid}@{RELAY_IP}:{RELAY_PORT}"
             f"?encryption=none&security=reality"
             f"&sni={RELAY_SNI}"
             f"&pbk={RELAY_PUBLIC_KEY}"
@@ -147,7 +144,7 @@ class LinkGenerator:
         Обходит поведенческий анализ ТСПУ на стандартном порту 443.
         """
         return (
-            f"vless://{RELAY_UUID}@{ANTI_STUB_IP}:{ANTI_STUB_PORT}"
+            f"vless://{uuid}@{ANTI_STUB_IP}:{ANTI_STUB_PORT}"
             f"?encryption=none&security=reality"
             f"&sni={ANTI_STUB_SNI}"
             f"&pbk={RELAY_PUBLIC_KEY}"
@@ -163,7 +160,6 @@ class LinkGenerator:
         from panel.config import (
             RELAY_PUBLIC_KEY,
             RELAY_SHORT_ID,
-            RELAY_UUID,
             TEST_RELAY_FP,
             TEST_RELAY_IPS,
             TEST_RELAY_PORT,
@@ -178,7 +174,7 @@ class LinkGenerator:
         for idx, ip in enumerate(TEST_RELAY_IPS, 1):
             if ip and ip != "0.0.0.0":
                 links.append(
-                    f"vless://{RELAY_UUID}@{ip}:{TEST_RELAY_PORT}"
+                    f"vless://{uuid}@{ip}:{TEST_RELAY_PORT}"
                     f"?encryption=none&security=reality"
                     f"&sni={TEST_RELAY_SNI}"
                     f"&pbk={RELAY_PUBLIC_KEY}"
@@ -193,7 +189,7 @@ class LinkGenerator:
     def vless_relay_xhttp(email: str, uuid: str) -> str:
         """10. VLESS + Reality + xHTTP через РФ-релей Яндекс ВМ (для МТС)."""
         return (
-            f"vless://{RELAY_UUID}@{RELAY_IP}:8443"
+            f"vless://{uuid}@{RELAY_IP}:8443"
             f"?encryption=none&security=reality"
             f"&sni={RELAY_SNI}"
             f"&pbk={RELAY_PUBLIC_KEY}"
@@ -207,7 +203,7 @@ class LinkGenerator:
     def vless_relay_grpc(email: str, uuid: str) -> str:
         """11. VLESS + Reality + gRPC через РФ-релей Яндекс ВМ (для МТС)."""
         return (
-            f"vless://{RELAY_UUID}@{RELAY_IP}:2053"
+            f"vless://{uuid}@{RELAY_IP}:2053"
             f"?encryption=none&security=reality"
             f"&sni={RELAY_SNI}"
             f"&pbk={RELAY_PUBLIC_KEY}"
