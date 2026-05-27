@@ -267,7 +267,10 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "geolocation=(), camera=()"
-    response.headers["Cache-Control"] = "no-store"
+    if request.url.path.startswith("/sub/"):
+        response.headers["Cache-Control"] = "public, max-age=86400"
+    else:
+        response.headers["Cache-Control"] = "no-store"
     return response
 
 # ── Security ──────────────────────────────────────────────────
@@ -529,7 +532,7 @@ async def subscription_endpoint(
     headers = {
         "Content-Disposition": f'attachment; filename="{user["email"]}.txt"',
         "Profile-Title": profile_title,
-        "Profile-Update-Interval": "12",
+        "Profile-Update-Interval": "24",
         "Subscription-UserInfo": _build_userinfo(user),
         "Profile-Web-Page-Url": f"https://{SUB_HOST}:8086/admin/ui",
     }
@@ -575,7 +578,7 @@ async def subscription_hiddify_endpoint(
     headers = {
         "Content-Disposition": f'attachment; filename="{user["email"]}_hiddify.txt"',
         "Profile-Title": profile_title,
-        "Profile-Update-Interval": "12",
+        "Profile-Update-Interval": "24",
         "Subscription-UserInfo": _build_userinfo(user),
         "Profile-Web-Page-Url": f"https://{SUB_HOST}:8086/admin/ui",
     }
@@ -625,7 +628,7 @@ async def subscription_happ_endpoint(
     headers = {
         "Content-Disposition": f'inline; filename="{user["email"]}_happ.txt"',
         "Profile-Title": profile_title,
-        "Profile-Update-Interval": "12",
+        "Profile-Update-Interval": "24",
         "Subscription-UserInfo": _build_userinfo(user),
         "Profile-Web-Page-Url": f"https://{SUB_HOST}:8086/admin/ui",
     }
@@ -667,7 +670,7 @@ async def subscription_amnezia_endpoint(request: Request, token: str):
         headers={
             "Content-Disposition": f'attachment; filename="{user["email"]}_amnezia.txt"',
             "Profile-Title": profile_title,
-            "Profile-Update-Interval": "12",
+            "Profile-Update-Interval": "24",
         },
     )
 
