@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import sys
 import time
 import json
@@ -6,12 +7,20 @@ import urllib.request
 import urllib.error
 import subprocess
 
-OAUTH_TOKEN = "y0__wgBEKLHkMsHGMHdEyDtgJ7LFzDH0sj8BzcedlXM7WCpdcMiDo30tXhV59N_"
-ZONE = "ru-central1-a"
+# Токен читается из переменной окружения (никогда не хранить в коде!)
+# Установить: export YANDEX_OAUTH_TOKEN="y0__..."
+# Или добавить в /root/.env и source перед запуском
+OAUTH_TOKEN = os.environ.get("YANDEX_OAUTH_TOKEN", "")
+if not OAUTH_TOKEN:
+    print("ERROR: YANDEX_OAUTH_TOKEN environment variable is not set.")
+    print("Run: export YANDEX_OAUTH_TOKEN='your_token_here'")
+    sys.exit(1)
+
+ZONE = os.environ.get("YANDEX_ZONE", "ru-central1-a")
 WHITELIST_FILE = "/root/whitelist_ips.txt"
 YANDEX_WHITELIST_FILE = "/root/yandex_whitelist_ips.txt"
-US_SERVER_IP = "37.1.212.51"
-SSH_PUBLIC_KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMEBXzDzrAUgKEOev/sZ930x2DNq7On4j2fhGpDkPMUV root@a773095550.local"
+US_SERVER_IP = os.environ.get("US_SERVER_IP", "37.1.212.51")
+SSH_PUBLIC_KEY = os.environ.get("SSH_PUBLIC_KEY", "")
 
 def request_json(url, data=None, headers=None, method="GET"):
     """Вспомогательная функция для HTTP REST запросов."""

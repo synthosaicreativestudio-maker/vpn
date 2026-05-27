@@ -7,7 +7,6 @@
 import asyncio
 import logging
 import re
-import subprocess
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -110,23 +109,35 @@ class IPLimiter:
         self._enforce_limits(ip_map)
 
     def _check_relay_log(self):
-        """Читает access.log с relay-сервера по SSH."""
+        """Читает access.log с relay-сервера по SSH (запускает async задачу)."""
+        asyncio.create_task(self._check_relay_log_async())
+
+    async def _check_relay_log_async(self):
+        """Асинхронное чтение access.log с relay через SSH.
+        
+        Используем asyncio.create_subprocess_exec вместо subprocess.run,
+        чтобы не блокировать event loop FastAPI на время SSH-соединения.
+        """
         try:
-            result = subprocess.run(
-                [
-                    "ssh", "-o", "StrictHostKeyChecking=no",
-                    "-o", "ConnectTimeout=5",
-                    f"{_RELAY_SSH_USER}@{RELAY_IP}",
-                    f"sudo tail -200 {_RELAY_LOG_PATH}",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=10,
+            proc = await asyncio.create_subprocess_exec(
+                "ssh",
+                "-o", "StrictHostKeyChecking=no",
+                "-o", "ConnectTimeout=5",
+                f"{_RELAY_SSH_USER}@{RELAY_IP}",
+                f"sudo tail -200 {_RELAY_LOG_PATH}",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL,
             )
-            if result.returncode != 0:
+            try:
+                stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=10)
+            except asyncio.TimeoutError:
+                proc.kill()
                 return
 
-            lines = result.stdout.strip().split("\n")
+            if proc.returncode != 0 or not stdout:
+                return
+
+            lines = stdout.decode("utf-8", errors="ignore").strip().split("\n")
             if not lines or not lines[0]:
                 return
 
@@ -144,7 +155,7 @@ class IPLimiter:
                 ip_map = self._parse_lines(new_lines)
                 self._enforce_limits(ip_map)
 
-        except (subprocess.TimeoutExpired, OSError) as e:
+        except OSError as e:
             logger.debug("Relay log check failed: %s", e)
 
     def _enforce_limits(self, ip_map: dict[str, set[str]]):

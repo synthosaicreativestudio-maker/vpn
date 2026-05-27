@@ -1,11 +1,13 @@
 """VPN Subscription Bot — Telegram-бот для управления подписками.
 
 Работает через Subscription Manager Panel API.
-Без оплаты (тестовый режим).
 """
 
 import asyncio
 import logging
+import os
+import sys
+import time
 from datetime import datetime, timezone
 
 from aiogram import Bot, Dispatcher, F, types
@@ -14,7 +16,6 @@ from aiogram.filters import Command
 from aiogram.types import BotCommand
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiohttp import web
-import time
 
 from bot.config import BOT_TOKEN, PANEL_API_KEY, PANEL_URL, PLANS, SUB_HOST
 from bot.data.db_manager import DBManager
@@ -23,7 +24,39 @@ from bot.tbank import init_tbank_payment
 
 AMNEZIA_VPN_LINK = "vpn://ewogICJjb250YWluZXJzIjogWwogICAgewogICAgICAiY29udGFpbmVyIjogImFtbmV6aWEtYXdnIiwKICAgICAgImluc3RhbGxfaWQiOiAiaW5zdGFsbF8yMDI2XzAzXzIxIiwKICAgICAgInBvcnQiOiAiMzA0NDMiLAogICAgICAicHJvdG9jb2wiOiAiYXdnIiwKICAgICAgInNldHRpbmdzIjogewogICAgICAgICJhZGRyZXNzIjogIjEwLjAuMC4yIiwKICAgICAgICAiaDEiOiAiMSIsCiAgICAgICAgImgyIjogIjIiLAogICAgICAgICJoMyI6ICIzIiwKICAgICAgICAiaDQiOiAiNCIsCiAgICAgICAgImpjIjogIjQiLAogICAgICAgICJqbWF4IjogIjcwIiwKICAgICAgICAiam1pbiI6ICI0MCIsCiAgICAgICAgImxhc3RfY29uZmlnIjogIiIsCiAgICAgICAgIm10dSI6ICIxMjgwIiwKICAgICAgICAicG9ydCI6ICIzMDQ0MyIsCiAgICAgICAgInByaXZhdGVfa2V5IjogIkVKTmlLQ2lBbVhzUThremZoZzQ4dXpSYVlFNWF4anpSbzBpK01OaTVGVVk9IiwKICAgICAgICAicHVibGljX2tleSI6ICJZL1lvalk3Q0lkcmhqdVFjazEwMHkwOERlUmYvWWRJL1R2dXlMMjF1WVZZPSIsCiAgICAgICAgInMxIjogIjUiLAogICAgICAgICJzMiI6ICIxMCIKICAgICAgfQogICAgfQogIF0sCiAgImRlc2NyaXB0aW9uIjogIlByZW1pdW0tVlBOLTIwMjYtQW1uZXppYVdHIiwKICAiaG9zdCI6ICIzNy4xLjIxMi41MSIKfQo="
 
-# ── Настройка ─────────────────────────────────────────────────
+# ── PID Lock (предотвращает запуск двух экземпляров бота) ───────────────────
+_PID_FILE = "/tmp/vpn_bot.pid"
+
+
+def _acquire_pid_lock() -> bool:
+    """Проверить, что нет другого запущенного бота. 
+    Возвращает False если другой процесс уже запущен.
+    """
+    if os.path.exists(_PID_FILE):
+        try:
+            with open(_PID_FILE) as f:
+                old_pid = int(f.read().strip())
+            # Проверяем, жив ли процесс
+            os.kill(old_pid, 0)
+            return False  # Процесс жив, не запускаемся
+        except (ProcessLookupError, ValueError):
+            pass  # Процесс мёртв, перезапишем PID
+
+    with open(_PID_FILE, "w") as f:
+        f.write(str(os.getpid()))
+    return True
+
+
+def _release_pid_lock():
+    """\u0423далить PID-файл при остановке."""
+    if os.path.exists(_PID_FILE):
+        try:
+            os.remove(_PID_FILE)
+        except OSError:
+            pass
+
+
+# ── Настройка ─────────────────────────────────────────────
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -559,14 +592,19 @@ async def cb_status(callback: types.CallbackQuery):
 async def tbank_webhook(request: web.Request) -> web.Response:
     try:
         data = await request.json()
-        logger.info(f"Webhook from T-Bank: {data}")
-        
+        logger.info("Webhook from T-Bank: OrderId=%s Status=%s", data.get("OrderId"), data.get("Status"))
+
         status = data.get("Status")
         if status in ("CONFIRMED", "AUTHORIZED"):
             order_id = data.get("OrderId", "")
             amount_kopecks = data.get("Amount", 0)
             amount = amount_kopecks / 100
-            
+
+            # ── Идемпотентность: не обрабатывать дублирующиеся вебхуки ──
+            if db.order_exists(order_id):
+                logger.info("Duplicate webhook for order %s — skipping", order_id)
+                return web.Response(text="OK", status=200)
+
             # Парсим tg_id (ожидаем формат TG_12345_123...)
             if order_id.startswith("TG_"):
                 parts = order_id.split("_")
@@ -574,18 +612,24 @@ async def tbank_webhook(request: web.Request) -> web.Response:
                     tg_id_str = parts[1]
                     try:
                         tg_id = int(tg_id_str)
-                        
-                        # Определяем план по сумме
+
+                        # Определяем план по сумме (хрупко, но работает для текущих тарифов)
+                        plan_id = None
                         plan = None
-                        if amount == 200:
-                            plan = PLANS.get("1m")
-                        elif amount == 500:
-                            plan = PLANS.get("3m")
-                        elif amount == 1000:
-                            plan = PLANS.get("5m")
-                        elif amount == 1500:
-                            plan = PLANS.get("12m")
-                            
+                        amount_to_plan = {200: "1m", 500: "3m", 1000: "5m", 1500: "12m"}
+                        plan_id = amount_to_plan.get(int(amount))
+                        if plan_id:
+                            plan = PLANS.get(plan_id)
+
+                        # Записываем платёж в БД (до активации, для надёжности)
+                        db.add_payment(
+                            tg_id=tg_id,
+                            order_id=order_id,
+                            amount=amount,
+                            plan_id=plan_id or "unknown",
+                            status="CONFIRMED",
+                        )
+
                         # Чек
                         receipt_text = (
                             "🧾 <b>Электронный чек</b>\n\n"
@@ -594,7 +638,7 @@ async def tbank_webhook(request: web.Request) -> web.Response:
                             f"<b>Заказ №:</b> {order_id}\n"
                             f"<b>Статус:</b> Оплачено ✅\n\n"
                         )
-                        
+
                         if plan:
                             email = f"tg_{tg_id}"
                             # Создаем или обновляем пользователя в панели
@@ -612,7 +656,7 @@ async def tbank_webhook(request: web.Request) -> web.Response:
                                     sub_token = result.get("sub_token", "")
                                     sub_url = f"https://{SUB_HOST}:8086/sub/happ/{sub_token}?routing=ru"
                                 db.update_subscription(tg_id, result.get("expires_at", ""), sub_url)
-                                
+
                                 success_text = receipt_text + (
                                     "🎉 <b>Оплата успешно получена! Подписка активирована.</b>\n\n"
                                     f"📅 <b>Срок:</b> {plan['days']} дней\n"
@@ -623,19 +667,67 @@ async def tbank_webhook(request: web.Request) -> web.Response:
                                 )
                                 await bot.send_message(tg_id, success_text)
                             else:
-                                await bot.send_message(tg_id, receipt_text + "❌ Ошибка активации подписки. Свяжитесь с поддержкой.")
+                                await bot.send_message(
+                                    tg_id,
+                                    receipt_text + "❌ Ошибка активации подписки. Свяжитесь с поддержкой.",
+                                )
                         else:
-                            await bot.send_message(tg_id, receipt_text + "⏳ Подписка обрабатывается вручную, так как сумма не совпала с тарифом.")
-                            
+                            await bot.send_message(
+                                tg_id,
+                                receipt_text + "⏳ Подписка обрабатывается вручную, так как сумма не совпала с тарифом.",
+                            )
+
                     except ValueError:
-                        pass
+                        logger.error("Cannot parse tg_id from order_id: %s", order_id)
 
         return web.Response(text="OK", status=200)
     except Exception as e:
-        logger.error(f"Webhook error: {e}")
+        logger.error("Webhook error: %s", e)
         return web.Response(text="OK", status=200)
 
-# ── Запуск ────────────────────────────────────────────────────
+# ── Фоновые задачи ────────────────────────────────────────────
+
+
+async def _expiry_notification_task():
+    """Уведомляет пользователей об истечении подписки за 3 дня и за 1 день.
+    
+    Запускается один раз в сутки (проверка каждые 12 часов).
+    """
+    logger.info("⏰ Expiry notification task started")
+    while True:
+        try:
+            for days in (3, 1):
+                expiring = db.get_users_with_expiring_subscriptions(days)
+                for user in expiring:
+                    tg_id = user.get("tg_id")
+                    if not tg_id:
+                        continue
+                    try:
+                        emoji = "⚠️" if days == 1 else "📅"
+                        text = (
+                            f"{emoji} <b>Ваша VPN-подписка истекает через {days} дня!</b>\n\n"
+                            "Чтобы не потерять доступ к VPN, продлите подписку заранее.\n"
+                        )
+                        builder = InlineKeyboardBuilder()
+                        builder.row(
+                            types.InlineKeyboardButton(
+                                text="💳 Продлить подписку",
+                                callback_data="plans",
+                            )
+                        )
+                        await bot.send_message(tg_id, text, reply_markup=builder.as_markup())
+                        logger.info(
+                            "Expiry notification sent: tg_id=%s days_left=%d", tg_id, days
+                        )
+                    except Exception as e:
+                        logger.debug("Не удалось отправить уведомление для tg_id=%s: %s", tg_id, e)
+        except Exception as e:
+            logger.error("Ошибка в задаче уведомлений: %s", e)
+        # Проверка каждые 12 часов
+        await asyncio.sleep(12 * 60 * 60)
+
+
+# ── Запуск ────────────────────────────────────────────────
 
 
 async def main():
@@ -644,7 +736,13 @@ async def main():
         BotCommand(command="start", description="🏠 Главное меню")
     ]
     await bot.set_my_commands(commands)
-    
+
+    # Инициализируем единую HTTP-сессию для панели
+    await panel.setup()
+
+    # Запускаем фоновую задачу уведомлений об истечении
+    asyncio.create_task(_expiry_notification_task())
+
     # Запускаем веб-сервер для Webhook
     app = web.Application()
     app.router.add_post('/tbank_webhook', tbank_webhook)
@@ -653,12 +751,22 @@ async def main():
     site = web.TCPSite(runner, '0.0.0.0', 8080)
     await site.start()
     logger.info("🌐 Webhook server started on port 8080")
-    
-    await dp.start_polling(bot)
+
+    try:
+        await dp.start_polling(bot)
+    finally:
+        await panel.teardown()
+        _release_pid_lock()
 
 
 if __name__ == "__main__":
+    if not _acquire_pid_lock():
+        print(f"ERROR: Another VPN bot instance is already running (PID file: {_PID_FILE})")
+        print("Kill the existing process or remove the PID file manually.")
+        sys.exit(1)
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Bot stopped")
+    finally:
+        _release_pid_lock()

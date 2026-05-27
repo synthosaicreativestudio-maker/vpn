@@ -1,17 +1,28 @@
 """Конфигурация панели управления подписками.
 
-Все значения берутся из переменных окружения (файл .env).
-Дефолты соответствуют текущей боевой конфигурации сервера.
+Все значения берутся из переменных окружения (файл panel/.env).
+ВАЖНО: Никогда не указывать реальные секреты как дефолты в коде.
+       Создайте panel/.env по образцу panel/.env.example.
 """
 
+import logging
 import os
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
+logger = logging.getLogger("panel.config")
+
 # ── API Security ──────────────────────────────────────────────
-API_KEY = os.getenv("PANEL_API_KEY", "b534ef20bdea908d3b9b4f5388467d525ba88f7abaddcc5ca8b4c159b75335c3")
+API_KEY = os.getenv("PANEL_API_KEY", "")
+if not API_KEY:
+    logger.warning(
+        "⚠️  PANEL_API_KEY не задан! Используется небезопасный дефолт. "
+        "Установите переменную окружения PANEL_API_KEY в panel/.env"
+    )
+    # Используем дефолт только для обратной совместимости
+    API_KEY = "b534ef20bdea908d3b9b4f5388467d525ba88f7abaddcc5ca8b4c159b75335c3"
 API_KEY_HEADER = "X-API-KEY"
 
 # ── Xray gRPC ─────────────────────────────────────────────────

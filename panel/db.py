@@ -59,6 +59,19 @@ class PanelDB:
                 )
                 """
             )
+            # Индексы для ускорения частых запросов
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_ip_log_email ON ip_log(email)"
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_ip_log_last_seen ON ip_log(last_seen)"
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_users_active ON users(is_active)"
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_users_token ON users(sub_token)"
+            )
             conn.commit()
         logger.info("Database initialised at %s", self.db_path)
 
