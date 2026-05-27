@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Telegram Bot
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8784903598:AAFbs2HJtgVlkcQGX2V6D5V5SAlCXtlvd10")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 
 # Subscription Manager Panel
 PANEL_URL = os.getenv("PANEL_URL", "http://127.0.0.1:8085")

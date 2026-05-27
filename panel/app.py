@@ -175,6 +175,27 @@ async def _traffic_monitor_task():
         await asyncio.sleep(60)
 
 
+async def _periodic_xray_sync_task():
+    """Периодическая сверка и восстановление пользователей в памяти Xray (раз в 5 минут).
+    Защищает от сброса памяти при перезапусках xray.service.
+    """
+    await asyncio.sleep(10)  # Даем время на старт
+    while True:
+        try:
+            if xray_client and xray_client.is_connected():
+                active_users = [u for u in db.list_users() if u.get("is_active")]
+                sync_count = 0
+                for u in active_users:
+                    # Попытка добавить пользователя (если он уже есть в Xray, вернет мягкую ошибку, это безопасно)
+                    xray_client.add_user_all_inbounds(u["email"], u["uuid"], ALL_INBOUND_TAGS)
+                    sync_count += 1
+                if sync_count > 0:
+                    logger.debug("🔄 Periodic Xray sync: processed %d active users", sync_count)
+        except Exception as e:
+            logger.error("Error in periodic Xray sync: %s", e)
+        await asyncio.sleep(300)  # 5 минут
+
+
 # ── Lifespan ──────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(application: FastAPI):
@@ -204,11 +225,13 @@ async def lifespan(application: FastAPI):
 
     ip_task = asyncio.create_task(ip_limiter.start())
     traffic_task = asyncio.create_task(_traffic_monitor_task())
+    sync_task = asyncio.create_task(_periodic_xray_sync_task())
     logger.info("🚀 Subscription Manager started (port 8085)")
     yield
     ip_limiter.stop()
     ip_task.cancel()
     traffic_task.cancel()
+    sync_task.cancel()
     if xray_client:
         xray_client.close()
     logger.info("Subscription Manager stopped")

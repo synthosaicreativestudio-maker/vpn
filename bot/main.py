@@ -723,8 +723,8 @@ async def _expiry_notification_task():
                         logger.debug("Не удалось отправить уведомление для tg_id=%s: %s", tg_id, e)
         except Exception as e:
             logger.error("Ошибка в задаче уведомлений: %s", e)
-        # Проверка каждые 12 часов
-        await asyncio.sleep(12 * 60 * 60)
+        # Проверка каждые 24 часа (раз в сутки)
+        await asyncio.sleep(24 * 60 * 60)
 
 
 # ── Запуск ────────────────────────────────────────────────
