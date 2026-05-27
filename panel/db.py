@@ -212,7 +212,7 @@ class PanelDB:
             conn.commit()
 
     def get_active_ips(
-        self, email: str, window_minutes: int = 5
+        self, email: str, window_minutes: int = 2
     ) -> list[str]:
         cutoff = (
             datetime.utcnow() - timedelta(minutes=window_minutes)
