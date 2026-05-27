@@ -15,10 +15,7 @@ PANEL_API_KEY = os.getenv(
 )
 
 # Database (локальная БД бота для Telegram-привязки)
-if os.path.exists("/var/lib/marzban/bot"):
-    DB_PATH = "/var/lib/marzban/bot/data/bot_database.db"
-else:
-    DB_PATH = "bot/data/bot_database.db"
+DB_PATH = "bot/data/bot.db"
 
 # Feature Toggles
 ENABLE_TRIAL_FUNNEL = os.getenv("ENABLE_TRIAL_FUNNEL", "False").lower() == "true"

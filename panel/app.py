@@ -54,7 +54,7 @@ from panel.models import (
 from panel.relay_sync import add_user_to_relay, remove_user_from_relay, sync_all_users_to_relay
 
 # ── Bot DB trial reset ────────────────────────────────────────
-_BOT_DB_PATH = "/var/lib/marzban/bot/data/bot_database.db"
+_BOT_DB_PATH = BOT_DB_PATH
 
 
 def _reset_bot_trial(email: str):
