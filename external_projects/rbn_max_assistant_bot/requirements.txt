@@ -123,3 +123,4 @@ xxhash
 yarl
 zstandard
 langchain-google-genai
+docx2txt
