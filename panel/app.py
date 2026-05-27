@@ -178,19 +178,28 @@ async def _traffic_monitor_task():
 async def _periodic_xray_sync_task():
     """Периодическая сверка и восстановление пользователей в памяти Xray (раз в 5 минут).
     Защищает от сброса памяти при перезапусках xray.service.
+    Добавляет только отсутствующих пользователей, не спамит логи.
     """
     await asyncio.sleep(10)  # Даем время на старт
     while True:
         try:
             if xray_client and xray_client.is_connected():
+                # Получаем email'ы уже загруженных в Xray пользователей
+                existing_emails: set[str] = set()
+                for tag in ALL_INBOUND_TAGS:
+                    users_in_inbound = xray_client.get_inbound_users(tag)
+                    if users_in_inbound:
+                        for u in users_in_inbound:
+                            existing_emails.add(u.get("email", ""))
+
                 active_users = [u for u in db.list_users() if u.get("is_active")]
-                sync_count = 0
+                added = 0
                 for u in active_users:
-                    # Попытка добавить пользователя (если он уже есть в Xray, вернет мягкую ошибку, это безопасно)
-                    xray_client.add_user_all_inbounds(u["email"], u["uuid"], ALL_INBOUND_TAGS)
-                    sync_count += 1
-                if sync_count > 0:
-                    logger.debug("🔄 Periodic Xray sync: processed %d active users", sync_count)
+                    if u["email"] not in existing_emails:
+                        xray_client.add_user_all_inbounds(u["email"], u["uuid"], ALL_INBOUND_TAGS)
+                        added += 1
+                if added > 0:
+                    logger.info("🔄 Periodic sync: added %d missing users to Xray", added)
         except Exception as e:
             logger.error("Error in periodic Xray sync: %s", e)
         await asyncio.sleep(300)  # 5 минут
