@@ -526,7 +526,7 @@ async def get_user_links(email: str):
     links = LinkGenerator.all_links(user["uuid"], email)
     token = user["sub_token"]
     if RELAY_ENABLED:
-        base = f"http://{SUB_HOST}/sub"
+        base = f"https://{SUB_HOST}:2096/sub"
     else:
         base = f"https://{SUB_HOST}:8086/sub"
     return SubscriptionLinks(
