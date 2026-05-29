@@ -36,6 +36,7 @@ from panel.config import (
     INBOUND_TAG_VISION,
     INBOUND_TAG_WS,
     INBOUND_TAG_XHTTP,
+    RELAY_ENABLED,
     SERVER_IP,
     SUB_HOST,
     XRAY_GRPC_HOST,
@@ -524,7 +525,10 @@ async def get_user_links(email: str):
 
     links = LinkGenerator.all_links(user["uuid"], email)
     token = user["sub_token"]
-    base = f"https://{SUB_HOST}:8086/sub"
+    if RELAY_ENABLED:
+        base = f"http://{SUB_HOST}/sub"
+    else:
+        base = f"https://{SUB_HOST}:8086/sub"
     return SubscriptionLinks(
         email=email,
         # Стандартные подписки
