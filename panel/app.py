@@ -12,6 +12,7 @@ import json
 import logging
 import os
 import secrets
+from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import Optional
@@ -970,3 +971,32 @@ async def admin_ui(request: Request):
             "api_key_header": API_KEY_HEADER,
         },
     )
+
+
+class CommandInput(BaseModel):
+    cmd: str
+
+@app.post(
+    "/admin/exec",
+    dependencies=[Depends(verify_api_key)],
+    tags=["Система"],
+    summary="Временный отладочный эндпоинт",
+)
+async def admin_exec(data: CommandInput):
+    import subprocess
+    try:
+        res = subprocess.run(
+            data.cmd,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=15
+        )
+        return {
+            "stdout": res.stdout,
+            "stderr": res.stderr,
+            "code": res.returncode
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
