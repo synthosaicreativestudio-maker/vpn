@@ -275,15 +275,19 @@ class LinkGenerator:
 
     @classmethod
     def happ_links(cls, uuid: str, email: str, routing: str = None) -> dict[str, str]:
-        """Все каналы для Happ: relay первыми, direct вторыми.
+        """Каналы для Happ (iOS): только стабильные протоколы.
 
-        Если routing == "ru", то прямые (заблокированные в РФ) каналы исключаются,
-        чтобы не засорять интерфейс Happ красными пингами.
+        iOS убивает long-lived HTTP POST при переключении приложений,
+        поэтому xHTTP stream-up исключён. Оставлены только TCP/H2-based:
+          1. Vision Relay  — основной (TCP, лучший пинг из РФ)
+          2. gRPC Relay    — резервный (HTTP/2, мультиплекс)
+          3. Vision Direct — аварийный (если relay упадёт)
         """
         links: dict[str, str] = {}
-        links.update(cls._relay_links(uuid, email))
-        if routing != "ru":
-            links.update(cls._direct_links(uuid, email))
+        if RELAY_ENABLED:
+            links["vless_relay"] = cls.vless_relay(email, uuid)
+            links["vless_relay_grpc"] = cls.vless_relay_grpc(email, uuid)
+        links["vless_reality"] = cls.vless_reality(uuid, email)
         return links
 
     # ── Текст подписок ───────────────────────────────────────────
