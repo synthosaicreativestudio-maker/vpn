@@ -1,6 +1,6 @@
 # 🏗️ Архитектура VPN-инфраструктуры
 
-> **Обновлено:** 15.05.2026  
+> **Обновлено:** 30.05.2026  
 > **⚠️ AI-агенты: этот документ обязателен к прочтению перед работой с проектом**
 
 ---
@@ -25,7 +25,7 @@
 
 | Сервис | Systemd unit | Порт | Описание |
 |--------|-------------|------|----------|
-| **Xray Core** | `xray.service` | 443, 8443, 2053, 2083, 2087, 2085 | Основной VPN: Vision, xHTTP, gRPC, WS, H2, SS2022 |
+| **Xray Core** | `xray.service` | 443, 8443, 2053, 2083, 2087, 2085 | Основной VPN v26.5.9: Vision, xHTTP, gRPC, WS, H2, SS2022 |
 | **Hysteria2** | `hysteria2.service` | 10443/UDP | UDP/QUIC VPN + Salamander obfs |
 | **VPN Panel** | `vpn-panel.service` | 8085 | Панель управления подписками |
 | **Caddy** | `caddy.service` | 8086 | HTTPS reverse proxy (sslip.io SSL) |
@@ -37,7 +37,7 @@
 | Tag | Порт | Транспорт | Security | SNI |
 |-----|------|-----------|----------|-----|
 | VLESS-Reality-Vision | 443 | tcp + xtls-rprx-vision | reality | www.microsoft.com |
-| VLESS-Reality-XHTTP | 443 (fallback) | xhttp (stream-one) | reality (через Vision) | www.microsoft.com |
+| VLESS-Reality-XHTTP | 8443 | xhttp (stream-up) | reality | www.microsoft.com |
 | VLESS-Reality-gRPC | 2053 | grpc | reality | www.microsoft.com |
 | VLESS-WS | 2083 | websocket | none | — |
 | VLESS-H2 | 2087 | h2 | reality | www.microsoft.com |
@@ -65,7 +65,7 @@
 |-----|-----------|
 | Универсальная | `http://37.1.212.51:8085/sub/{TOKEN}` |
 | Hiddify | `http://37.1.212.51:8085/sub/hiddify/{TOKEN}` |
-| Happ (iOS) | `https://37.1.212.51.sslip.io:8086/sub/happ/{TOKEN}` |
+| Happ (iOS) | `https://sub.synthosai.ru:8086/sub/happ/{TOKEN}` |
 | AmneziaVPN | `http://37.1.212.51:8085/sub/amnezia/{TOKEN}` |
 
 ### С маршрутизацией (обход РФ — РФ сайты напрямую)
@@ -73,7 +73,7 @@
 |-----|-----------|
 | Универсальная | `http://37.1.212.51:8085/sub/{TOKEN}?routing=ru` |
 | Hiddify | `http://37.1.212.51:8085/sub/hiddify/{TOKEN}?routing=ru` |
-| Happ (iOS) | `https://37.1.212.51.sslip.io:8086/sub/happ/{TOKEN}?routing=ru` |
+| Happ (iOS) | `https://sub.synthosai.ru:8086/sub/happ/{TOKEN}?routing=ru` |
 
 ### Что содержит подписка:
 - VLESS+Reality+Vision (443)
@@ -98,6 +98,23 @@
 
 ---
 
+## Relay RU (111.88.145.206) — обход белых списков ТСПУ
+
+| Параметр | Значение |
+|----------|---------|
+| Хостинг | Yandex Cloud, ru-central1-b |
+| Xray | v26.5.9 |
+| Роль | VLESS Reality Bridge → US 37.1.212.51:8443 (xHTTP stream-up) |
+| Порты | 443 (Vision), 2053 (gRPC), 8443 (xHTTP), 80/8086 (dokodemo → US) |
+| UUID клиентский | `57ca4aae-dcb3-4fdd-9e14-f9afb42b703c` |
+| SNI | ozon.ru, wildberries.ru |
+| Домен подписки | `sub.synthosai.ru` → 111.88.145.206 (A-запись) |
+
+> ⚠️ Все VPN-каналы relay маршрутизируются через один xHTTP outbound к US:8443.
+> При падении relay — все мобильные пользователи из РФ теряют VPN.
+
+---
+
 ## Важные процедуры
 
 ### При перезапуске Xray:
@@ -106,5 +123,17 @@ systemctl restart xray
 systemctl restart vpn-panel  # ОБЯЗАТЕЛЬНО — синхронизация пользователей
 ```
 
+### При перезапуске Xray на Relay:
+```bash
+ssh ubuntu@111.88.145.206  # через US-сервер (ключ ed25519)
+sudo systemctl restart xray
+```
+
 ### При проблемах с Google/YouTube:
 Проверить WARP: `curl --interface wg0 https://www.youtube.com`
+
+---
+
+## Лог инцидентов
+
+См. [INCIDENT_LOG.md](INCIDENT_LOG.md)

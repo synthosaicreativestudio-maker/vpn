@@ -11,7 +11,7 @@
    - Адрес панели: `http://37.1.212.51:8085/admin/ui` (Авторизация по API-ключу из [CREDENTIALS.md](file:///docs/CREDENTIALS.md))
 3. **Формат ссылок подписки:**
    - **Hiddify:** `http://37.1.212.51:8085/sub/hiddify/{TOKEN}`
-   - **Happ (iOS):** `https://37.1.212.51.sslip.io:8086/sub/happ/{TOKEN}`
+   - **Happ (iOS):** `https://sub.synthosai.ru:8086/sub/happ/{TOKEN}`
 
 ---
 
