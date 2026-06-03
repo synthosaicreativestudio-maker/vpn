@@ -749,7 +749,7 @@ async def subscription_happ_test_endpoint(
     }
 
     if routing == "ru":
-        headers["routing"] = _build_happ_routing_deeplink()
+        headers["routing"] = _build_happ_routing_deeplink(_HAPP_TEST_ROUTING_PROFILE)
         headers["no-limit-enabled"] = "1"
 
     return Response(
@@ -796,13 +796,13 @@ _HAPP_ROUTING_PROFILE = {
     "Name": "🇷🇺 Обход РФ",
     "GlobalProxy": "true",
     "RemoteDNSType": "DoH",
-    "RemoteDNSDomain": "https://dns.adguard-dns.com/dns-query",
-    "RemoteDNSIP": "94.140.14.14",
+    "RemoteDNSDomain": "https://cloudflare-dns.com/dns-query",
+    "RemoteDNSIP": "1.1.1.1",
     "DomesticDNSType": "DoH",
     "DomesticDNSDomain": "https://dns.google/dns-query",
     "DomesticDNSIP": "8.8.8.8",
     "DnsHosts": {
-        "dns.adguard-dns.com": "94.140.14.14",
+        "cloudflare-dns.com": "1.1.1.1",
         "dns.google": "8.8.8.8",
         "37.1.212.51.sslip.io": "111.88.145.206",
         "sub.synthosai.ru": "111.88.145.206",
@@ -854,20 +854,35 @@ _HAPP_ROUTING_PROFILE = {
     ],
     "ProxySites": [],
     "ProxyIp": [],
-    "BlockSites": [
-        "geosite:category-ads-all"
-    ],
+    "BlockSites": [],
     "BlockIp": [],
     "DomainStrategy": "AsIs",
     "FakeDNS": "false",
 }
 
 
-def _build_happ_routing_deeplink() -> str:
+_HAPP_TEST_ROUTING_PROFILE = {
+    **_HAPP_ROUTING_PROFILE,
+    "RemoteDNSType": "DoH",
+    "RemoteDNSDomain": "https://dns.adguard-dns.com/dns-query",
+    "RemoteDNSIP": "94.140.14.14",
+    "DnsHosts": {
+        **_HAPP_ROUTING_PROFILE["DnsHosts"],
+        "dns.adguard-dns.com": "94.140.14.14",
+    },
+    "BlockSites": [
+        "geosite:category-ads-all"
+    ],
+}
+
+
+def _build_happ_routing_deeplink(profile: dict = None) -> str:
     """Генерация deeplink для автоматической настройки маршрутизации в Happ."""
     import base64 as b64mod
 
-    profile_json = json.dumps(_HAPP_ROUTING_PROFILE, ensure_ascii=False)
+    if profile is None:
+        profile = _HAPP_ROUTING_PROFILE
+    profile_json = json.dumps(profile, ensure_ascii=False)
     encoded = b64mod.b64encode(profile_json.encode("utf-8")).decode("utf-8")
     return f"happ://routing/onadd/{encoded}"
 
