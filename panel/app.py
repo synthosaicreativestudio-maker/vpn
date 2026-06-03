@@ -739,7 +739,7 @@ async def subscription_happ_test_endpoint(
     text = LinkGenerator.subscription_text_happ_test(user["uuid"], user["email"], routing=routing)
     b64_text = base64.b64encode(text.encode("utf-8")).decode("utf-8")
 
-    profile_title = f"🧪 TEST xHTTP {user['email']}"
+    profile_title = f"TEST xHTTP {user['email']}"
 
     headers = {
         "Content-Disposition": f'inline; filename="{user["email"]}_happ_test.txt"',
