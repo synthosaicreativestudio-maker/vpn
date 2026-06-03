@@ -716,6 +716,50 @@ async def subscription_happ_endpoint(
 
 
 @app.api_route(
+    "/sub/happ-test/{token}",
+    methods=["GET", "HEAD"],
+    tags=["Подписки"],
+    summary="Тестовая подписка для Happ (Base64)",
+    description="Набор ссылок с тестовыми xHTTP протоколами (auto и stream-one). Добавьте ?routing=ru для обхода РФ",
+)
+@limiter.limit("30/minute")
+async def subscription_happ_test_endpoint(
+    request: Request, token: str, routing: Optional[str] = None
+):
+    """Тестовая подписка Happ с xHTTP (auto и stream-one)."""
+    import base64
+
+    user = _find_user_by_token_or_email(token)
+    if not user:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+
+    if not user["is_active"]:
+        raise HTTPException(status_code=403, detail="Subscription expired")
+
+    text = LinkGenerator.subscription_text_happ_test(user["uuid"], user["email"], routing=routing)
+    b64_text = base64.b64encode(text.encode("utf-8")).decode("utf-8")
+
+    profile_title = f"🧪 TEST xHTTP {user['email']}"
+
+    headers = {
+        "Content-Disposition": f'inline; filename="{user["email"]}_happ_test.txt"',
+        "Profile-Title": profile_title,
+        "Profile-Update-Interval": "24",
+        "Subscription-UserInfo": _build_userinfo(user),
+    }
+
+    if routing == "ru":
+        headers["routing"] = _build_happ_routing_deeplink()
+        headers["no-limit-enabled"] = "1"
+
+    return Response(
+        content=b64_text,
+        media_type="text/plain",
+        headers=headers,
+    )
+
+
+@app.api_route(
     "/sub/amnezia/{token}",
     methods=["GET", "HEAD"],
     tags=["Подписки"],

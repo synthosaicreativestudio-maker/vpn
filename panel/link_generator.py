@@ -290,6 +290,50 @@ class LinkGenerator:
         links["vless_reality"] = cls.vless_reality(uuid, email)
         return links
 
+    @classmethod
+    def happ_test_links(cls, uuid: str, email: str, routing: str = None) -> dict[str, str]:
+        """Ссылки для тестирования xHTTP в Happ (auto и stream-one режимы)."""
+        links: dict[str, str] = {}
+        
+        # 1. Прямые тестовые xHTTP ссылки
+        links["vless_xhttp_auto"] = (
+            cls._vless_base(uuid, PORT_VLESS_XHTTP)
+            + "&type=xhttp&mode=auto&path=/secretpath2026"
+            + f"#{quote(f'🧪 {email} (xHTTP auto)')}"
+        )
+        links["vless_xhttp_stream_one"] = (
+            cls._vless_base(uuid, PORT_VLESS_XHTTP)
+            + "&type=xhttp&mode=stream-one&path=/secretpath2026"
+            + f"#{quote(f'🧪 {email} (xHTTP stream-one)')}"
+        )
+        
+        # 2. Relay тестовые xHTTP ссылки
+        if RELAY_ENABLED:
+            links["vless_relay_xhttp_auto"] = (
+                f"vless://{uuid}@{RELAY_IP}:8443"
+                f"?encryption=none&security=reality"
+                f"&sni={RELAY_SNI}"
+                f"&pbk={RELAY_PUBLIC_KEY}"
+                f"&sid={RELAY_SHORT_ID}"
+                f"&fp=chrome"
+                f"&type=xhttp&mode=auto&path=/secretpath2026"
+                f"#{quote(f'🧪 {email} (xHTTP Relay auto)')}"
+            )
+            links["vless_relay_xhttp_stream_one"] = (
+                f"vless://{uuid}@{RELAY_IP}:8443"
+                f"?encryption=none&security=reality"
+                f"&sni={RELAY_SNI}"
+                f"&pbk={RELAY_PUBLIC_KEY}"
+                f"&sid={RELAY_SHORT_ID}"
+                f"&fp=chrome"
+                f"&type=xhttp&mode=stream-one&path=/secretpath2026"
+                f"#{quote(f'🧪 {email} (xHTTP Relay stream-one)')}"
+            )
+            
+        # 3. Стандартные стабильные ссылки Happ для сравнения
+        links.update(cls.happ_links(uuid, email, routing))
+        return links
+
     # ── Текст подписок ───────────────────────────────────────────
 
     @classmethod
@@ -308,5 +352,11 @@ class LinkGenerator:
     def subscription_text_happ(cls, uuid: str, email: str, routing: str = None) -> str:
         """Текст подписки оптимизированный для Happ."""
         links = cls.happ_links(uuid, email, routing)
+        return "\n".join(links.values())
+
+    @classmethod
+    def subscription_text_happ_test(cls, uuid: str, email: str, routing: str = None) -> str:
+        """Текст подписки для Happ с тестовыми xHTTP протоколами."""
+        links = cls.happ_test_links(uuid, email, routing)
         return "\n".join(links.values())
 
