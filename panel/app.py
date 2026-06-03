@@ -796,13 +796,13 @@ _HAPP_ROUTING_PROFILE = {
     "Name": "🇷🇺 Обход РФ",
     "GlobalProxy": "true",
     "RemoteDNSType": "DoH",
-    "RemoteDNSDomain": "https://cloudflare-dns.com/dns-query",
-    "RemoteDNSIP": "1.1.1.1",
+    "RemoteDNSDomain": "https://dns.adguard-dns.com/dns-query",
+    "RemoteDNSIP": "94.140.14.14",
     "DomesticDNSType": "DoH",
     "DomesticDNSDomain": "https://dns.google/dns-query",
     "DomesticDNSIP": "8.8.8.8",
     "DnsHosts": {
-        "cloudflare-dns.com": "1.1.1.1",
+        "dns.adguard-dns.com": "94.140.14.14",
         "dns.google": "8.8.8.8",
         "37.1.212.51.sslip.io": "111.88.145.206",
         "sub.synthosai.ru": "111.88.145.206",
@@ -854,7 +854,9 @@ _HAPP_ROUTING_PROFILE = {
     ],
     "ProxySites": [],
     "ProxyIp": [],
-    "BlockSites": [],
+    "BlockSites": [
+        "geosite:category-ads-all"
+    ],
     "BlockIp": [],
     "DomainStrategy": "AsIs",
     "FakeDNS": "false",
