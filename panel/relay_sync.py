@@ -81,6 +81,16 @@ def sync_all_users_to_relay(users: list[dict]) -> int:
         logger.warning("Relay sync skipped: client not available")
         return 0
     
+    # Собираем существующих пользователей на релее, чтобы не слать дублирующие запросы
+    existing_by_tag: dict[str, set[str]] = {}
+    for tag in RELAY_INBOUND_TAGS:
+        try:
+            inbound_users = client.get_inbound_users(tag)
+            existing_by_tag[tag] = {u["email"] for u in inbound_users} if inbound_users else set()
+        except Exception as e:
+            logger.warning("Failed to get users for relay tag %s: %s", tag, e)
+            existing_by_tag[tag] = set()
+
     count = 0
     for user in users:
         if not user.get("is_active"):
@@ -90,15 +100,17 @@ def sync_all_users_to_relay(users: list[dict]) -> int:
         
         user_synced = False
         for tag in RELAY_INBOUND_TAGS:
-            flow = "xtls-rprx-vision" if ("vision" in tag.lower() or "8081" in tag) else ""
-            ok = client.add_user(tag, email, uuid, flow=flow)
-            if ok:
-                user_synced = True
+            if email not in existing_by_tag.get(tag, set()):
+                flow = "xtls-rprx-vision" if ("vision" in tag.lower() or "8081" in tag) else ""
+                ok = client.add_user(tag, email, uuid, flow=flow)
+                if ok:
+                    user_synced = True
                 
         if user_synced:
             count += 1
             
-    logger.info("Relay sync complete: %d users added", count)
+    if count > 0:
+        logger.info("Relay sync complete: %d users added", count)
     return count
 
 
