@@ -1,7 +1,18 @@
+# HTTPS на порту 8086 — оставляем как fallback для старых ссылок
 37.1.212.51.sslip.io:8086, 111.88.145.206.nip.io:8086, sub.synthosai.ru:8086 {
     reverse_proxy 127.0.0.1:8085
 }
 
+# HTTP на порту 80 — основной путь подписки (порт 80 не блокируется DPI)
+# Relay:80 → dokodemo → US:80 → Caddy → Panel
 :80 {
-    respond "OK" 200
+    handle /sub/* {
+        reverse_proxy 127.0.0.1:8085
+    }
+    handle /health {
+        reverse_proxy 127.0.0.1:8085
+    }
+    handle {
+        respond "OK" 200
+    }
 }

@@ -36,7 +36,6 @@ from panel.config import (
     INBOUND_TAG_VISION,
     INBOUND_TAG_WS,
     INBOUND_TAG_XHTTP,
-    RELAY_ENABLED,
     SERVER_IP,
     SUB_HOST,
     XRAY_GRPC_HOST,
@@ -330,7 +329,9 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "geolocation=(), camera=()"
     if request.url.path.startswith("/sub/"):
-        response.headers["Cache-Control"] = "public, max-age=86400"
+        # no-cache: клиент ОБЯЗАН валидировать через ETag перед использованием кэша
+        # Ранее max-age=86400 приводил к тому, что профиль не обновлялся (Проблема 3)
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
     else:
         response.headers["Cache-Control"] = "no-store"
     return response
@@ -525,10 +526,8 @@ async def get_user_links(email: str):
 
     links = LinkGenerator.all_links(user["uuid"], email)
     token = user["sub_token"]
-    if RELAY_ENABLED:
-        base = f"https://{SUB_HOST}:8086/sub"
-    else:
-        base = f"https://{SUB_HOST}:8086/sub"
+    # HTTP порт 80 — не блокируется DPI (порт 8086 блокировался)
+    base = f"http://{SUB_HOST}/sub"
     return SubscriptionLinks(
         email=email,
         # Стандартные подписки
@@ -812,8 +811,8 @@ _HAPP_ROUTING_PROFILE = {
         "domain:synthosai.ru",
         # Все домены зоны .ru — напрямую без VPN
         "domain:ru",
-        # Автоматическое определение российских сайтов через geosite
-        "geosite:category-ru",
+        # geosite:category-ru УБРАН — требует скачивания geosite.db с GitHub,
+        # который заблокирован в РФ. domain:ru уже покрывает все .ru домены.
         # CRM и бизнес-сервисы
         "domain:crm.topnlab.ru",
         # Дополнительные домены (CDN/API которых может не быть в geosite)
@@ -843,8 +842,8 @@ _HAPP_ROUTING_PROFILE = {
         "domain:2gis.io", "domain:2gis.pro",
     ],
     "DirectIp": [
-        # Автоматическое определение российских IP через geoip
-        "geoip:ru",
+        # geoip:ru УБРАН — требует скачивания geoip.db с GitHub,
+        # который заблокирован в РФ без VPN. Приватные подсети оставлены.
         "10.0.0.0/8",
         "172.16.0.0/12",
         "192.168.0.0/16",
@@ -871,7 +870,7 @@ _HAPP_TEST_ROUTING_PROFILE = {
         "dns.adguard-dns.com": "94.140.14.14",
     },
     "BlockSites": [
-        "geosite:category-ads-all"
+        # geosite:category-ads-all УБРАН — требует скачивания с GitHub
     ],
 }
 
