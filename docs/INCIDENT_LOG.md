@@ -37,14 +37,14 @@
 ### Решение
 | # | Действие | Детали |
 |---|----------|--------|
-| 1 | **Перенос подписки на HTTP:80** | Caddy теперь обрабатывает `/sub/*` на :80. URL: `http://sub.synthosai.ru/sub/happ/{TOKEN}` |
+| 1 | **Перенос подписки на HTTP:80** | Caddy теперь обрабатывает `/sub/*` на :80. В Caddyfile добавлен глобальный блок `auto_https disable_redirects` для отключения автоматических 308 редиректов на HTTPS:8086. URL: `http://sub.synthosai.ru/sub/happ/{TOKEN}` |
 | 2 | **Удалены geosite/geoip** | `geosite:category-ru`, `geoip:ru`, `geosite:category-ads-all` убраны из routing-профиля. `domain:ru` + явные домены покрывают РФ. |
 | 3 | **Исправлен Cache-Control** | `no-cache, must-revalidate` вместо `public, max-age=86400` |
 | 4 | **Обновлены все URL** | bot/main.py, panel/app.py — все ссылки теперь `http://host/sub/...` без порта 8086 |
 | 5 | **Старый порт 8086 сохранён** | Как fallback для уже выданных ссылок |
 
 ### Затронутые файлы
-- `Caddyfile` — добавлен handle `/sub/*` на :80
+- `Caddyfile` — добавлен handle `/sub/*` на :80, отключен авто-редирект
 - `panel/app.py` — Cache-Control, убраны geo-ссылки, URL подписок
 - `panel/config.py` — добавлен SUB_PORT
 - `bot/config.py` — добавлен SUB_PORT
@@ -52,13 +52,13 @@
 
 ### Верификация
 - [x] `ruff check .` — All checks passed
-- [ ] Деплой на сервер: `git pull && systemctl restart caddy vpn-panel vpn-bot`
-- [ ] Проверка загрузки подписки с Android без VPN
-- [ ] Проверка загрузки гео-файлов при первом подключении
+- [x] Деплой на сервер: `git pull && systemctl restart caddy vpn-panel vpn-bot` (Caddyfile скопирован в /etc/caddy/Caddyfile)
+- [x] Проверка загрузки подписки с Android без VPN (через curl с РФ-ноды, редиректы отсутствуют)
+- [x] Проверка загрузки гео-файлов при первом подключении (geo-зависимости от GitHub успешно удалены)
 - [ ] Мониторинг авто-обновления профиля 48 часов
 
 ### Урок
-> **HTTPS на нестандартных портах (8086, 8443 и т.д.) активно блокируется DPI/ТСПУ.** Подписки должны обслуживаться на стандартных портах (80/443). Гео-файлы (geosite.db/geoip.db) скачиваются с GitHub — в РФ без VPN GitHub недоступен. Использовать только явные списки доменов/IP в routing-профиле.
+> **HTTPS на нестандартных портах (8086, 8443 и т.д.) активно блокируется DPI/ТСПУ.** Подписки должны обслуживаться на стандартных портах (80/443). При настройке Caddy для параллельного обслуживания HTTP:80 и HTTPS:нестандартный-порт обязательно отключать автоматические редиректы (`auto_https disable_redirects`), иначе Caddy перенаправит HTTP-трафик на заблокированный HTTPS-порт. Гео-файлы (geosite.db/geoip.db) скачиваются с GitHub — в РФ без VPN GitHub недоступен. Использовать только явные списки доменов/IP в routing-профиле.
 
 ---
 
