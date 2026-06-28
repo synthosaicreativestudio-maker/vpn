@@ -133,7 +133,7 @@ class LinkGenerator:
             f"&sid={RELAY_SHORT_ID}"
             f"&fp=chrome"
             f"&flow=xtls-rprx-vision"
-            f"#{quote(f'📡 {email} (Relay RU)')}"
+            f"#{quote(f'📡 {email} (Relay RU new)')}"
         )
 
     @staticmethod
@@ -196,7 +196,7 @@ class LinkGenerator:
             f"&sid={RELAY_SHORT_ID}"
             f"&fp=chrome"
             f"&type=xhttp&mode=stream-up&path=/secretpath2026"
-            f"#{quote(f'🕵️ {email} (xHTTP Relay RU)')}"
+            f"#{quote(f'🕵️ {email} (xHTTP Relay RU new)')}"
         )
 
     @staticmethod
@@ -210,7 +210,7 @@ class LinkGenerator:
             f"&sid={RELAY_SHORT_ID}"
             f"&fp=chrome"
             f"&type=grpc&serviceName=vpn-grpc"
-            f"#{quote(f'📡 {email} (gRPC Relay RU)')}"
+            f"#{quote(f'📡 {email} (gRPC Relay RU new)')}"
         )
 
     @staticmethod
