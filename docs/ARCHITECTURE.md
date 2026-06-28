@@ -127,3 +127,8 @@ curl -o /dev/null -s -w "%{http_code}\n" http://sub.synthosai.ru/sub/geo/geoip.d
 curl -o /dev/null -s -w "%{http_code}\n" http://sub.synthosai.ru/sub/geo/geosite.dat
 ```
 Оба запроса должны возвращать `200`.
+
+---
+
+## Безопасность обновлений
+Подробный регламент обновления кода и конфигураций для предотвращения сбоев описан в документе **[Blue-Green Deployment Регламент](file:///docs/BLUE_GREEN_DEPLOYMENT.md)**.
