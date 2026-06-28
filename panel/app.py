@@ -800,6 +800,8 @@ _HAPP_ROUTING_PROFILE = {
     "DomesticDNSType": "DoH",
     "DomesticDNSDomain": "https://dns.google/dns-query",
     "DomesticDNSIP": "8.8.8.8",
+    "Geoipurl": "http://sub.synthosai.ru/sub/geo/geoip.dat",
+    "Geositeurl": "http://sub.synthosai.ru/sub/geo/geosite.dat",
     "DnsHosts": {
         "cloudflare-dns.com": "1.1.1.1",
         "dns.google": "8.8.8.8",
