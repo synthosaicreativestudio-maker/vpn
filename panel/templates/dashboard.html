@@ -370,11 +370,8 @@
   </div>
 
   <div class="nav-label">Навигация</div>
-  <a class="nav-item active" id="nav-users" onclick="showSection('users')">
+  <a class="nav-item active" onclick="showSection('users')">
     <span class="nav-icon">👥</span> Пользователи
-  </a>
-  <a class="nav-item" id="nav-connections" onclick="showSection('connections')">
-    <span class="nav-icon">🌐</span> Соединения
   </a>
   <a class="nav-item" href="/docs" target="_blank">
     <span class="nav-icon">📑</span> API Docs
@@ -409,9 +406,6 @@
     <button class="btn" onclick="openCreateModal()">+ Добавить пользователя</button>
   </div>
 
-  <!-- Users Section -->
-  <div id="usersSection">
-
   <!-- Stats -->
   <div class="stats-row">
     <div class="stat-card">
@@ -439,46 +433,6 @@
     <div class="table-wrap">
       <div id="tableContainer">
         <div class="spinner"></div>
-      </div>
-    </div>
-  </div>
-
-  </div> <!-- /usersSection -->
-
-  <!-- Connections Section (hidden by default) -->
-  <div id="connectionsSection" style="display:none;">
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-value" id="connTotal">—</div>
-        <div class="stat-label">Всего соединений</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="connUniqueIps">—</div>
-        <div class="stat-label">Уникальных IP</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="connRelay">—</div>
-        <div class="stat-label">Relay</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="connUS">—</div>
-        <div class="stat-label">US Direct</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="connTimeWait">—</div>
-        <div class="stat-label">TIME-WAIT</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">🌐 Live TCP-соединения Xray</span>
-        <button class="btn" onclick="loadConnections()">🔄 Обновить</button>
-      </div>
-      <div class="table-wrap">
-        <div id="connTableContainer">
-          <div class="empty-state"><div class="icon">🌐</div><p>Нажмите вкладку для загрузки</p></div>
-        </div>
       </div>
     </div>
   </div>
@@ -590,33 +544,12 @@
 
   let apiKey = localStorage.getItem('vpn_api_key') || '';
   let allUsers = [];
-  let currentSection = 'users';
-  let connAutoRefresh = null;
 
   // Init
   document.addEventListener('DOMContentLoaded', () => {
     if (apiKey) document.getElementById('apiKeyInput').value = apiKey;
     loadData();
   });
-
-  // ── Section switching ─────────────────────────────────
-  function showSection(name) {
-    currentSection = name;
-    // Toggle sections
-    document.getElementById('usersSection').style.display = name === 'users' ? '' : 'none';
-    document.getElementById('connectionsSection').style.display = name === 'connections' ? '' : 'none';
-    // Toggle nav active
-    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    const navEl = document.getElementById('nav-' + name);
-    if (navEl) navEl.classList.add('active');
-    // Load data
-    if (name === 'connections') {
-      loadConnections();
-      if (!connAutoRefresh) connAutoRefresh = setInterval(() => {
-        if (currentSection === 'connections') loadConnections();
-      }, 30000);
-    }
-  }
 
   function saveApiKey() {
     apiKey = document.getElementById('apiKeyInput').value.trim();
@@ -662,10 +595,7 @@
     }
   }
 
-  function refreshData() {
-    if (currentSection === 'connections') loadConnections();
-    else loadData();
-  }
+  function refreshData() { loadData(); }
 
   function updateStats(s) {
     document.getElementById('statTotal').textContent   = s.total_users   ?? '—';
@@ -960,62 +890,6 @@
     t.textContent = msg;
     t.className = `toast show ${type}`;
     setTimeout(() => t.className = 'toast', 2500);
-  }
-
-  // ── Connections tab ────────────────────────────────────
-  async function loadConnections() {
-    document.getElementById('connTableContainer').innerHTML = '<div class="spinner"></div>';
-    try {
-      const data = await apiFetch('/admin/connections');
-      const s = data.summary || {};
-      document.getElementById('connTotal').textContent = s.total_connections ?? '—';
-      document.getElementById('connUniqueIps').textContent = s.unique_ips ?? '—';
-      document.getElementById('connRelay').textContent = s.relay_connections ?? '—';
-      document.getElementById('connUS').textContent = s.us_connections ?? '—';
-      document.getElementById('connTimeWait').textContent = s.time_wait ?? '—';
-      renderConnections(data.connections || []);
-    } catch(e) {
-      document.getElementById('connTableContainer').innerHTML =
-        `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`;
-    }
-  }
-
-  function renderConnections(conns) {
-    if (!conns.length) {
-      document.getElementById('connTableContainer').innerHTML =
-        '<div class="empty-state"><div class="icon">✅</div><p>Нет активных соединений</p></div>';
-      return;
-    }
-    let html = `<table>
-      <thead><tr>
-        <th>IP</th><th>Conn</th><th>Пользователь</th>
-        <th>Порты</th><th>Сервер</th><th>Send-Q</th>
-      </tr></thead><tbody>`;
-
-    for (const c of conns) {
-      const cnt = c.count || 0;
-      let badgeCls = 'badge-green';
-      if (cnt >= 100) badgeCls = 'badge-red';
-      else if (cnt >= 50) badgeCls = 'badge-yellow';
-
-      const serverBadge = c.server === 'Relay'
-        ? '<span class="badge badge-yellow" style="font-size:11px">Relay</span>'
-        : '<span class="badge badge-green" style="font-size:11px">US</span>';
-
-      const sendQ = c.send_q || 0;
-      const sendQStyle = sendQ > 1000 ? 'color:var(--red);font-weight:600' : 'color:var(--muted)';
-
-      html += `<tr>
-        <td><span class="mono">${c.ip}</span></td>
-        <td><span class="badge ${badgeCls}" style="font-size:13px;font-weight:700">${cnt}</span></td>
-        <td>${c.email || '—'}</td>
-        <td class="mono" style="font-size:11px">${(c.ports || []).join(', ')}</td>
-        <td>${serverBadge}</td>
-        <td style="${sendQStyle};font-family:monospace;font-size:12px">${sendQ > 0 ? sendQ.toLocaleString() : '0'}</td>
-      </tr>`;
-    }
-    html += '</tbody></table>';
-    document.getElementById('connTableContainer').innerHTML = html;
   }
 
   // Close modal on overlay click
