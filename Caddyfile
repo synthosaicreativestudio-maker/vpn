@@ -13,6 +13,9 @@
     handle /sub/* {
         reverse_proxy 127.0.0.1:8085
     }
+    handle /routing/* {
+        reverse_proxy 127.0.0.1:8085
+    }
     handle /health {
         reverse_proxy 127.0.0.1:8085
     }
