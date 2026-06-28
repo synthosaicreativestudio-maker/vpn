@@ -4,7 +4,32 @@
     "access": "/var/log/xray/access.log",
     "error": "/var/log/xray/error.log"
   },
+  "api": {
+    "tag": "api",
+    "services": [
+      "StatsService",
+      "HandlerService"
+    ]
+  },
+  "stats": {},
+  "policy": {
+    "levels": {
+      "0": {
+        "statsUserUplink": true,
+        "statsUserDownlink": true
+      }
+    }
+  },
   "inbounds": [
+    {
+      "tag": "api",
+      "protocol": "dokodemo-door",
+      "listen": "127.0.0.1",
+      "port": 10085,
+      "settings": {
+        "address": "127.0.0.1"
+      }
+    },
     {
       "tag": "relay-vision",
       "protocol": "vless",
@@ -206,7 +231,67 @@
   ],
   "outbounds": [
     {
-      "tag": "to-us",
+      "tag": "to-us-vision",
+      "protocol": "vless",
+      "settings": {
+        "vnext": [
+          {
+            "address": "37.1.212.51",
+            "port": 443,
+            "users": [
+              {
+                "id": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
+                "encryption": "none",
+                "flow": "xtls-rprx-vision"
+              }
+            ]
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "reality",
+        "realitySettings": {
+          "serverName": "www.microsoft.com",
+          "publicKey": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4",
+          "shortId": "0123456789abcdef",
+          "fingerprint": "chrome"
+        }
+      }
+    },
+    {
+      "tag": "to-us-grpc",
+      "protocol": "vless",
+      "settings": {
+        "vnext": [
+          {
+            "address": "37.1.212.51",
+            "port": 2053,
+            "users": [
+              {
+                "id": "eb4a1cf2-4235-4b0a-83b2-0e5a298389ed",
+                "encryption": "none"
+              }
+            ]
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "grpc",
+        "security": "reality",
+        "realitySettings": {
+          "serverName": "www.microsoft.com",
+          "publicKey": "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4",
+          "shortId": "0123456789abcdef",
+          "fingerprint": "chrome"
+        },
+        "grpcSettings": {
+          "serviceName": "vpn-grpc"
+        }
+      }
+    },
+    {
+      "tag": "to-us-xhttp",
       "protocol": "vless",
       "settings": {
         "vnext": [
@@ -244,10 +329,21 @@
     {
       "protocol": "blackhole",
       "tag": "block"
+    },
+    {
+      "protocol": "blackhole",
+      "tag": "api"
     }
   ],
   "routing": {
     "rules": [
+      {
+        "type": "field",
+        "inboundTag": [
+          "api"
+        ],
+        "outboundTag": "api"
+      },
       {
         "type": "field",
         "inboundTag": [
@@ -260,11 +356,23 @@
         "type": "field",
         "inboundTag": [
           "relay-vision",
-          "relay-grpc",
-          "relay-xhttp",
           "relay-test-8081"
         ],
-        "outboundTag": "to-us"
+        "outboundTag": "to-us-vision"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "relay-grpc"
+        ],
+        "outboundTag": "to-us-grpc"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "relay-xhttp"
+        ],
+        "outboundTag": "to-us-xhttp"
       }
     ]
   }
