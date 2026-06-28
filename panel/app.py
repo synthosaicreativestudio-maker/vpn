@@ -51,7 +51,6 @@ from panel.models import (
     UserStats,
     UserUpdate,
 )
-from panel.alerts import alert_monitor_task
 from panel.relay_sync import add_user_to_relay, remove_user_from_relay, sync_all_users_to_relay
 
 # ── Bot DB trial reset ────────────────────────────────────────
@@ -265,14 +264,12 @@ async def lifespan(application: FastAPI):
     ip_task = asyncio.create_task(ip_limiter.start())
     traffic_task = asyncio.create_task(_traffic_monitor_task())
     sync_task = asyncio.create_task(_periodic_xray_sync_task())
-    alert_task = asyncio.create_task(alert_monitor_task())
     logger.info("🚀 Subscription Manager started (port 8085)")
     yield
     ip_limiter.stop()
     ip_task.cancel()
     traffic_task.cancel()
     sync_task.cancel()
-    alert_task.cancel()
     if xray_client:
         xray_client.close()
     logger.info("Subscription Manager stopped")
