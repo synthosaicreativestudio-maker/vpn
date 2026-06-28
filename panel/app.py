@@ -18,7 +18,7 @@ from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, Security, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.security.api_key import APIKeyHeader
 from fastapi.templating import Jinja2Templates
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -1031,4 +1031,31 @@ async def admin_ui(request: Request):
             "api_key_header": API_KEY_HEADER,
         },
     )
+
+
+@app.get(
+    "/sub/geo/geoip.dat",
+    tags=["Подписки"],
+    summary="Скачать geoip.dat локально",
+    description="Раздача файла geoip.dat с нашего сервера для обхода блокировок GitHub в РФ",
+)
+async def get_geoip():
+    file_path = "/var/lib/vpn-panel/geo/geoip.dat"
+    if os.path.exists(file_path):
+        return FileResponse(file_path, media_type="application/octet-stream", filename="geoip.dat")
+    raise HTTPException(status_code=404, detail="GeoIP file not found")
+
+
+@app.get(
+    "/sub/geo/geosite.dat",
+    tags=["Подписки"],
+    summary="Скачать geosite.dat локально",
+    description="Раздача файла geosite.dat с нашего сервера для обхода блокировок GitHub в РФ",
+)
+async def get_geosite():
+    file_path = "/var/lib/vpn-panel/geo/geosite.dat"
+    if os.path.exists(file_path):
+        return FileResponse(file_path, media_type="application/octet-stream", filename="geosite.dat")
+    raise HTTPException(status_code=404, detail="GeoSite file not found")
+
 
