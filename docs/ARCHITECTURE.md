@@ -1,21 +1,31 @@
 # 🏗️ Архитектура VPN-инфраструктуры
 
-> **Обновлено:** 30.05.2026  
+> **Обновлено:** 28.06.2026  
 > **⚠️ AI-агенты: этот документ обязателен к прочтению перед работой с проектом**
 
 ---
 
-## Общая схема
+## Общая схема (Параллельный Мост)
 
 ```
-┌──────────────┐     ┌──────────────────────────────┐
-│  📱 Клиент   │────▶│  🇺🇸 US Server                │
-│  Hiddify/Happ│     │  37.1.212.51                 │
-│              │     │  Xray + Panel + Bot + WARP   │
-└──────────────┘     └──────────────────────────────┘
-       Прямое подключение
-  (Vision/xHTTP/gRPC/WS/Hysteria2)
+                       ┌──────────────────────────────────────────────┐
+                       │                   РФ Релей                   │
+                       │               (111.88.145.206)               │
+                       │           (Входной домен: sub.synthosai.ru)  │
+                       └──────────────────────────────────────────────┘
+                                  /           |            \
+       Порт 443 (TCP/Vision)     /            |             \      Порт 8443 (xHTTP)
+       [relay-vision]           /    Порт 2053 (gRPC)        \     [relay-xhttp]
+                               /     [relay-grpc]             \
+                              v               v                v
+                       ┌──────────────────────────────────────────────┐
+                       │                  US Server                   │
+                       │                (37.1.212.51)                 │
+                       │      Xray + Panel + Bot + Local Geo Files    │
+                       └──────────────────────────────────────────────┘
 ```
+
+Для обхода блокировок и предотвращения перегрузки единого TCP-канала реализована схема **параллельного моста**. Трафик от клиентов распределяется по разным портам релея и пересылается в США по независимым параллельным туннелям (Vision, gRPC, xHTTP), что решает проблему «бутылочного горлышка».
 
 ---
 
@@ -28,112 +38,92 @@
 | **Xray Core** | `xray.service` | 443, 8443, 2053, 2083, 2087, 2085 | Основной VPN v26.5.9: Vision, xHTTP, gRPC, WS, H2, SS2022 |
 | **Hysteria2** | `hysteria2.service` | 10443/UDP | UDP/QUIC VPN + Salamander obfs |
 | **VPN Panel** | `vpn-panel.service` | 8085 | Панель управления подписками |
-| **Caddy** | `caddy.service` | 8086 | HTTPS reverse proxy (sslip.io SSL) |
-| **VPN Bot** | `vpn-bot.service` | — | Telegram бот управления подписками (запущен) |
-| **WARP** | `warp-svc.service` | — | Cloudflare WARP daemon (⚠️ Остановлен для экономии RAM. Маршрутизация Google/YouTube идет через встроенный WireGuard outbound в Xray) |
+| **Caddy** | `caddy.service` | 80 / 8086 | HTTP/HTTPS reverse proxy (для подписок и раздачи гео-файлов) |
+| **VPN Bot** | `vpn-bot.service` | — | Telegram-бот управления подписками |
 
 ### Xray Inbounds (подробно)
 
-| Tag | Порт | Транспорт | Security | SNI |
-|-----|------|-----------|----------|-----|
-| VLESS-Reality-Vision | 443 | tcp + xtls-rprx-vision | reality | www.microsoft.com |
-| VLESS-Reality-XHTTP | 8443 | xhttp (stream-up) | reality | www.microsoft.com |
-| VLESS-Reality-gRPC | 2053 | grpc | reality | www.microsoft.com |
-| VLESS-WS | 2083 | websocket | none | — |
-| VLESS-H2 | 2087 | h2 | reality | www.microsoft.com |
+| Tag | Порт | Транспорт | Security | SNI (Маскировка) | Описание |
+|-----|------|-----------|----------|-----------------|----------|
+| VLESS-Reality-Vision | 443 | tcp + xtls-rprx-vision | reality | yandex.ru | Прямое/релейное Vision-соединение |
+| VLESS-Reality-XHTTP | 8443 | xhttp (stream-up) | reality | yandex.ru | xHTTP-туннель (резервный) |
+| VLESS-Reality-gRPC | 2053 | grpc | reality | yandex.ru | gRPC-туннель (мультиплексный) |
+| VLESS-WS | 2083 | websocket | none | — | Устаревший резерв |
+| VLESS-H2 | 2087 | h2 | reality | yandex.ru | Резервный H2 |
 
-### Xray Routing
+> ⚠️ **Важно:** В качестве домена маскировки во всех Reality-инбаундах на сервере США используется `yandex.ru` вместо `www.microsoft.com`. Это связано с тем, что сервера Akamai (обслуживающие Microsoft) в новых версиях Xray отдают несовместимые TLS-ответы, вызывая сбои Reality-хендшейка (`handshake did not complete successfully`).
 
-- **Google/YouTube/Gemini** → WARP outbound (прямое WireGuard-соединение с Cloudflare в Xray, endpoint 162.159.192.1:2408)
-- **Приватные IP** → BLOCK
-- **Всё остальное** → DIRECT
+### Локальная раздача гео-файлов (Байпас блокировок GitHub)
+Для обхода блокировок серверов GitHub в РФ, файлы гео-баз `geoip.dat` и `geosite.dat` скачиваются напрямую с нашего сервера подписок.
+* **geoip.dat URL:** `http://sub.synthosai.ru/sub/geo/geoip.dat`
+* **geosite.dat URL:** `http://sub.synthosai.ru/sub/geo/geosite.dat`
 
-### Ключевые пути
-
-| Путь | Содержание |
-|------|-----------|
-| `/root/vpn/` | Основной проект (panel, bot) — `vpn-panel` и `vpn-bot` работают отсюда |
-| `/etc/xray/config.json` | Конфиг основного Xray |
-| `/etc/hysteria/` | Конфиг + сертификаты Hysteria2 |
+В коде панели управления (`panel/app.py`) настроена автоматическая генерация этих ссылок в заголовке `routing` при получении подписки клиентом Happ.
 
 ---
 
-## Подписки
-
-### Стандартные (без маршрутизации)
-| Тип | URL шаблон |
-|-----|-----------|
-| Универсальная | `http://37.1.212.51:8085/sub/{TOKEN}` |
-| Hiddify | `http://37.1.212.51:8085/sub/hiddify/{TOKEN}` |
-| Happ (iOS) | `https://sub.synthosai.ru:8086/sub/happ/{TOKEN}` |
-| AmneziaVPN | `http://37.1.212.51:8085/sub/amnezia/{TOKEN}` |
-
-### С маршрутизацией (обход РФ — РФ сайты напрямую)
-| Тип | URL шаблон |
-|-----|-----------|
-| Универсальная | `http://37.1.212.51:8085/sub/{TOKEN}?routing=ru` |
-| Hiddify | `http://37.1.212.51:8085/sub/hiddify/{TOKEN}?routing=ru` |
-| Happ (iOS) | `https://sub.synthosai.ru:8086/sub/happ/{TOKEN}?routing=ru` |
-
-### Что содержит подписка:
-- VLESS+Reality+Vision (443)
-- VLESS+Reality+xHTTP (8443)
-- VLESS+Reality+gRPC (2053) — только Hiddify
-- VLESS+WS (2083)
-- Hysteria2 (10443/UDP)
-- Shadowsocks 2022 (2085)
-
----
-
-## Ключи и UUID
-
-| Параметр | Значение |
-|----------|---------|
-| UUID | `eb4a1cf2-4235-4b0a-83b2-0e5a298389ed` (admin) |
-| Reality Public Key | `n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4` |
-| Reality Short ID | `0123456789abcdef` |
-| SNI | `www.microsoft.com` |
-| Hysteria2 Password | `HysteriaPassword2026` |
-| Hysteria2 Obfs | Salamander: `SalamanderObfs2026SecretKey` |
-
----
-
-## Relay RU (111.88.145.206) — обход белых списков ТСПУ
+## Relay RU (111.88.145.206) — Обход белых списков и мост
 
 | Параметр | Значение |
 |----------|---------|
 | Хостинг | Yandex Cloud, ru-central1-b |
 | Xray | v26.5.9 |
-| Роль | VLESS Reality Bridge → US 37.1.212.51:8443 (xHTTP stream-up) |
-| Порты | 443 (Vision), 2053 (gRPC), 8443 (xHTTP), 80/8086 (dokodemo → US) |
+| Роль | Параллельный VLESS Reality Bridge ➔ US 37.1.212.51 |
+| Порты | 443 (Vision), 2053 (gRPC), 8443 (xHTTP), 80 (Caddy-прокси для подписок) |
 | UUID клиентский | `57ca4aae-dcb3-4fdd-9e14-f9afb42b703c` |
-| SNI | ozon.ru, wildberries.ru |
-| Домен подписки | `sub.synthosai.ru` → 111.88.145.206 (A-запись) |
+| SNI (входящий) | ozon.ru, wildberries.ru |
+| Домен подписки | `sub.synthosai.ru` ➔ 111.88.145.206 (A-запись) |
 
-> ⚠️ Все VPN-каналы relay маршрутизируются через один xHTTP outbound к US:8443.
-> При падении relay — все мобильные пользователи из РФ теряют VPN.
+### Схема проксирования на релее:
+* Входящие соединения на порт `443` (`relay-vision`) пересылаются на порт `443` США (`to-us-vision`).
+* Входящие соединения на порт `2053` (`relay-grpc`) пересылаются на порт `2053` США (`to-us-grpc`).
+* Входящие соединения на порт `8443` (`relay-xhttp`) пересылаются на порт `8443` США (`to-us-xhttp`).
+
+---
+
+## Подписки
+
+### Доступные URL
+| Тип | URL шаблон |
+|-----|-----------|
+| Универсальная | `http://sub.synthosai.ru/sub/{TOKEN}` |
+| Hiddify | `http://sub.synthosai.ru/sub/hiddify/{TOKEN}` |
+| Happ (iOS) | `http://sub.synthosai.ru/sub/happ/{TOKEN}` |
+| С авто-маршрутизацией | Добавить параметр `?routing=ru` в конец ссылки |
+
+### Содержимое подписки Happ (iOS)
+Подписка содержит 3 оптимизированных конфигурации:
+1. `📡 @username (Relay RU new)` — Вход на порт 443 релея (Vision), высокая скорость, обход ТСПУ.
+2. `📡 @username (gRPC Relay RU new)` — Вход на порт 2053 релея (gRPC), резервный мультиплексный канал.
+3. `🔌 @username (Vision)` — Прямое подключение к серверу США на порт 443 (минуя релей, для использования за пределами РФ).
+
+---
+
+## ⚡ Оптимизация соединений (Борьба с зомби-сессиями и TIME-WAIT)
+
+Для предотвращения зависания неактивных «зомби»-соединений от мобильных клиентов в настройках Xray на релее и в США применены следующие оптимизации:
+1. **Таймаут простоя (`connIdle`):** В секции `policy` время неактивности сокета снижено до **90 секунд** (по умолчанию было 300).
+2. **TCP Keep-Alive (`tcpKeepAliveInterval`):** В параметрах сокетов (`sockopt`) на входящих и исходящих портах включена отправка системных пингов каждые **15 секунд**. Если клиент резко уходит в оффлайн (блокировка экрана, потеря сети), операционная система сразу разрывает мертвый сокет и освобождает ресурсы Xray.
 
 ---
 
 ## Важные процедуры
 
-### При перезапуске Xray:
+### При перезапуске Xray на основном сервере (US):
 ```bash
 systemctl restart xray
-systemctl restart vpn-panel  # ОБЯЗАТЕЛЬНО — синхронизация пользователей
+systemctl restart vpn-panel  # ОБЯЗАТЕЛЬНО — синхронизирует пользователей с Xray
 ```
 
-### При перезапуске Xray на Relay:
+### При перезапуске Xray на релее (RU):
 ```bash
-ssh ubuntu@111.88.145.206  # через US-сервер (ключ ed25519)
+ssh ubuntu@111.88.145.206  # доступ через US-сервер (ключ ed25519)
 sudo systemctl restart xray
 ```
 
-### При проблемах с Google/YouTube:
-Проверить WARP: `curl --interface wg0 https://www.youtube.com`
-
----
-
-## Лог инцидентов
-
-См. [INCIDENT_LOG.md](INCIDENT_LOG.md)
+### Проверка работоспособности гео-раздачи:
+```bash
+curl -o /dev/null -s -w "%{http_code}\n" http://sub.synthosai.ru/sub/geo/geoip.dat
+curl -o /dev/null -s -w "%{http_code}\n" http://sub.synthosai.ru/sub/geo/geosite.dat
+```
+Оба запроса должны возвращать `200`.
