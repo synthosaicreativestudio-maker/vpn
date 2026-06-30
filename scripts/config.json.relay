@@ -212,7 +212,7 @@
       "listen": "0.0.0.0",
       "port": 80,
       "settings": {
-        "address": "37.1.212.51",
+        "address": "38.180.81.181",
         "port": 80,
         "network": "tcp"
       }
@@ -223,7 +223,7 @@
       "listen": "0.0.0.0",
       "port": 8086,
       "settings": {
-        "address": "37.1.212.51",
+        "address": "38.180.81.181",
         "port": 8086,
         "network": "tcp"
       }
@@ -236,7 +236,7 @@
       "settings": {
         "vnext": [
           {
-            "address": "37.1.212.51",
+            "address": "38.180.81.181",
             "port": 443,
             "users": [
               {
@@ -265,7 +265,7 @@
       "settings": {
         "vnext": [
           {
-            "address": "37.1.212.51",
+            "address": "38.180.81.181",
             "port": 2053,
             "users": [
               {
@@ -296,7 +296,7 @@
       "settings": {
         "vnext": [
           {
-            "address": "37.1.212.51",
+            "address": "38.180.81.181",
             "port": 8443,
             "users": [
               {

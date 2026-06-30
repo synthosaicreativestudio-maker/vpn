@@ -151,7 +151,7 @@
 ### Решение
 | # | Действие | Детали |
 |---|----------|--------|
-| 1 | **Обновление Xray** до v26.5.9 на US (37.1.212.51) | Был v26.3.27. Backup: `/usr/local/bin/xray.backup.v26.3.27` |
+| 1 | **Обновление Xray** до v26.5.9 на US (38.180.81.181) | Был v26.3.27. Backup: `/usr/local/bin/xray.backup.v26.3.27` |
 | 2 | **Обновление Xray** до v26.5.9 на Relay (111.88.145.206) | Был v26.3.27. Backup: `/usr/local/bin/xray.backup.v26.3.27` |
 | 3 | **Добавление DnsHosts** `sub.synthosai.ru → 111.88.145.206` | В `panel/app.py`, `_HAPP_ROUTING_PROFILE` |
 | 4 | Перезапуск всех сервисов | xray, vpn-panel, vpn-bot |

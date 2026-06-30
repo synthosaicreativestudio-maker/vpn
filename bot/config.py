@@ -8,7 +8,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 
 # Subscription Manager Panel
 PANEL_URL = os.getenv("PANEL_URL", "http://127.0.0.1:8085")
-PANEL_PUBLIC_URL = os.getenv("PANEL_PUBLIC_URL", "http://37.1.212.51:8085")
+PANEL_PUBLIC_URL = os.getenv("PANEL_PUBLIC_URL", "http://38.180.81.181:8085")
 PANEL_API_KEY = os.getenv(
     "PANEL_API_KEY",
     "b534ef20bdea908d3b9b4f5388467d525ba88f7abaddcc5ca8b4c159b75335c3",
@@ -37,7 +37,7 @@ TBANK_API_URL = "https://securepay.tinkoff.ru/v2/"
 # Relay configuration for subscription links
 RELAY_ENABLED = os.getenv("RELAY_ENABLED", "True").lower() == "true"
 RELAY_IP = os.getenv("RELAY_IP", "111.88.145.206")
-SERVER_IP = os.getenv("SERVER_IP", "37.1.212.51")
+SERVER_IP = os.getenv("SERVER_IP", "38.180.81.181")
 
 if RELAY_ENABLED:
     SUB_HOST = "sub.synthosai.ru"

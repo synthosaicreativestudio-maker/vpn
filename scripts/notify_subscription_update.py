@@ -26,7 +26,7 @@ PANEL_API_KEY = os.getenv(
     "b534ef20bdea908d3b9b4f5388467d525ba88f7abaddcc5ca8b4c159b75335c3",
 )
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
-SUB_BASE = "https://37.1.212.51.sslip.io:8086/sub/happ"
+SUB_BASE = "https://38.180.81.181.sslip.io:8086/sub/happ"
 
 # Маппинг email → tg_id (из описания или email)
 # Бот может отправлять только по tg_id

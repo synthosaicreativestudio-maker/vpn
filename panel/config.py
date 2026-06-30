@@ -29,7 +29,7 @@ API_KEY_HEADER = "X-API-KEY"
 XRAY_GRPC_HOST = os.getenv("XRAY_GRPC_HOST", "127.0.0.1:10085")
 
 # ── Server ────────────────────────────────────────────────────
-SERVER_IP = os.getenv("SERVER_IP", "37.1.212.51")
+SERVER_IP = os.getenv("SERVER_IP", "38.180.81.181")
 
 # ── Protocol Ports ────────────────────────────────────────────
 # Xray VLESS+Reality (4 транспорта на разных портах)
