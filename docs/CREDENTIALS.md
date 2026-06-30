@@ -1,7 +1,7 @@
 # Все доступы (30.05.2026)
 
 ## Серверы
-- US: `37.1.212.51` SSH: `root / LEJ6U5chSK`
+- US: `38.180.81.181` SSH: `root / VrT2ApnS3J`
 
 ## VPN каналы (5 шт)
 1. VLESS+Reality+Vision — порт 443
@@ -14,9 +14,9 @@ Reality: pbk=n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4 sid=0123456789abcdef
 UUID: eb4a1cf2-4235-4b0a-83b2-0e5a298389ed
 
 ## Подписки
-- Hiddify: http://37.1.212.51:8085/sub/hiddify/{TOKEN}
-- Happ: http://37.1.212.51:8085/sub/happ/{TOKEN}
-- Панель: http://37.1.212.51:8085/admin/ui
+- Hiddify: http://38.180.81.181:8085/sub/hiddify/{TOKEN}
+- Happ: http://38.180.81.181:8085/sub/happ/{TOKEN}
+- Панель: http://38.180.81.181:8085/admin/ui
 - API Key: b534ef20bdea908d3b9b4f5388467d525ba88f7abaddcc5ca8b4c159b75335c3
 
 ## API Ключи и Токены
@@ -35,7 +35,7 @@ UUID: eb4a1cf2-4235-4b0a-83b2-0e5a298389ed
 ## Relay RU (обход белых списков ТСПУ) — VLESS Reality Bridge
 - IP: `111.88.145.206` SSH: `ubuntu` (ключ ed25519 через US)
 - Yandex Cloud, зона ru-central1-b, VM: epdmhc1f3rhjgkt36n95
-- Параллельный Xray VLESS Reality bridge → US 37.1.212.51 (порты 443, 2053, 8443)
+- Параллельный Xray VLESS Reality bridge → US 38.180.81.181 (порты 443, 2053, 8443)
 - Порты: 443 (Vision), 2053 (gRPC), 8443 (xHTTP)
 - UUID клиентский: `57ca4aae-dcb3-4fdd-9e14-f9afb42b703c`
 - Reality: pbk=t4Icv6qrpPcxWOp9uxyLbL2cWJ5_QRcXcC1gJ06To1g sid=abcdef0123456789
