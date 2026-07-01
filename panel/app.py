@@ -36,6 +36,7 @@ from panel.config import (
     INBOUND_TAG_VISION,
     INBOUND_TAG_WS,
     INBOUND_TAG_XHTTP,
+    INBOUND_TAG_GRPC_CDN,
     SERVER_IP,
     SUB_HOST,
     SUB_PORT,
@@ -118,6 +119,7 @@ ALL_INBOUND_TAGS = [
     INBOUND_TAG_XHTTP,
     INBOUND_TAG_GRPC,
     INBOUND_TAG_WS,
+    INBOUND_TAG_GRPC_CDN,
 ]
 
 # Xray клиент (может быть None если stubs ещё не сгенерированы)
@@ -798,17 +800,17 @@ _HAPP_ROUTING_PROFILE = {
     "Name": "🇷🇺 Обход РФ",
     "GlobalProxy": "true",
     "RemoteDNSType": "DoH",
-    "RemoteDNSDomain": "https://8.8.8.8/dns-query",
+    "RemoteDNSDomain": "https://dns.google/dns-query",
     "RemoteDNSIP": "8.8.8.8",
     "DomesticDNSType": "DoH",
-    "DomesticDNSDomain": "https://77.88.8.8/dns-query",
+    "DomesticDNSDomain": "https://common.dns.yandex.ru/dns-query",
     "DomesticDNSIP": "77.88.8.8",
     "Geoipurl": "http://sub.synthosai.ru/sub/geo/geoip.dat",
     "Geositeurl": "http://sub.synthosai.ru/sub/geo/geosite.dat",
     "DnsHosts": {
         "cloudflare-dns.com": "1.1.1.1",
         "dns.google": "8.8.8.8",
-        "dns.yandex.ru": "77.88.8.8",
+        "common.dns.yandex.ru": "77.88.8.8",
         "38.180.81.181.sslip.io": "185.4.67.223",
         "sub.synthosai.ru": "185.4.67.223",
     },
