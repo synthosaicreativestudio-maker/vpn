@@ -38,6 +38,7 @@ from panel.config import (
     INBOUND_TAG_XHTTP,
     SERVER_IP,
     SUB_HOST,
+    SUB_PORT,
     XRAY_GRPC_HOST,
 )
 from panel.db import PanelDB
@@ -526,8 +527,10 @@ async def get_user_links(email: str):
 
     links = LinkGenerator.all_links(user["uuid"], email)
     token = user["sub_token"]
-    # HTTP порт 80 — не блокируется DPI (порт 8086 блокировался)
-    base = f"http://{SUB_HOST}/sub"
+    # Формируем базовый URL подписок с учетом SUB_PORT и протокола (HTTPS на 8086)
+    proto = "https" if SUB_PORT in (443, 8086) else "http"
+    port_suffix = f":{SUB_PORT}" if SUB_PORT not in (80, 443) else ""
+    base = f"{proto}://{SUB_HOST}{port_suffix}/sub"
     return SubscriptionLinks(
         email=email,
         # Стандартные подписки

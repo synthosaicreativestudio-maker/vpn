@@ -46,5 +46,5 @@ if RELAY_ENABLED:
     SUB_HOST = "sub.synthosai.ru"
 else:
     SUB_HOST = f"{SERVER_IP}.sslip.io"
-# HTTP порт 80 — стандартный, не блокируется DPI (ранее 8086 блокировался)
-SUB_PORT = int(os.getenv("SUB_PORT", "80"))
+# HTTP порт 8086 — стандартный для HTTPS-подписок с TLS сертификатом Caddy
+SUB_PORT = int(os.getenv("SUB_PORT", "8086"))

@@ -17,7 +17,7 @@ from aiogram.types import BotCommand
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiohttp import web
 
-from bot.config import BOT_TOKEN, PANEL_API_KEY, PANEL_URL, PLANS, SUB_HOST
+from bot.config import BOT_TOKEN, PANEL_API_KEY, PANEL_URL, PLANS, SUB_HOST, SUB_PORT
 from bot.data.db_manager import DBManager
 from bot.utils.panel_api import PanelAPI
 from bot.tbank import init_tbank_payment
@@ -122,9 +122,10 @@ async def _get_happ_url(user: types.User) -> str | None:
     email = await _resolve_email(user)
     user_info = await panel.get_user(email)
     if user_info and user_info.get("sub_token"):
-        # HTTP:80 — стандартный порт, не блокируется DPI
+        proto = "https" if SUB_PORT in (443, 8086) else "http"
+        port_suffix = f":{SUB_PORT}" if SUB_PORT not in (80, 443) else ""
         return (
-            f"http://{SUB_HOST}/sub/happ/"
+            f"{proto}://{SUB_HOST}{port_suffix}/sub/happ/"
             f"{user_info['sub_token']}?routing=ru"
         )
     return None
@@ -135,9 +136,10 @@ async def _get_hiddify_url(user: types.User) -> str | None:
     email = await _resolve_email(user)
     user_info = await panel.get_user(email)
     if user_info and user_info.get("sub_token"):
-        # HTTP:80 — стандартный порт, не блокируется DPI
+        proto = "https" if SUB_PORT in (443, 8086) else "http"
+        port_suffix = f":{SUB_PORT}" if SUB_PORT not in (80, 443) else ""
         return (
-            f"http://{SUB_HOST}/sub/hiddify/"
+            f"{proto}://{SUB_HOST}{port_suffix}/sub/hiddify/"
             f"{user_info['sub_token']}?routing=ru"
         )
     return None
@@ -358,7 +360,9 @@ async def cb_plan_select(callback: types.CallbackQuery):
                 db.set_user_trial(user.id)
                 sub_token = result.get("sub_token", "")
                 if sub_token:
-                    sub_url = f"http://{SUB_HOST}/sub/happ/{sub_token}?routing=ru"
+                    proto = "https" if SUB_PORT in (443, 8086) else "http"
+                    port_suffix = f":{SUB_PORT}" if SUB_PORT not in (80, 443) else ""
+                    sub_url = f"{proto}://{SUB_HOST}{port_suffix}/sub/happ/{sub_token}?routing=ru"
                     db.update_subscription(user.id, result.get("expires_at", ""), sub_url)
                 await callback.message.edit_text(
                     "✅ <b>Тестовый период активирован!</b>\n\n"
@@ -656,7 +660,9 @@ async def tbank_webhook(request: web.Request) -> web.Response:
                                     sub_url = result["sub_happ"]
                                 else:
                                     sub_token = result.get("sub_token", "")
-                                    sub_url = f"http://{SUB_HOST}/sub/happ/{sub_token}?routing=ru"
+                                    proto = "https" if SUB_PORT in (443, 8086) else "http"
+                                    port_suffix = f":{SUB_PORT}" if SUB_PORT not in (80, 443) else ""
+                                    sub_url = f"{proto}://{SUB_HOST}{port_suffix}/sub/happ/{sub_token}?routing=ru"
                                 db.update_subscription(tg_id, result.get("expires_at", ""), sub_url)
 
                                 success_text = receipt_text + (
