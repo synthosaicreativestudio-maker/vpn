@@ -3,7 +3,7 @@
 }
 
 # HTTPS на порту 8086 — оставляем как fallback для старых ссылок
-38.180.81.181.sslip.io:8086, 111.88.145.206.nip.io:8086, sub.synthosai.ru:8086 {
+38.180.81.181.sslip.io:8086, 185.4.67.223.nip.io:8086, sub.synthosai.ru:8086 {
     reverse_proxy 127.0.0.1:8085
 }
 

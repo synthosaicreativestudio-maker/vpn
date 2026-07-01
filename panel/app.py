@@ -805,8 +805,8 @@ _HAPP_ROUTING_PROFILE = {
     "DnsHosts": {
         "cloudflare-dns.com": "1.1.1.1",
         "dns.google": "8.8.8.8",
-        "38.180.81.181.sslip.io": "111.88.145.206",
-        "sub.synthosai.ru": "111.88.145.206",
+        "38.180.81.181.sslip.io": "185.4.67.223",
+        "sub.synthosai.ru": "185.4.67.223",
     },
     "DirectSites": [
         # Наш домен подписки — всегда напрямую (без VPN), чтобы избежать петель маршрутизации

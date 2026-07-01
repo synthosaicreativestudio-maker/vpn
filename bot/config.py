@@ -36,7 +36,7 @@ TBANK_API_URL = "https://securepay.tinkoff.ru/v2/"
 
 # Relay configuration for subscription links
 RELAY_ENABLED = os.getenv("RELAY_ENABLED", "True").lower() == "true"
-RELAY_IP = os.getenv("RELAY_IP", "111.88.145.206")
+RELAY_IP = os.getenv("RELAY_IP", "185.4.67.223")
 SERVER_IP = os.getenv("SERVER_IP", "38.180.81.181")
 
 if RELAY_ENABLED:
