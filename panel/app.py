@@ -862,7 +862,7 @@ _HAPP_ROUTING_PROFILE = {
     "ProxyIp": [],
     "BlockSites": [],
     "BlockIp": [],
-    "DomainStrategy": "AsIs",
+    "DomainStrategy": "UseIPv4",
     "FakeDNS": "false",
 }
 
