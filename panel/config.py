@@ -48,11 +48,11 @@ REALITY_PUBLIC_KEY = os.getenv(
     "n5E8KcFHjef-ZC2mKjzkVldLJiLrsjfpE1Z-XmLfxH4",
 )
 REALITY_SHORT_ID = os.getenv("REALITY_SHORT_ID", "0123456789abcdef")
-REALITY_SNI = os.getenv("REALITY_SNI", "www.microsoft.com")
+REALITY_SNI = os.getenv("REALITY_SNI", "dzen.ru")
 
 # ── Hysteria2 ─────────────────────────────────────────────────
 HYSTERIA2_PASSWORD = os.getenv("HYSTERIA2_PASSWORD", "HysteriaPassword2026")
-HYSTERIA2_SNI = os.getenv("HYSTERIA2_SNI", "www.microsoft.com")
+HYSTERIA2_SNI = os.getenv("HYSTERIA2_SNI", "dzen.ru")
 HYSTERIA2_OBFS_PASSWORD = os.getenv("HYSTERIA2_OBFS_PASSWORD", "SalamanderObfs2026SecretKey")
 
 # ── Shadowsocks 2022 ─────────────────────────────────────────
@@ -103,7 +103,7 @@ RELAY_PUBLIC_KEY = os.getenv(
     "t4Icv6qrpPcxWOp9uxyLbL2cWJ5_QRcXcC1gJ06To1g",
 )
 RELAY_SHORT_ID = os.getenv("RELAY_SHORT_ID", "abcdef0123456789")
-RELAY_SNI = os.getenv("RELAY_SNI", "ozon.ru")
+RELAY_SNI = os.getenv("RELAY_SNI", "storage.yandex.net")
 RELAY_GRPC_ENABLED = os.getenv("RELAY_GRPC_ENABLED", "False").lower() == "true"
 RELAY_GRPC_HOST = os.getenv("RELAY_GRPC_HOST", "51.250.94.182:10085")
 
