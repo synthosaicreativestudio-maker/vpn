@@ -976,9 +976,27 @@ async def update_user(email: str, data: UserUpdate):
             base_dt = datetime.utcnow()
         fields["expires_at"] = (base_dt + timedelta(days=data.expire_days)).isoformat()
 
+    was_active = bool(user.get("is_active"))
     updated = db.update_user(email, **fields)
     if not updated:
         raise HTTPException(status_code=500, detail="Update failed")
+
+    # Синхронизация с Xray и Relay при изменении статуса активности
+    now_active = bool(updated.get("is_active"))
+    if now_active != was_active:
+        try:
+            if now_active:
+                if xray_client:
+                    xray_client.add_user_all_inbounds(updated["email"], updated["uuid"], ALL_INBOUND_TAGS)
+                add_user_to_relay(updated["email"], updated["uuid"])
+                logger.info("⚡ Instantly activated user %s in Xray and Relay", email)
+            else:
+                if xray_client:
+                    xray_client.remove_user_all_inbounds(updated["email"], ALL_INBOUND_TAGS)
+                remove_user_from_relay(updated["email"])
+                logger.info("⚡ Instantly deactivated user %s in Xray and Relay", email)
+        except Exception as e:
+            logger.error("Failed to instantly sync user %s status: %s", email, e)
 
     return UserResponse(
         email=updated["email"],

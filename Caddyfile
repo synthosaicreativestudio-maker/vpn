@@ -10,6 +10,12 @@
 # HTTP на порту 80 — основной путь подписки (порт 80 не блокируется DPI)
 # Relay:80 → dokodemo → US:80 → Caddy → Panel
 :80 {
+    handle /tg-bot/* {
+        uri strip_prefix /tg-bot
+        reverse_proxy https://api.telegram.org {
+            header_up Host api.telegram.org
+        }
+    }
     handle /sub/* {
         reverse_proxy 127.0.0.1:8085
     }
