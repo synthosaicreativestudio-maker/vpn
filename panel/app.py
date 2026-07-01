@@ -814,6 +814,8 @@ _HAPP_ROUTING_PROFILE = {
     "DirectSites": [
         # Наш домен подписки — всегда напрямую (без VPN), чтобы избежать петель маршрутизации
         "domain:synthosai.ru",
+        # Резервный домен CDN — напрямую, чтобы избежать петель маршрутизации
+        "domain:fredom.ru",
         # Все домены зоны .ru — напрямую без VPN
         "domain:ru",
         # geosite:category-ru УБРАН — требует скачивания geosite.db с GitHub,
