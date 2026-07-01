@@ -94,6 +94,16 @@ class LinkGenerator:
             + f"#{quote(f'🌐 {email} (WebSocket)')}"
         )
 
+    @classmethod
+    def vless_ws_cdn(cls, uuid: str, email: str) -> str:
+        """4a. VLESS + WebSocket + TLS через Cloudflare CDN (порт 443)."""
+        from panel.config import CLOUDFLARE_CDN_DOMAIN
+        return (
+            f"vless://{uuid}@{CLOUDFLARE_CDN_DOMAIN}:443"
+            f"?encryption=none&security=tls&type=ws&host={CLOUDFLARE_CDN_DOMAIN}&sni={CLOUDFLARE_CDN_DOMAIN}&path=/ws-tunnel"
+            + f"#{quote(f'🌐 {email} (Cloudflare CDN)')}"
+        )
+
     @staticmethod
     def hysteria2(email: str) -> str:
         """5. Hysteria2 + Salamander obfs (UDP/QUIC, порт 10443)."""
@@ -248,6 +258,7 @@ class LinkGenerator:
             "vless_xhttp": cls.vless_xhttp(uuid, email),
             "vless_grpc": cls.vless_grpc(uuid, email),
             "vless_ws": cls.vless_ws(uuid, email),
+            "vless_ws_cdn": cls.vless_ws_cdn(uuid, email),
             "hysteria2": cls.hysteria2(email),
             "shadowsocks": cls.shadowsocks(email),
         }
@@ -282,12 +293,14 @@ class LinkGenerator:
           1. Vision Relay  — основной (TCP, лучший пинг из РФ)
           2. gRPC Relay    — резервный (HTTP/2, мультиплекс)
           3. Vision Direct — аварийный (если relay упадёт)
+          4. WS CDN        — сверхнадежный обход блокировок через Cloudflare
         """
         links: dict[str, str] = {}
         if RELAY_ENABLED:
             links["vless_relay"] = cls.vless_relay(email, uuid)
             links["vless_relay_grpc"] = cls.vless_relay_grpc(email, uuid)
         links["vless_reality"] = cls.vless_reality(uuid, email)
+        links["vless_ws_cdn"] = cls.vless_ws_cdn(uuid, email)
         return links
 
     @classmethod

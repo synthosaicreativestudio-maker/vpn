@@ -4,7 +4,7 @@
 
 # HTTPS на порту 8086 — оставляем как fallback для старых ссылок
 38.180.81.181.sslip.io:8086, 185.4.67.223.nip.io:8086, sub.synthosai.ru:8086 {
-    reverse_proxy 127.0.0.1:8085
+    reverse_proxy 127.0.0.1:8087
 }
 
 # HTTP на порту 80 — основной путь подписки (порт 80 не блокируется DPI)
@@ -17,13 +17,16 @@
         }
     }
     handle /sub/* {
-        reverse_proxy 127.0.0.1:8085
+        reverse_proxy 127.0.0.1:8087
     }
     handle /routing/* {
-        reverse_proxy 127.0.0.1:8085
+        reverse_proxy 127.0.0.1:8087
     }
     handle /health {
-        reverse_proxy 127.0.0.1:8085
+        reverse_proxy 127.0.0.1:8087
+    }
+    handle /ws-tunnel {
+        reverse_proxy 127.0.0.1:2083
     }
     handle {
         respond "OK" 200

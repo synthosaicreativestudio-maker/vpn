@@ -29,6 +29,7 @@ from panel.config import (
     API_KEY,
     API_KEY_HEADER,
     BOT_DB_PATH,
+    CLOUDFLARE_CDN_DOMAIN,
     DB_PATH,
     DEFAULT_IP_LIMIT,
     ENABLE_TRAFFIC_LIMITS,
@@ -800,17 +801,16 @@ _HAPP_ROUTING_PROFILE = {
     "DomesticDNSType": "DoH",
     "DomesticDNSDomain": "https://dns.google/dns-query",
     "DomesticDNSIP": "8.8.8.8",
-    "Geoipurl": "http://sub.synthosai.ru/sub/geo/geoip.dat",
-    "Geositeurl": "http://sub.synthosai.ru/sub/geo/geosite.dat",
+    "Geoipurl": f"http://sub.{CLOUDFLARE_CDN_DOMAIN}/sub/geo/geoip.dat",
+    "Geositeurl": f"http://sub.{CLOUDFLARE_CDN_DOMAIN}/sub/geo/geosite.dat",
     "DnsHosts": {
         "cloudflare-dns.com": "1.1.1.1",
         "dns.google": "8.8.8.8",
         "38.180.81.181.sslip.io": "185.4.67.223",
-        "sub.synthosai.ru": "185.4.67.223",
     },
     "DirectSites": [
         # Наш домен подписки — всегда напрямую (без VPN), чтобы избежать петель маршрутизации
-        "domain:synthosai.ru",
+        f"domain:{CLOUDFLARE_CDN_DOMAIN}",
         # Все домены зоны .ru — напрямую без VPN
         "domain:ru",
         # geosite:category-ru УБРАН — требует скачивания geosite.db с GitHub,
