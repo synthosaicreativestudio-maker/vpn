@@ -95,43 +95,43 @@ class LinkGenerator:
         )
 
     @classmethod
-    def vless_ws_cdn(cls, uuid: str, email: str) -> str:
+    def vless_ws_cdn(cls, uuid: str, email: str, ip: str) -> str:
         """4a. VLESS + WebSocket + TLS через Cloudflare CDN (порт 443)."""
         from panel.config import CLOUDFLARE_CDN_DOMAIN
         return (
-            f"vless://{uuid}@{CLOUDFLARE_CDN_DOMAIN}:443"
+            f"vless://{uuid}@{ip}:443"
             f"?encryption=none&security=tls&tls=1&type=ws&host={CLOUDFLARE_CDN_DOMAIN}&sni={CLOUDFLARE_CDN_DOMAIN}&path=/ws-tunnel"
-            + f"#{quote(f'☁️ {email} (CDN WebSocket TLS)')}"
+            + f"#{quote(f'☁️ {email} (CDN WS TLS {ip})')}"
         )
 
     @classmethod
-    def vless_ws_cdn_plain(cls, uuid: str, email: str) -> str:
+    def vless_ws_cdn_plain(cls, uuid: str, email: str, ip: str) -> str:
         """4b. VLESS + WebSocket через Cloudflare CDN без TLS (порт 80)."""
         from panel.config import CLOUDFLARE_CDN_DOMAIN
         return (
-            f"vless://{uuid}@{CLOUDFLARE_CDN_DOMAIN}:80"
+            f"vless://{uuid}@{ip}:80"
             f"?encryption=none&security=none&type=ws&host={CLOUDFLARE_CDN_DOMAIN}&path=/ws-tunnel"
-            + f"#{quote(f'☁️ {email} (CDN WebSocket Plain)')}"
+            + f"#{quote(f'☁️ {email} (CDN WS Plain {ip})')}"
         )
 
     @classmethod
-    def vless_grpc_cdn(cls, uuid: str, email: str) -> str:
+    def vless_grpc_cdn(cls, uuid: str, email: str, ip: str) -> str:
         """4c. VLESS + gRPC + TLS через Cloudflare CDN (порт 443)."""
         from panel.config import CLOUDFLARE_CDN_DOMAIN
         return (
-            f"vless://{uuid}@{CLOUDFLARE_CDN_DOMAIN}:443"
+            f"vless://{uuid}@{ip}:443"
             f"?encryption=none&security=tls&tls=1&type=grpc&host={CLOUDFLARE_CDN_DOMAIN}&sni={CLOUDFLARE_CDN_DOMAIN}&serviceName=grpc"
-            + f"#{quote(f'☁️ {email} (CDN gRPC TLS)')}"
+            + f"#{quote(f'☁️ {email} (CDN gRPC TLS {ip})')}"
         )
 
     @classmethod
-    def vless_grpc_cdn_plain(cls, uuid: str, email: str) -> str:
+    def vless_grpc_cdn_plain(cls, uuid: str, email: str, ip: str) -> str:
         """4d. VLESS + gRPC через Cloudflare CDN без TLS (порт 80)."""
         from panel.config import CLOUDFLARE_CDN_DOMAIN
         return (
-            f"vless://{uuid}@{CLOUDFLARE_CDN_DOMAIN}:80"
+            f"vless://{uuid}@{ip}:80"
             f"?encryption=none&security=none&type=grpc&host={CLOUDFLARE_CDN_DOMAIN}&serviceName=grpc"
-            + f"#{quote(f'☁️ {email} (CDN gRPC Plain)')}"
+            + f"#{quote(f'☁️ {email} (CDN gRPC Plain {ip})')}"
         )
 
     @staticmethod
@@ -283,18 +283,21 @@ class LinkGenerator:
     @classmethod
     def _direct_links(cls, uuid: str, email: str) -> dict[str, str]:
         """Прямые ссылки (к US серверу) — резервные для WiFi/стабильных сетей."""
-        return {
+        from panel.config import CLOUDFLARE_CLEAN_IPS
+        links = {
             "vless_reality": cls.vless_reality(uuid, email),
             "vless_xhttp": cls.vless_xhttp(uuid, email),
             "vless_grpc": cls.vless_grpc(uuid, email),
             "vless_ws": cls.vless_ws(uuid, email),
-            "vless_ws_cdn": cls.vless_ws_cdn(uuid, email),
-            "vless_ws_cdn_plain": cls.vless_ws_cdn_plain(uuid, email),
-            "vless_grpc_cdn": cls.vless_grpc_cdn(uuid, email),
-            "vless_grpc_cdn_plain": cls.vless_grpc_cdn_plain(uuid, email),
             "hysteria2": cls.hysteria2(email),
             "shadowsocks": cls.shadowsocks(email),
         }
+        for idx, ip in enumerate(CLOUDFLARE_CLEAN_IPS, 1):
+            links[f"vless_ws_cdn_{idx}"] = cls.vless_ws_cdn(uuid, email, ip)
+            links[f"vless_ws_cdn_plain_{idx}"] = cls.vless_ws_cdn_plain(uuid, email, ip)
+            links[f"vless_grpc_cdn_{idx}"] = cls.vless_grpc_cdn(uuid, email, ip)
+            links[f"vless_grpc_cdn_plain_{idx}"] = cls.vless_grpc_cdn_plain(uuid, email, ip)
+        return links
 
     @classmethod
     def all_links(cls, uuid: str, email: str) -> dict[str, str]:
@@ -326,21 +329,22 @@ class LinkGenerator:
           1. Vision Relay  — основной (TCP, лучший пинг из РФ)
           2. gRPC Relay    — резервный (HTTP/2, мультиплекс)
           3. Vision Direct — аварийный (если relay упадёт)
-          4. WS CDN TLS    — сверхнадежный обход блокировок через Cloudflare (порт 443)
-          5. WS CDN Plain  — WebSocket на порту 80 (без TLS, обход ТСПУ)
-          6. gRPC CDN TLS  — gRPC через Cloudflare (порт 443)
-          7. gRPC CDN Plain— gRPC через Cloudflare на порту 80 (без TLS)
+          4. Разнообразные Clean IP Cloudflare CDN варианты (WS, gRPC, TLS/Plain)
         """
+        from panel.config import CLOUDFLARE_CLEAN_IPS
         links: dict[str, str] = {}
         if RELAY_ENABLED:
             links["vless_relay"] = cls.vless_relay(email, uuid)
             links["vless_relay_grpc"] = cls.vless_relay_grpc(email, uuid)
             links["vless_anti_stub"] = cls.vless_anti_stub(email, uuid)
         links["vless_reality"] = cls.vless_reality(uuid, email)
-        links["vless_ws_cdn"] = cls.vless_ws_cdn(uuid, email)
-        links["vless_ws_cdn_plain"] = cls.vless_ws_cdn_plain(uuid, email)
-        links["vless_grpc_cdn"] = cls.vless_grpc_cdn(uuid, email)
-        links["vless_grpc_cdn_plain"] = cls.vless_grpc_cdn_plain(uuid, email)
+        
+        # Добавляем все варианты CDN для каждого чистого IP Cloudflare
+        for idx, ip in enumerate(CLOUDFLARE_CLEAN_IPS, 1):
+            links[f"vless_ws_cdn_{idx}"] = cls.vless_ws_cdn(uuid, email, ip)
+            links[f"vless_ws_cdn_plain_{idx}"] = cls.vless_ws_cdn_plain(uuid, email, ip)
+            links[f"vless_grpc_cdn_{idx}"] = cls.vless_grpc_cdn(uuid, email, ip)
+            links[f"vless_grpc_cdn_plain_{idx}"] = cls.vless_grpc_cdn_plain(uuid, email, ip)
         return links
 
     @classmethod
