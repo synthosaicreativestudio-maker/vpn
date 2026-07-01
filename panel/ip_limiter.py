@@ -19,6 +19,7 @@ from panel.config import (
     INBOUND_TAG_XHTTP,
     INBOUND_TAG_GRPC,
     INBOUND_TAG_WS,
+    INBOUND_TAG_GRPC_CDN,
     RELAY_ENABLED,
     RELAY_IP,
 )
@@ -160,7 +161,13 @@ class IPLimiter:
 
     def _enforce_limits(self, ip_map: dict[str, set[str]]):
         """Проверяет и применяет IP-лимиты."""
-        all_tags = [INBOUND_TAG_VISION, INBOUND_TAG_XHTTP, INBOUND_TAG_GRPC, INBOUND_TAG_WS]
+        all_tags = [
+            INBOUND_TAG_VISION,
+            INBOUND_TAG_XHTTP,
+            INBOUND_TAG_GRPC,
+            INBOUND_TAG_WS,
+            INBOUND_TAG_GRPC_CDN,
+        ]
         for email, ips in ip_map.items():
             user = self.db.get_user(email)
             if not user:

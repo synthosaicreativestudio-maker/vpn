@@ -65,6 +65,7 @@ INBOUND_TAG_VISION = os.getenv("INBOUND_TAG_VISION", "VLESS-Reality-Vision")
 INBOUND_TAG_XHTTP = os.getenv("INBOUND_TAG_XHTTP", "VLESS-Reality-XHTTP")
 INBOUND_TAG_GRPC = os.getenv("INBOUND_TAG_GRPC", "VLESS-Reality-gRPC")
 INBOUND_TAG_WS = os.getenv("INBOUND_TAG_WS", "VLESS-WS")
+INBOUND_TAG_GRPC_CDN = os.getenv("INBOUND_TAG_GRPC_CDN", "VLESS-gRPC-CDN")
 
 
 # ── Paths ─────────────────────────────────────────────────────
