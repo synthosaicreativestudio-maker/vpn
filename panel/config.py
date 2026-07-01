@@ -87,11 +87,8 @@ RELAY_ENABLED = os.getenv("RELAY_ENABLED", "False").lower() == "true"
 RELAY_IP = os.getenv("RELAY_IP", "185.4.67.223")
 RELAY_PORT = int(os.getenv("RELAY_PORT", "443"))
 
-# Домен Cloudflare CDN для обхода блокировок подписок
-CLOUDFLARE_CDN_DOMAIN = os.getenv("CLOUDFLARE_CDN_DOMAIN", "fredom.ru")
-
 if RELAY_ENABLED:
-    SUB_HOST = f"sub.{CLOUDFLARE_CDN_DOMAIN}"
+    SUB_HOST = "sub.synthosai.ru"
 else:
     SUB_HOST = f"{SERVER_IP}.sslip.io"
 # HTTP порт 80 — стандартный, не блокируется DPI (ранее 8086 блокировался)
