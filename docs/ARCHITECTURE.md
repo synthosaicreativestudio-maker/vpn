@@ -1,83 +1,135 @@
 # 🏗️ Архитектура VPN-инфраструктуры
 
-> **Обновлено:** 28.06.2026  
+> **Обновлено:** 03.07.2026  
 > **⚠️ AI-агенты: этот документ обязателен к прочтению перед работой с проектом**
 
 ---
 
-## Общая схема (Параллельный Мост)
+## Общая схема (3 сервера)
 
 ```
-                       ┌──────────────────────────────────────────────┐
-                       │                   РФ Релей                   │
-                       │               (111.88.145.206)               │
-                       │           (Входной домен: sub.synthosai.ru)  │
-                       └──────────────────────────────────────────────┘
-                                  /           |            \
-       Порт 443 (TCP/Vision)     /            |             \      Порт 8443 (xHTTP)
-       [relay-vision]           /    Порт 2053 (gRPC)        \     [relay-xhttp]
-                               /     [relay-grpc]             \
-                              v               v                v
-                       ┌──────────────────────────────────────────────┐
-                       │                  US Server                   │
-                       │                (38.180.81.181)                 │
-                       │      Xray + Panel + Bot + Local Geo Files    │
-                       └──────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────┐
+│  37.1.212.51 — Сервер подписок, бота и проектов (ID: 351340)  │
+│                                                           │
+│  Caddy :80/:8086 → Panel :8085                            │
+│  vpn-panel.service   — Панель управления подписками       │
+│  vpn-bot.service     — Telegram бот (@SintaMarketingBot)  │
+│  rbn-max-bot.service — RBN Max Assistant Bot              │
+│  vpn-relay-tunnel    — SSH-туннель gRPC к релею           │
+│                                                           │
+│  gRPC → 38.180.81.181:10085 (синхронизация юзеров с VPN)  │
+│  gRPC → 127.0.0.1:10086 → relay (синхр. юзеров с релеем) │
+└───────────────────────────────────────────────────────────┘
+              ↕ gRPC (синхронизация юзеров)
+┌───────────────────────────────────────────────────────────┐
+│  38.180.81.181 — VPN-сервер (только VPN) (ID: 433343)     │
+│                                                           │
+│  Xray Core v26.5.9 — все VPN-протоколы                    │
+│  gRPC API :10085   — для управления пользователями        │
+│  Caddy :80/:8086   — проксирует /sub/* на 37.1.212.51     │
+│                      (обратная совместимость старых ссылок)│
+│  /ws-tunnel        — WebSocket VPN на :2083               │
+│                                                           │
+│  ⛔ НЕТ панели, НЕТ бота (только VPN + Caddy-прокси)      │
+└───────────────────────────────────────────────────────────┘
+              ↑ VPN-трафик от клиентов через релей
+┌───────────────────────────────────────────────────────────┐
+│  185.4.67.223 — РФ-релей (ID: 433815)                     │
+│                                                           │
+│  Xray VLESS Reality Bridge                                │
+│  DNS: sub.synthosai.ru → 185.4.67.223                     │
+│                                                           │
+│  VPN-трафик (к 38.180.81.181):                            │
+│    :443  (relay-vision) → US:443  (Vision TCP)            │
+│    :2053 (relay-grpc)   → US:2053 (gRPC H2)               │
+│    :8443 (relay-xhttp)  → US:8443 (xHTTP)                 │
+│                                                           │
+│  Подписки (к 37.1.212.51 — dokodemo-door):                │
+│    :80   (relay-http-80)    → Panel:80                    │
+│    :8086 (relay-https-8086) → Panel:8086                  │
+│                                                           │
+│  gRPC API :10085 — для синхронизации юзеров (через SSH)   │
+└───────────────────────────────────────────────────────────┘
 ```
 
-Для обхода блокировок и предотвращения перегрузки единого TCP-канала реализована схема **параллельного моста**. Трафик от клиентов распределяется по разным портам релея и пересылается в США по независимым параллельным туннелям (Vision, gRPC, xHTTP), что решает проблему «бутылочного горлышка».
+### Принцип разделения ролей
+
+| Сервер | Роль | Что НЕ должно быть |
+|--------|------|---------------------|
+| `37.1.212.51` | Панель, бот, проекты | Xray VPN |
+| `38.180.81.181` | Только VPN (Xray) | Панель, бот |
+| `185.4.67.223` | Релей (мост в РФ) | Панель, бот |
 
 ---
 
-## US Server (38.180.81.181)
+## Сервер подписок (37.1.212.51)
 
 ### Активные сервисы
 
 | Сервис | Systemd unit | Порт | Описание |
 |--------|-------------|------|----------|
-| **Xray Core** | `xray.service` | 443, 8443, 2053, 2083, 2087, 2085 | Основной VPN v26.5.9: Vision, xHTTP, gRPC, WS, H2, SS2022 |
-| **Hysteria2** | `hysteria2.service` | 10443/UDP | UDP/QUIC VPN + Salamander obfs |
-| **VPN Panel** | `vpn-panel.service` | 8085 | Панель управления подписками |
-| **Caddy** | `caddy.service` | 80 / 8086 | HTTP/HTTPS reverse proxy (для подписок и раздачи гео-файлов) |
+| **VPN Panel** | `vpn-panel.service` | 8085 | Панель управления подписками (FastAPI) |
+| **Caddy** | `caddy.service` | 80 / 8086 | HTTP/HTTPS reverse proxy |
 | **VPN Bot** | `vpn-bot.service` | — | Telegram-бот управления подписками |
+| **RBN Bot** | `rbn-max-bot.service` | — | RBN Max Assistant Bot |
+| **Relay Tunnel** | `vpn-relay-tunnel.service` | — | SSH-туннель к gRPC API релея |
 
-### Xray Inbounds (подробно)
+### Ключевые переменные `.env`
 
-| Tag | Порт | Транспорт | Security | SNI (Маскировка) | Описание |
-|-----|------|-----------|----------|-----------------|----------|
-| VLESS-Reality-Vision | 443 | tcp + xtls-rprx-vision | reality | yandex.ru | Прямое/релейное Vision-соединение |
-| VLESS-Reality-XHTTP | 8443 | xhttp (stream-up) | reality | yandex.ru | xHTTP-туннель (резервный) |
-| VLESS-Reality-gRPC | 2053 | grpc | reality | yandex.ru | gRPC-туннель (мультиплексный) |
-| VLESS-WS | 2083 | websocket | none | — | Устаревший резерв |
-| VLESS-H2 | 2087 | h2 | reality | yandex.ru | Резервный H2 |
-
-> ⚠️ **Важно:** В качестве домена маскировки во всех Reality-инбаундах на сервере США используется `yandex.ru` вместо `www.microsoft.com`. Это связано с тем, что сервера Akamai (обслуживающие Microsoft) в новых версиях Xray отдают несовместимые TLS-ответы, вызывая сбои Reality-хендшейка (`handshake did not complete successfully`).
-
-### Локальная раздача гео-файлов (Байпас блокировок GitHub)
-Для обхода блокировок серверов GitHub в РФ, файлы гео-баз `geoip.dat` и `geosite.dat` скачиваются напрямую с нашего сервера подписок.
-* **geoip.dat URL:** `http://sub.synthosai.ru/sub/geo/geoip.dat`
-* **geosite.dat URL:** `http://sub.synthosai.ru/sub/geo/geosite.dat`
-
-В коде панели управления (`panel/app.py`) настроена автоматическая генерация этих ссылок в заголовке `routing` при получении подписки клиентом Happ.
+```env
+SERVER_IP=38.180.81.181          # IP VPN-сервера (для генерации ссылок)
+XRAY_GRPC_HOST=38.180.81.181:10085  # gRPC API Xray на VPN-сервере
+RELAY_ENABLED=True
+RELAY_IP=185.4.67.223            # IP РФ-релея
+RELAY_GRPC_ENABLED=True
+RELAY_GRPC_HOST=127.0.0.1:10086  # gRPC релея через SSH-туннель
+```
 
 ---
 
-## Relay RU (111.88.145.206) — Обход белых списков и мост
+## VPN-сервер (38.180.81.181)
+
+### Активные сервисы
+
+| Сервис | Systemd unit | Порт | Описание |
+|--------|-------------|------|----------|
+| **Xray Core** | `xray.service` | 443, 8443, 2053, 2083, 2085 | VPN v26.5.9 |
+| **Caddy** | `caddy.service` | 80 / 8086 | Проксирует /sub/* на `37.1.212.51:8085` |
+| **Relay Tunnel** | `vpn-relay-tunnel.service` | — | SSH-туннель gRPC к релею |
+
+### Xray Inbounds
+
+| Tag | Порт | Транспорт | Security | SNI | Описание |
+|-----|------|-----------|----------|-----|----------|
+| VLESS-Reality-Vision | 443 | tcp + xtls-rprx-vision | reality | dzen.ru | Основной канал |
+| VLESS-Reality-XHTTP | 8443 | xhttp (stream-up) | reality | dzen.ru | Резервный |
+| VLESS-Reality-gRPC | 2053 | grpc | reality | dzen.ru | Мультиплексный |
+| VLESS-WS | 2083 | websocket | none | — | Устаревший резерв |
+
+> ⚠️ **SNI:** `dzen.ru` вместо `www.microsoft.com` — серверы Akamai (Microsoft) отдают несовместимые TLS-ответы на Xray v26.5.9.
+
+---
+
+## РФ-Релей (185.4.67.223)
 
 | Параметр | Значение |
 |----------|---------|
-| Хостинг | Yandex Cloud, ru-central1-b |
+| DNS | `sub.synthosai.ru` → `185.4.67.223` |
 | Xray | v26.5.9 |
-| Роль | Параллельный VLESS Reality Bridge ➔ US 38.180.81.181 |
-| Порты | 443 (Vision), 2053 (gRPC), 8443 (xHTTP), 80 (Caddy-прокси для подписок) |
+| Роль | VLESS Reality Bridge → US + Dokodemo-door подписки → Panel |
 | UUID клиентский | `57ca4aae-dcb3-4fdd-9e14-f9afb42b703c` |
-| SNI (входящий) | ozon.ru, wildberries.ru |
-| Домен подписки | `sub.synthosai.ru` ➔ 111.88.145.206 (A-запись) |
+| SNI (входящий) | ozon.ru, wildberries.ru, yandex.ru, dzen.ru |
+| SSH доступ | `ubuntu@185.4.67.223` ключ `id_ed25519` (через VPN-сервер или панельный) |
 
-### Схема проксирования на релее:
-* Входящие соединения на порт `443` (`relay-vision`) пересылаются на порт `443` США (`to-us-vision`).
-* Входящие соединения на порт `2053` (`relay-grpc`) пересылаются на порт `2053` США (`to-us-grpc`).
-* Входящие соединения на порт `8443` (`relay-xhttp`) пересылаются на порт `8443` США (`to-us-xhttp`).
+### Маршрутизация на релее
+
+| Входящий тег | Порт | Назначение | Протокол |
+|-------------|------|-----------|----------|
+| relay-vision | 443/TCP | → US:443 (VPN Vision) | VLESS Reality |
+| relay-grpc | 2053/TCP | → US:2053 (VPN gRPC) | VLESS Reality |
+| relay-xhttp | 8443/TCP | → US:8443 (VPN xHTTP) | VLESS Reality |
+| relay-http-80 | 80/TCP | → Panel:80 (подписки HTTP) | dokodemo-door |
+| relay-https-8086 | 8086/TCP | → Panel:8086 (подписки HTTPS) | dokodemo-door |
 
 ---
 
@@ -89,46 +141,61 @@
 | Универсальная | `http://sub.synthosai.ru/sub/{TOKEN}` |
 | Hiddify | `http://sub.synthosai.ru/sub/hiddify/{TOKEN}` |
 | Happ (iOS) | `http://sub.synthosai.ru/sub/happ/{TOKEN}` |
-| С авто-маршрутизацией | Добавить параметр `?routing=ru` в конец ссылки |
+| С маршрутизацией | Добавить `?routing=ru` |
+| Admin UI | `https://37.1.212.51.sslip.io:8086/admin/ui` |
 
-### Содержимое подписки Happ (iOS)
-Подписка содержит 3 оптимизированных конфигурации:
-1. `📡 @username (Relay RU new)` — Вход на порт 443 релея (Vision), высокая скорость, обход ТСПУ.
-2. `📡 @username (gRPC Relay RU new)` — Вход на порт 2053 релея (gRPC), резервный мультиплексный канал.
-3. `🔌 @username (Vision)` — Прямое подключение к серверу США на порт 443 (минуя релей, для использования за пределами РФ).
-
----
-
-## ⚡ Оптимизация соединений (Борьба с зомби-сессиями и TIME-WAIT)
-
-Для предотвращения зависания неактивных «зомби»-соединений от мобильных клиентов в настройках Xray на релее и в США применены следующие оптимизации:
-1. **Таймаут простоя (`connIdle`):** В секции `policy` время неактивности сокета снижено до **90 секунд** (по умолчанию было 300).
-2. **TCP Keep-Alive (`tcpKeepAliveInterval`):** В параметрах сокетов (`sockopt`) на входящих и исходящих портах включена отправка системных пингов каждые **15 секунд**. Если клиент резко уходит в оффлайн (блокировка экрана, потеря сети), операционная система сразу разрывает мертвый сокет и освобождает ресурсы Xray.
+### Содержимое Happ-подписки (3 протокола)
+1. `📡 @username (Relay RU new)` — Vision через релей (TCP, основной)
+2. `📡 @username (gRPC Relay RU new)` — gRPC через релей (HTTP/2, резервный)
+3. `🔌 @username (Vision)` — Прямой к US (аварийный, для WiFi без РФ-блокировок)
 
 ---
 
 ## Важные процедуры
 
-### При перезапуске Xray на основном сервере (US):
+### При перезапуске Xray на VPN-сервере (US):
 ```bash
+ssh root@38.180.81.181
 systemctl restart xray
-systemctl restart vpn-panel  # ОБЯЗАТЕЛЬНО — синхронизирует пользователей с Xray
+# Панель на 37.1.212.51 автоматически пересинхронизирует юзеров при следующем запуске
+ssh root@37.1.212.51 "systemctl restart vpn-panel"
 ```
 
 ### При перезапуске Xray на релее (RU):
 ```bash
-ssh ubuntu@111.88.145.206  # доступ через US-сервер (ключ ed25519)
+# Через VPN-сервер (jump host):
+ssh root@38.180.81.181
+ssh -i /root/.ssh/id_ed25519 ubuntu@185.4.67.223
 sudo systemctl restart xray
+# Перезапустить SSH-туннели:
+ssh root@38.180.81.181 "systemctl restart vpn-relay-tunnel"
+ssh root@37.1.212.51 "systemctl restart vpn-relay-tunnel"
+# Панель пересинхронизирует юзеров:
+ssh root@37.1.212.51 "systemctl restart vpn-panel"
 ```
 
-### Проверка работоспособности гео-раздачи:
+### Полный перезапуск:
 ```bash
-curl -o /dev/null -s -w "%{http_code}\n" http://sub.synthosai.ru/sub/geo/geoip.dat
-curl -o /dev/null -s -w "%{http_code}\n" http://sub.synthosai.ru/sub/geo/geosite.dat
+# 1. VPN-сервер
+ssh root@38.180.81.181 "systemctl restart xray caddy vpn-relay-tunnel"
+# 2. Панельный сервер
+ssh root@37.1.212.51 "systemctl restart vpn-panel vpn-bot caddy vpn-relay-tunnel"
+# 3. Релей (через jump)
+ssh root@38.180.81.181 "ssh -i /root/.ssh/id_ed25519 ubuntu@185.4.67.223 'sudo systemctl restart xray'"
 ```
-Оба запроса должны возвращать `200`.
 
 ---
 
-## Безопасность обновлений
-Подробный регламент обновления кода и конфигураций для предотвращения сбоев описан в документе **[Blue-Green Deployment Регламент](file:///docs/BLUE_GREEN_DEPLOYMENT.md)**.
+## Оптимизация соединений
+
+Для предотвращения зомби-сессий от мобильных клиентов:
+1. **Таймаут простоя (`connIdle`):** 90 секунд (по умолчанию 300)
+2. **TCP Keep-Alive (`tcpKeepAliveInterval`):** 15 секунд — ОС разрывает мёртвые сокеты
+
+---
+
+## Локальная раздача гео-файлов
+
+GitHub заблокирован в РФ, поэтому файлы `geoip.dat` и `geosite.dat` раздаются с нашего сервера:
+* `http://sub.synthosai.ru/sub/geo/geoip.dat`
+* `http://sub.synthosai.ru/sub/geo/geosite.dat`

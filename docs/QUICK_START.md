@@ -1,83 +1,89 @@
 # 🚀 Быстрый запуск и управление VPN
 
-Вся инфраструктура VPN автоматизирована. Подписки генерируются динамически панелью управления и выдаются пользователям через Telegram-бота.
+Инфраструктура разделена на 3 сервера. Подписки генерируются панелью на `37.1.212.51` и выдаются через Telegram-бота.
 
 ---
 
 ## 📱 Как получить конфигурацию (пользователю)
 
 1. **Через Telegram-бота:** `@SintaMarketingBot`
-2. **Через API-панель:** 
-   - Адрес панели: `http://38.180.81.181:8085/admin/ui` (Авторизация по API-ключу из [CREDENTIALS.md](file:///docs/CREDENTIALS.md))
+2. **Через Admin UI:** `https://37.1.212.51.sslip.io:8086/admin/ui`
 3. **Формат ссылок подписки:**
-   - **Hiddify:** `http://sub.synthosai.ru/sub/hiddify/{TOKEN}`
    - **Happ (iOS):** `http://sub.synthosai.ru/sub/happ/{TOKEN}`
+   - **Hiddify:** `http://sub.synthosai.ru/sub/hiddify/{TOKEN}`
 
 ---
 
-## 🛠️ Управление сервисами на сервере (`38.180.81.181`)
+## 🛠️ Управление сервисами
 
-Подключитесь по SSH (`root@38.180.81.181`) и используйте следующие команды:
+### Сервер подписок (37.1.212.51)
 
-### 1. Перезапуск всей цепочки (Рекомендуется при любых изменениях)
 ```bash
+ssh root@37.1.212.51
+
+# Перезапуск панели
+systemctl restart vpn-panel vpn-bot
+
+# Проверка статуса
+systemctl is-active vpn-panel vpn-bot caddy vpn-relay-tunnel
+
+# Проверка здоровья
+curl http://127.0.0.1:8085/health
+```
+
+### VPN-сервер (38.180.81.181)
+
+```bash
+ssh root@38.180.81.181
+
+# Перезапуск Xray
 systemctl restart xray
-systemctl restart vpn-panel  # ⚠️ ОБЯЗАТЕЛЬНО после xray для синхронизации памяти пользователей!
-systemctl restart vpn-bot
+# ⚠️ После рестарта Xray — обязательно перезапустить панель!
+ssh root@37.1.212.51 "systemctl restart vpn-panel"
+
+# Проверка статуса
+systemctl is-active xray caddy vpn-relay-tunnel
 ```
 
-### 2. Проверка статуса сервисов
+### РФ-Релей (185.4.67.223)
+
 ```bash
-systemctl status xray vpn-panel vpn-bot caddy
-```
+# Доступ только через jump host (VPN-сервер или панельный)
+ssh root@38.180.81.181
+ssh -i /root/.ssh/id_ed25519 ubuntu@185.4.67.223
 
-### 3. Просмотр логов в реальном времени
-* **Xray:** `journalctl -u xray -f -n 100`
-* **Панель управления:** `journalctl -u vpn-panel -f -n 100`
-* **Telegram-бот:** `journalctl -u vpn-bot -f -n 100`
-
----
-
-## 🇷🇺 Управление РФ-релеем (`111.88.145.206`)
-
-Релей настраивается через SSH-доступ непосредственно с сервера США (ключ авторизован):
-
-### 1. Вход на релей
-```bash
-ssh -i /root/.ssh/id_ed25519 ubuntu@111.88.145.206
-```
-
-### 2. Перезапуск Xray на релее
-После внесения изменений в конфигурацию на релее:
-```bash
+# Перезапуск Xray на релее
 sudo systemctl restart xray
+
+# После рестарта — перезапустить SSH-туннели
+exit  # вернуться на VPN-сервер
+systemctl restart vpn-relay-tunnel
+ssh root@37.1.212.51 "systemctl restart vpn-relay-tunnel vpn-panel"
 ```
 
 ---
 
-## ⚠️ Решение частых проблем
+## 🔍 Диагностика
 
-### Проблема: У пользователя в Happ ошибка «Не удалось загрузить geo файлы»
-* **Причина:** Блокировка GitHub в РФ не позволяет приложению Happ скачать базы правил маршрутизации.
-* **Решение:** Попросить пользователя обновить подписку в Happ. Мы настроили локальную раздачу баз с нашего сервера `sub.synthosai.ru`. При обновлении подписки Happ получит новые рабочие ссылки на гео-файлы автоматически.
-* **Ручная проверка раздачи гео-файлов с сервера:**
-  ```bash
-  curl -o /dev/null -s -w "%{http_code}\n" http://sub.synthosai.ru/sub/geo/geoip.dat
-  curl -o /dev/null -s -w "%{http_code}\n" http://sub.synthosai.ru/sub/geo/geosite.dat
-  ```
+```bash
+# Проверка подписки через панель
+curl -s http://37.1.212.51:8085/sub/happ/{TOKEN} | base64 -d
 
-### Проблема: Все VLESS-каналы выдают Timeout (пинг n/a)
-* **Причина:** Неверная работа домена-маскировки (Reality) или сбой Xray.
-* **Решение:** Проверить работоспособность Reality-соединений в логах Xray на сервере США. Если в логах есть ошибки вида `handshake did not complete successfully`, убедиться, что домен маскировки (параметр `dest`) доступен и отвечает (сейчас используется `yandex.ru:443`).
-* Также обязательно выполнить перезапуск панели для повторной синхронизации пользователей:
-  ```bash
-  systemctl restart vpn-panel
-  ```
+# Проверка через релей
+curl -s http://185.4.67.223/health
 
-### Проблема: Бот не реагирует на команды
-* **Причина:** Бот упал или остановлен.
-* **Решение:** Проверить статус службы и перезапустите:
-  ```bash
-  systemctl status vpn-bot
-  systemctl restart vpn-bot
-  ```
+# Проверка VPN через Caddy
+curl -s http://38.180.81.181/health
+
+# Число протоколов в Happ-подписке (должно быть 3)
+curl -s http://37.1.212.51:8085/sub/happ/{TOKEN} | base64 -d | wc -l
+```
+
+---
+
+## ⚠️ Важно
+
+- **Панель работает ТОЛЬКО на `37.1.212.51`** — никогда не запускать на VPN-сервере
+- При изменении кода панели → SCP файлы на `37.1.212.51:/root/vpn/panel/` → restart
+- DNS `sub.synthosai.ru` указывает на релей `185.4.67.223`
+- Happ подписка содержит строго 3 протокола (Vision Relay, gRPC Relay, Vision Direct)
