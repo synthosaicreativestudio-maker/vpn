@@ -199,3 +199,27 @@ ssh root@38.180.81.181 "ssh -i /root/.ssh/id_ed25519 ubuntu@185.4.67.223 'sudo s
 GitHub заблокирован в РФ, поэтому файлы `geoip.dat` и `geosite.dat` раздаются с нашего сервера:
 * `http://sub.synthosai.ru/sub/geo/geoip.dat`
 * `http://sub.synthosai.ru/sub/geo/geosite.dat`
+
+---
+
+## 🛡️ Резервное копирование и автоматический откат (Blue-Green Failover)
+
+Для обеспечения непрерывной работы инфраструктуры каждый из 3 серверов оснащен изолированной системой автоматического контроля работоспособности (Failover) и архивом стабильных сборок.
+
+### Схема резервных копий по серверам
+
+| Сервер | Компонент | Рабочая директория | Директория бэкапов | Стабильная копия (Rollback target) |
+|---|---|---|---|---|
+| **VPN (38.180.81.181)** | Xray Core | `/usr/local/bin/xray`<br>`/etc/xray/config.json` | `/usr/local/bin/builds/`<br>`/etc/xray/builds/` | `/usr/local/bin/xray.stable`<br>`/etc/xray/config.json.stable` |
+| **Панель (37.1.212.51)** | FastAPI + Bot | `/root/vpn/panel/`<br>`/root/vpn/bot/` | `/etc/vpn-panel/builds/` | `/etc/vpn-panel/panel.stable/`<br>`/etc/vpn-panel/bot.stable/` |
+| **Релей (185.4.67.223)** | Xray Bridge | `/usr/local/bin/xray`<br>`/usr/local/etc/xray/config.json` | `/usr/local/bin/builds/`<br>`/usr/local/etc/xray/builds/` | `/usr/local/bin/xray.stable`<br>`/usr/local/etc/xray/config.json.stable` |
+
+### Принцип работы автоотката
+
+На каждом сервере по планировщику `cron` каждую минуту запускается индивидуальный скрипт мониторинга (`xray-failover.sh`, `panel-failover.sh`, `relay-failover.sh`):
+
+1. **Проверка жизнеспособности:** Скрипт проверяет активность соответствующей службы в systemd и доступность ее сетевых портов/эндпоинтов.
+2. **Обнаружение сбоя:** Если служба неактивна или не отвечает на тестовые запросы, инициируется процедура автоматического отката.
+3. **Восстановление:** Скрипт заменяет текущие исполняемые файлы и конфигурации стабильными копиями из директории `.stable` и перезапускает службу.
+4. **Оповещение:** Отправляется лог-сообщение в Telegram-канал мониторинга с деталями инцидента.
+
