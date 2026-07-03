@@ -39,8 +39,6 @@ RELAY_ENABLED = os.getenv("RELAY_ENABLED", "True").lower() == "true"
 RELAY_IP = os.getenv("RELAY_IP", "185.4.67.223")
 SERVER_IP = os.getenv("SERVER_IP", "38.180.81.181")
 
-# Домен Cloudflare CDN для резервного WebSocket канала
-CLOUDFLARE_CDN_DOMAIN = os.getenv("CLOUDFLARE_CDN_DOMAIN", "fredom.ru")
 
 if RELAY_ENABLED:
     SUB_HOST = "sub.synthosai.ru"

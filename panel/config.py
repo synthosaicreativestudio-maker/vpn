@@ -65,7 +65,7 @@ INBOUND_TAG_VISION = os.getenv("INBOUND_TAG_VISION", "VLESS-Reality-Vision")
 INBOUND_TAG_XHTTP = os.getenv("INBOUND_TAG_XHTTP", "VLESS-Reality-XHTTP")
 INBOUND_TAG_GRPC = os.getenv("INBOUND_TAG_GRPC", "VLESS-Reality-gRPC")
 INBOUND_TAG_WS = os.getenv("INBOUND_TAG_WS", "VLESS-WS")
-INBOUND_TAG_GRPC_CDN = os.getenv("INBOUND_TAG_GRPC_CDN", "VLESS-gRPC-CDN")
+
 
 
 # ── Paths ─────────────────────────────────────────────────────
@@ -88,14 +88,7 @@ RELAY_ENABLED = os.getenv("RELAY_ENABLED", "False").lower() == "true"
 RELAY_IP = os.getenv("RELAY_IP", "185.4.67.223")
 RELAY_PORT = int(os.getenv("RELAY_PORT", "443"))
 
-# Домен Cloudflare CDN для резервного WebSocket канала
-CLOUDFLARE_CDN_DOMAIN = os.getenv("CLOUDFLARE_CDN_DOMAIN", "fredom.ru")
-CLOUDFLARE_CLEAN_IPS = [
-    "104.16.123.96",
-    "188.114.96.1",
-    "162.159.36.1",
-    "104.17.123.96",
-]
+
 
 if RELAY_ENABLED:
     SUB_HOST = "sub.synthosai.ru"
@@ -112,24 +105,5 @@ RELAY_SHORT_ID = os.getenv("RELAY_SHORT_ID", "abcdef0123456789")
 RELAY_SNI = os.getenv("RELAY_SNI", "storage.yandex.net")
 RELAY_GRPC_ENABLED = os.getenv("RELAY_GRPC_ENABLED", "False").lower() == "true"
 RELAY_GRPC_HOST = os.getenv("RELAY_GRPC_HOST", "51.250.94.182:10085")
-
-
-# ── Тесты обхода белых списков (3 независимых релея) ─────────
-TEST_RELAYS_ENABLED = os.getenv("TEST_RELAYS_ENABLED", "False").lower() == "true"
-TEST_RELAY_IPS = [
-    os.getenv("TEST_RELAY_IP_1", "0.0.0.0"),
-    os.getenv("TEST_RELAY_IP_2", "0.0.0.0"),
-    os.getenv("TEST_RELAY_IP_3", "0.0.0.0"),
-]
-TEST_RELAY_PORT = int(os.getenv("TEST_RELAY_PORT", "8081"))
-TEST_RELAY_SNI = os.getenv("TEST_RELAY_SNI", "ads.x5.ru")
-TEST_RELAY_FP = os.getenv("TEST_RELAY_FP", "edge")
-
-# Обратная совместимость
-ANTI_STUB_ENABLED = TEST_RELAYS_ENABLED
-ANTI_STUB_IP = TEST_RELAY_IPS[0]
-ANTI_STUB_PORT = TEST_RELAY_PORT
-ANTI_STUB_SNI = TEST_RELAY_SNI
-ANTI_STUB_FP = TEST_RELAY_FP
 
 

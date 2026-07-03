@@ -36,7 +36,7 @@ from panel.config import (
     INBOUND_TAG_VISION,
     INBOUND_TAG_WS,
     INBOUND_TAG_XHTTP,
-    INBOUND_TAG_GRPC_CDN,
+
     SERVER_IP,
     SUB_HOST,
     SUB_PORT,
@@ -119,7 +119,6 @@ ALL_INBOUND_TAGS = [
     INBOUND_TAG_XHTTP,
     INBOUND_TAG_GRPC,
     INBOUND_TAG_WS,
-    INBOUND_TAG_GRPC_CDN,
 ]
 
 # Xray клиент (может быть None если stubs ещё не сгенерированы)
