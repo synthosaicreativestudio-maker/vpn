@@ -22,5 +22,5 @@ panel/proto/*_pb2*.py
 $DB_PATH
 *.log
 *.png
-ssh-key-1770366966512/
+_archive/ssh-key-1770366966512/
 
