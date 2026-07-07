@@ -3,6 +3,41 @@
 > Документ фиксирует все значимые проблемы, их диагностику и принятые решения.  
 > **Новые записи добавлять в начало файла (самые свежие сверху).**
 
+## 2026-07-07 — Западные сервисы (Google, ChatGPT, Instagram и др.) недоступны через VPN
+
+### Симптомы
+- Google, ChatGPT, Instagram, YouTube и другие западные сервисы перестали работать через VPN
+- VPN-соединение при этом устанавливается и частично работает (РФ-сайты ОК)
+
+### Диагностика
+1. **WARP-ключи истекли:** Cloudflare WARP outbound в Xray использовал старый `secretKey`, WireGuard handshake не проходил. Ping через `172.16.0.2` — 100% packet loss. Последний keepalive в логах — 5 июля 14:24 (2 дня назад).
+2. **Неполный WARP routing:** В правилах маршрутизации были только `youtube.com`, `openai.com`, `chatgpt.com` и несколько других доменов. Отсутствовали: `google.com`, `googleapis.com`, `gstatic.com`, `instagram.com`, `facebook.com`, `twitter.com`, `discord.com`, `github.com` и многие другие.
+3. **WARP endpoints доступны:** UDP-порты Cloudflare `162.159.192.1:2408` и альтернативные — reachable. Проблема именно в ключах.
+
+### Решение
+| # | Действие | Детали |
+|---|----------|--------|
+| 1 | **Бэкап конфига** | `/etc/xray/config.json.pre-warp-fix.20260707_161653` |
+| 2 | **Перегенерация WARP-ключей** | `wgcf register + generate` на VPN-сервере. Новый secretKey получен. |
+| 3 | **Обновление Xray конфига** | Новый `secretKey` в WARP outbound. Расширен WARP routing с 9 до 44 доменов: добавлены `geosite:google`, Google-домены, Meta (FB/IG), Twitter/X, Discord, LinkedIn, Netflix, Spotify, GitHub, Medium, Notion, Figma, Anthropic/Claude. |
+| 4 | **Перезапуск Xray** | `systemctl restart xray` |
+| 5 | **Перезапуск панели** | `systemctl restart vpn-panel` на `37.1.212.51` |
+| 6 | **Обновление stable-бэкапа** | `config.json.stable` обновлён для Blue-Green failover |
+
+### Верификация
+- [x] Xray active после рестарта
+- [x] 0 ошибок на WARP-соединениях в логах
+- [x] Трафик к Google-сервисам маршрутизируется через WARP (`taking detour [WARP]`)
+- [x] Panel health → `xray_connected: true`
+- [x] Stable-бэкап обновлён
+- [ ] Мониторинг стабильности 24-48 часов
+- [ ] Пользователь подтверждает работу Google, ChatGPT, Instagram
+
+### Урок
+> **WARP-ключи Cloudflare имеют ограниченный срок жизни.** При симптомах "VPN работает, но западные сервисы нет" — первым делом проверять WARP: `ping -I 172.16.0.2 1.1.1.1`. При добавлении WARP — сразу добавлять `geosite:google` и полный список западных сервисов, не ограничиваться отдельными доменами.
+
+---
+
 ## 2026-07-05 — VPN-сервер недоступен извне + рассогласование SNI на релее
 
 ### Симптомы

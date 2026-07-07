@@ -2,6 +2,7 @@
 panel/.env
 docs/CREDENTIALS.md
 docs/YANDEX_VM_CREDENTIALS.md
+docs/VPS_ACCESS_KEYS.md
 
 # ── Database ──────────────────────────────────────────────────
 panel/data/
