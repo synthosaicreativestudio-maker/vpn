@@ -34,7 +34,31 @@ if [ "$trigger_rollback" != "true" ]; then
     done
 fi
 
-# 3. Выполнение отката при необходимости
+# 3. Проверка работоспособности WARP (Cloudflare SOCKS5 на порту 40000)
+if [ "$trigger_rollback" != "true" ]; then
+    WARP_CHECK=$(curl -x socks5://127.0.0.1:40000 -s --connect-timeout 5 -o /dev/null -w "%{http_code}" https://www.google.com)
+    if [ "$WARP_CHECK" != "200" ]; then
+        echo "[$(date)] WARP check failed (HTTP code: $WARP_CHECK). Attempting to recover WARP..."
+        
+        # Попытка восстановления
+        systemctl restart warp-svc
+        sleep 3
+        warp-cli --accept-tos connect > /dev/null 2>&1
+        sleep 3
+        
+        # Перепроверка
+        WARP_CHECK_AGAIN=$(curl -x socks5://127.0.0.1:40000 -s --connect-timeout 5 -o /dev/null -w "%{http_code}" https://www.google.com)
+        if [ "$WARP_CHECK_AGAIN" != "200" ]; then
+            echo "[$(date)] WARP recovery failed (HTTP code: $WARP_CHECK_AGAIN)."
+            send_telegram "🚨 <b>[${SERVER_NAME}]</b> Сбой WARP! Попытка автоматического восстановления не удалась. Тест Google вернул код: ${WARP_CHECK_AGAIN}."
+        else
+            echo "[$(date)] WARP recovered successfully."
+            send_telegram "ℹ️ <b>[${SERVER_NAME}]</b> Было зафиксировано падение WARP. Автоматическое восстановление прошло успешно."
+        fi
+    fi
+fi
+
+# 4. Выполнение отката при необходимости
 if [ "$trigger_rollback" = "true" ]; then
     send_telegram "⚠️ <b>[${SERVER_NAME}]</b> Обнаружен сбой VPN!
 <b>Причина:</b> ${ROLLBACK_REASON}
