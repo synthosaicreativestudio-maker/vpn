@@ -13,3 +13,9 @@
    ssh root@37.1.212.51 "systemctl restart vpn-panel vpn-bot"
    ```
 6. НИКОГДА не запускать vpn-panel на VPN-сервере 38.180.81.181
+7. Health-check WARP: использовать ТОЛЬКО `cloudflare.com/cdn-cgi/trace` (проверять HTTP 200 + `warp=on`).
+   НИКОГДА не использовать `google.com` — Google банит shared WARP IP (302→captcha).
+   ChatGPT/OpenAI тоже блокируют WARP IP (403). Не подходят для мониторинга.
+8. При ложных алертах мониторинга — СНАЧАЛА проверить, реально ли сервис сбоит:
+   вручную протестировать через `warp-cli status` и `curl -x socks5://127.0.0.1:40000`.
+   Не доверять слепо автоматическим алертам.
