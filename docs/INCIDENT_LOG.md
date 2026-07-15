@@ -3,6 +3,43 @@
 > Документ фиксирует все значимые проблемы, их диагностику и принятые решения.  
 > **Новые записи добавлять в начало файла (самые свежие сверху).**
 
+## 2026-07-15 — Ложные алерты WARP каждую минуту (Google банит shared WARP IP)
+
+### Симптомы
+- Бот мониторинга шлёт алерты каждую минуту: `🚨 [VPN-US] Сбой WARP! Попытка автоматического восстановления не удалась. Тест Google вернул код: 302.`
+- Код чередуется между 302 и 000 (таймаут при частых перезапусках warp-svc)
+- Пользователи при этом жалоб не предъявляли
+
+### Диагностика
+1. **WARP работает исправно:** `warp-cli status → Connected`, `warp=on` в trace, SOCKS5 порт 40000 слушает
+2. **Все западные сервисы через WARP доступны:** Instagram 200, YouTube 200, GitHub 200, Discord 200, Spotify 200, Netflix 200
+3. **Google банит WARP IP:** `curl -x socks5://127.0.0.1:40000 https://www.google.com` → 302 → `/sorry/index` (CAPTCHA). С `-L` → 429 (rate limit). IP выхода: `104.28.195.105` (shared Cloudflare, colo: ORD)
+4. **Напрямую (без WARP):** Google отдаёт 200 — проблема только через WARP
+5. **Корневая причина:** Скрипт `xray-failover.sh` использовал `google.com` для проверки WARP. Google банит shared Cloudflare WARP IP-адреса (302→captcha). Скрипт считал это сбоем, перезапускал `warp-svc`, снова получал 302 — бесконечный цикл ложных алертов.
+
+### Решение
+| # | Действие | Детали |
+|---|----------|--------|
+| 1 | **Заменён тест-URL** | `google.com` → `cloudflare.com/cdn-cgi/trace` в `xray-failover.sh` |
+| 2 | **Добавлена проверка warp=on** | Скрипт теперь проверяет не только HTTP-код (200), но и наличие `warp=on` в ответе Cloudflare trace |
+| 3 | **Деплой на сервер** | SCP → `38.180.81.181:/usr/local/bin/xray-failover.sh` |
+| 4 | **Тестовый запуск** | `Xray health check passed successfully.` — ложных алертов больше нет |
+
+### Верификация
+- [x] Тестовый запуск скрипта: `health check passed successfully`
+- [x] WARP trace через SOCKS5: HTTP 200, `warp=on`
+- [x] Все основные сайты через WARP доступны (Instagram, YouTube, GitHub, Discord, Spotify, Netflix)
+- [x] Cron активен: `* * * * * /usr/local/bin/xray-failover.sh`
+- [ ] Мониторинг: ложные алерты прекратились (24 часа)
+
+### Коммит
+- `72d3657` — fix(failover): replace google.com with cloudflare trace for WARP health check
+
+### Урок
+> **Никогда не использовать google.com для health-check через Cloudflare WARP.** Google активно банит shared WARP IP-адреса (302→captcha, 429 rate limit). Для проверки WARP использовать `cloudflare.com/cdn-cgi/trace` — он гарантированно отвечает 200 и содержит `warp=on` для верификации туннеля. ChatGPT (403) тоже не подходит — OpenAI блокирует WARP IP.
+
+---
+
 ## 2026-07-08 — Нестабильность и падение Cloudflare WARP на VPN-сервере (wgcf keys expired)
 
 ### Симптомы
