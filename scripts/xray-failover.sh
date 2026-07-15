@@ -35,10 +35,15 @@ if [ "$trigger_rollback" != "true" ]; then
 fi
 
 # 3. Проверка работоспособности WARP (Cloudflare SOCKS5 на порту 40000)
+# ВАЖНО: НЕ использовать google.com для проверки — Google банит shared WARP IP (302/429).
+# Используем cloudflare.com/cdn-cgi/trace — всегда доступен через WARP и содержит warp=on.
 if [ "$trigger_rollback" != "true" ]; then
-    WARP_CHECK=$(curl -x socks5://127.0.0.1:40000 -s --connect-timeout 5 -o /dev/null -w "%{http_code}" https://www.google.com)
-    if [ "$WARP_CHECK" != "200" ]; then
-        echo "[$(date)] WARP check failed (HTTP code: $WARP_CHECK). Attempting to recover WARP..."
+    WARP_TRACE=$(curl -x socks5://127.0.0.1:40000 -s --connect-timeout 5 https://cloudflare.com/cdn-cgi/trace 2>&1)
+    WARP_HTTP=$(curl -x socks5://127.0.0.1:40000 -s --connect-timeout 5 -o /dev/null -w "%{http_code}" https://cloudflare.com/cdn-cgi/trace)
+    WARP_ON=$(echo "$WARP_TRACE" | grep -c "warp=on")
+
+    if [ "$WARP_HTTP" != "200" ] || [ "$WARP_ON" -eq 0 ]; then
+        echo "[$(date)] WARP check failed (HTTP: $WARP_HTTP, warp=on: $WARP_ON). Attempting to recover WARP..."
         
         # Попытка восстановления
         systemctl restart warp-svc
@@ -47,10 +52,13 @@ if [ "$trigger_rollback" != "true" ]; then
         sleep 3
         
         # Перепроверка
-        WARP_CHECK_AGAIN=$(curl -x socks5://127.0.0.1:40000 -s --connect-timeout 5 -o /dev/null -w "%{http_code}" https://www.google.com)
-        if [ "$WARP_CHECK_AGAIN" != "200" ]; then
-            echo "[$(date)] WARP recovery failed (HTTP code: $WARP_CHECK_AGAIN)."
-            send_telegram "🚨 <b>[${SERVER_NAME}]</b> Сбой WARP! Попытка автоматического восстановления не удалась. Тест Google вернул код: ${WARP_CHECK_AGAIN}."
+        WARP_TRACE_AGAIN=$(curl -x socks5://127.0.0.1:40000 -s --connect-timeout 5 https://cloudflare.com/cdn-cgi/trace 2>&1)
+        WARP_HTTP_AGAIN=$(curl -x socks5://127.0.0.1:40000 -s --connect-timeout 5 -o /dev/null -w "%{http_code}" https://cloudflare.com/cdn-cgi/trace)
+        WARP_ON_AGAIN=$(echo "$WARP_TRACE_AGAIN" | grep -c "warp=on")
+
+        if [ "$WARP_HTTP_AGAIN" != "200" ] || [ "$WARP_ON_AGAIN" -eq 0 ]; then
+            echo "[$(date)] WARP recovery failed (HTTP: $WARP_HTTP_AGAIN, warp=on: $WARP_ON_AGAIN)."
+            send_telegram "🚨 <b>[${SERVER_NAME}]</b> Сбой WARP! Попытка автоматического восстановления не удалась. Trace HTTP: ${WARP_HTTP_AGAIN}, warp=on: ${WARP_ON_AGAIN}."
         else
             echo "[$(date)] WARP recovered successfully."
             send_telegram "ℹ️ <b>[${SERVER_NAME}]</b> Было зафиксировано падение WARP. Автоматическое восстановление прошло успешно."
