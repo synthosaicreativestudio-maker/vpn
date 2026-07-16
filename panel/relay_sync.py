@@ -15,7 +15,7 @@ from panel.config import RELAY_ENABLED, RELAY_GRPC_ENABLED, RELAY_GRPC_HOST, REL
 
 logger = logging.getLogger("panel.relay_sync")
 
-RELAY_INBOUND_TAGS = ["relay-vision", "relay-grpc", "relay-xhttp", "relay-test-8081"]
+RELAY_INBOUND_TAGS = ["relay-vision", "relay-grpc", "relay-xhttp", "relay-test-8081", "relay-vision-2", "relay-grpc-2"]
 
 _relay_client = None
 

@@ -36,6 +36,8 @@ from panel.config import (
     INBOUND_TAG_VISION,
     INBOUND_TAG_WS,
     INBOUND_TAG_XHTTP,
+    INBOUND_TAG_VISION_2,
+    INBOUND_TAG_GRPC_2,
 
     SERVER_IP,
     SUB_HOST,
@@ -119,6 +121,8 @@ ALL_INBOUND_TAGS = [
     INBOUND_TAG_XHTTP,
     INBOUND_TAG_GRPC,
     INBOUND_TAG_WS,
+    INBOUND_TAG_VISION_2,
+    INBOUND_TAG_GRPC_2,
 ]
 
 # Xray клиент (может быть None если stubs ещё не сгенерированы)
@@ -614,7 +618,7 @@ async def subscription_endpoint(
     }
 
     if routing == "ru":
-        headers["routing"] = _build_happ_routing_deeplink()
+        headers["routing"] = _build_happ_routing_deeplink(_ANDROID_ROUTING_PROFILE)
         headers["no-limit-enabled"] = "1"
 
     return Response(
@@ -659,7 +663,7 @@ async def subscription_hiddify_endpoint(
     }
 
     if routing == "ru":
-        headers["routing"] = _build_happ_routing_deeplink()
+        headers["routing"] = _build_happ_routing_deeplink(_ANDROID_ROUTING_PROFILE)
         headers["no-limit-enabled"] = "1"
 
     return Response(
@@ -866,6 +870,19 @@ _HAPP_ROUTING_PROFILE = {
     "BlockIp": [],
     "DomainStrategy": "IPIfNonMatch",
     "FakeDNS": "false",
+}
+
+
+_ANDROID_ROUTING_PROFILE = {
+    **_HAPP_ROUTING_PROFILE,
+    "DirectSites": [
+        *_HAPP_ROUTING_PROFILE["DirectSites"],
+        "geosite:category-ru",
+    ],
+    "DirectIp": [
+        *_HAPP_ROUTING_PROFILE["DirectIp"],
+        "geoip:ru",
+    ],
 }
 
 
