@@ -181,9 +181,9 @@ class LinkGenerator:
         """Relay-ссылки (через Яндекс ВМ) — приоритетные для мобильных операторов."""
         links: dict[str, str] = {}
         if RELAY_ENABLED:
+            links["vless_relay_grpc"] = cls.vless_relay_grpc(email, uuid)
             links["vless_relay"] = cls.vless_relay(email, uuid)
             links["vless_relay_xhttp"] = cls.vless_relay_xhttp(email, uuid)
-            links["vless_relay_grpc"] = cls.vless_relay_grpc(email, uuid)
         return links
 
     @classmethod
@@ -226,14 +226,14 @@ class LinkGenerator:
 
         iOS убивает long-lived HTTP POST при переключении приложений,
         поэтому xHTTP stream-up исключён. Оставлены только TCP/H2-based:
-          1. Vision Relay  — основной (TCP, лучший пинг из РФ)
-          2. gRPC Relay    — резервный (HTTP/2, мультиплекс)
+          1. gRPC Relay    — основной (HTTP/2, мультиплекс, низкий пинг)
+          2. Vision Relay  — резервный (TCP, обход блокировок)
           3. Vision Direct — аварийный (если relay упадёт)
         """
         links: dict[str, str] = {}
         if RELAY_ENABLED:
-            links["vless_relay"] = cls.vless_relay(email, uuid)
             links["vless_relay_grpc"] = cls.vless_relay_grpc(email, uuid)
+            links["vless_relay"] = cls.vless_relay(email, uuid)
         links["vless_reality"] = cls.vless_reality(uuid, email)
         return links
 
