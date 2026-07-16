@@ -1,6 +1,6 @@
 # 🏗️ Архитектура VPN-инфраструктуры
 
-> **Обновлено:** 03.07.2026  
+> **Обновлено:** 16.07.2026  
 > **⚠️ AI-агенты: этот документ обязателен к прочтению перед работой с проектом**
 
 ---
@@ -99,12 +99,14 @@ RELAY_GRPC_HOST=127.0.0.1:10086  # gRPC релея через SSH-туннель
 
 ### Xray Inbounds
 
-| Tag | Порт | Транспорт | Security | SNI | Описание |
-|-----|------|-----------|----------|-----|----------|
-| VLESS-Reality-Vision | 443 | tcp + xtls-rprx-vision | reality | dzen.ru | Основной канал |
-| VLESS-Reality-XHTTP | 8443 | xhttp (stream-up) | reality | dzen.ru | Резервный |
-| VLESS-Reality-gRPC | 2053 | grpc | reality | dzen.ru | Мультиплексный |
-| VLESS-WS | 2083 | websocket | none | — | Устаревший резерв |
+| Tag | Порт | Транспорт | Security | SNI | Ветка | Описание |
+|-----|------|-----------|----------|-----|-------|----------|
+| VLESS-Reality-Vision | 443 | tcp + xtls-rprx-vision | reality | dzen.ru | 1 (Blue) | Основной канал |
+| VLESS-Reality-XHTTP | 8443 | xhttp (stream-up) | reality | dzen.ru | — | Резервный (xHTTP) |
+| VLESS-Reality-gRPC | 2053 | grpc | reality | dzen.ru | 1 (Blue) | Мультиплексный |
+| VLESS-Reality-Vision-2 | 10443 | tcp + xtls-rprx-vision | reality | dzen.ru | 2 (Green) | Параллельный резервный |
+| VLESS-Reality-gRPC-2 | 12053 | grpc | reality | dzen.ru | 2 (Green) | Параллельный резервный |
+| VLESS-WS | 2083 | websocket | none | — | — | Устаревший резерв |
 
 > ⚠️ **SNI:** `dzen.ru` вместо `www.microsoft.com` — серверы Akamai (Microsoft) отдают несовместимые TLS-ответы на Xray v26.5.9.
 
@@ -123,13 +125,15 @@ RELAY_GRPC_HOST=127.0.0.1:10086  # gRPC релея через SSH-туннель
 
 ### Маршрутизация на релее
 
-| Входящий тег | Порт | Назначение | Протокол |
-|-------------|------|-----------|----------|
-| relay-vision | 443/TCP | → US:443 (VPN Vision) | VLESS Reality |
-| relay-grpc | 2053/TCP | → US:2053 (VPN gRPC) | VLESS Reality |
-| relay-xhttp | 8443/TCP | → US:8443 (VPN xHTTP) | VLESS Reality |
-| relay-http-80 | 80/TCP | → Panel:80 (подписки HTTP) | dokodemo-door |
-| relay-https-8086 | 8086/TCP | → Panel:8086 (подписки HTTPS) | dokodemo-door |
+| Входящий тег | Порт | Назначение | Протокол | Ветка |
+|-------------|------|-----------|----------|-------|
+| relay-vision | 443/TCP | → US:443 (VPN Vision) | VLESS Reality | 1 (Blue) |
+| relay-grpc | 2053/TCP | → US:2053 (VPN gRPC) | VLESS Reality | 1 (Blue) |
+| relay-xhttp | 8443/TCP | → US:8443 (VPN xHTTP) | VLESS Reality | — |
+| relay-vision-2 | 10443/TCP | → US:10443 (VPN Vision 2) | VLESS Reality | 2 (Green) |
+| relay-grpc-2 | 12053/TCP | → US:12053 (VPN gRPC 2) | VLESS Reality | 2 (Green) |
+| relay-http-80 | 80/TCP | → Panel:80 (подписки HTTP) | dokodemo-door | — |
+| relay-https-8086 | 8086/TCP | → Panel:8086 (подписки HTTPS) | dokodemo-door | — |
 
 ---
 
@@ -144,10 +148,19 @@ RELAY_GRPC_HOST=127.0.0.1:10086  # gRPC релея через SSH-туннель
 | С маршрутизацией | Добавить `?routing=ru` |
 | Admin UI | `https://37.1.212.51.sslip.io:8086/admin/ui` |
 
-### Содержимое Happ-подписки (3 протокола)
-1. `📡 @username (Relay RU new)` — Vision через релей (TCP, основной)
-2. `📡 @username (gRPC Relay RU new)` — gRPC через релей (HTTP/2, резервный)
-3. `🔌 @username (Vision)` — Прямой к US (аварийный, для WiFi без РФ-блокировок)
+### Содержимое Happ-подписки (6 протоколов — Blue-Green)
+
+**Ветка 1 (Blue / основная):**
+1. `📡 @username (Relay RU new)` — Vision через релей (TCP, порт 443)
+2. `📡 @username (gRPC Relay RU new)` — gRPC через релей (HTTP/2, порт 2053)
+3. `🔌 @username (Vision)` — Прямой к US (TCP, порт 443)
+
+**Ветка 2 (Green / резервная):**
+4. `📡 @username (Relay RU 2)` — Vision через релей (TCP, порт 10443)
+5. `📡 @username (gRPC Relay RU 2)` — gRPC через релей (HTTP/2, порт 12053)
+6. `🔌 @username (Vision 2)` — Прямой к US (TCP, порт 10443)
+
+> ⚠️ **Правило:** Ветка 1 дорабатывается ТОЛЬКО когда Ветка 2 стабильно работает.
 
 ---
 

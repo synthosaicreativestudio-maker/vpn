@@ -40,7 +40,11 @@ PORT_VLESS_WS = int(os.getenv("PORT_VLESS_WS", "2083"))
 # Standalone Hysteria2 (UDP/QUIC)
 PORT_HYSTERIA2 = int(os.getenv("PORT_HYSTERIA2", "10443"))
 
-
+# ── Blue-Green Branch 2 Ports (параллельный резервный канал) ──
+PORT_VLESS_REALITY_2 = int(os.getenv("PORT_VLESS_REALITY_2", "10443"))
+PORT_VLESS_GRPC_2 = int(os.getenv("PORT_VLESS_GRPC_2", "12053"))
+RELAY_PORT_2 = int(os.getenv("RELAY_PORT_2", "10443"))
+RELAY_GRPC_PORT_2 = int(os.getenv("RELAY_GRPC_PORT_2", "12053"))
 
 # ── Reality Keys ──────────────────────────────────────────────
 REALITY_PUBLIC_KEY = os.getenv(

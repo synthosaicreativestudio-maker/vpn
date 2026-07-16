@@ -3,13 +3,15 @@
 Каждый метод формирует URI для конкретного протокола,
 используя параметры из config.py.
 
-Каналы (май 2026):
-  1. VLESS + Reality + Vision  (TCP, порт 443)
-  2. VLESS + Reality + xHTTP   (xHTTP stream-one, порт 8443) — только Xray-клиенты
-  3. VLESS + Reality + gRPC    (H2, порт 2053)
-  4. VLESS + Reality + WS      (WebSocket, порт 2083)
-  5. Hysteria2 + Salamander    (UDP/QUIC, порт 10443, obfs)
-  6. Shadowsocks 2022          (TCP+UDP, порт 2085)
+Каналы (июль 2026) — Blue-Green параллельные ветки:
+  Ветка 1 (Blue / основная):
+    1. VLESS + Reality + Vision через Relay (TCP, порт 443)
+    2. VLESS + Reality + gRPC через Relay   (H2, порт 2053)
+    3. VLESS + Reality + Vision Direct      (TCP, порт 443)
+  Ветка 2 (Green / резервная):
+    4. VLESS + Reality + Vision через Relay (TCP, порт 10443)
+    5. VLESS + Reality + gRPC через Relay   (H2, порт 12053)
+    6. VLESS + Reality + Vision Direct      (TCP, порт 10443)
 """
 
 from urllib.parse import quote
@@ -22,20 +24,23 @@ from panel.config import (
     PORT_SHADOWSOCKS,
     PORT_VLESS_GRPC,
     PORT_VLESS_REALITY,
-    PORT_VLESS_WS,
-    PORT_VLESS_XHTTP,
+    PORT_VLESS_REALITY_2,
     REALITY_PUBLIC_KEY,
     REALITY_SHORT_ID,
     REALITY_SNI,
     RELAY_ENABLED,
+    RELAY_GRPC_PORT_2,
     RELAY_IP,
     RELAY_PORT,
+    RELAY_PORT_2,
     RELAY_PUBLIC_KEY,
     RELAY_SHORT_ID,
     RELAY_SNI,
     SERVER_IP,
     SHADOWSOCKS_METHOD,
     SHADOWSOCKS_PASSWORD,
+    PORT_VLESS_WS,
+    PORT_VLESS_XHTTP,
 )
 
 
@@ -174,6 +179,45 @@ class LinkGenerator:
             f"#{quote(f'🚀 {email} (Hysteria2 Relay RU)')}"
         )
 
+    # ── Ветка 2 (Green / резервный канал) ─────────────────────────
+
+    @classmethod
+    def vless_reality_2(cls, uuid: str, email: str) -> str:
+        """Ветка 2: VLESS + Reality + Vision (TCP, порт 10443) — прямой к US."""
+        return (
+            cls._vless_base(uuid, PORT_VLESS_REALITY_2)
+            + "&flow=xtls-rprx-vision"
+            + f"#{quote(f'🔌 {email} (Vision 2)')}"
+        )
+
+    @staticmethod
+    def vless_relay_2(email: str, uuid: str) -> str:
+        """Ветка 2: VLESS + Reality + Vision через Relay RU (порт 10443)."""
+        return (
+            f"vless://{uuid}@{RELAY_IP}:{RELAY_PORT_2}"
+            f"?encryption=none&security=reality"
+            f"&sni={RELAY_SNI}"
+            f"&pbk={RELAY_PUBLIC_KEY}"
+            f"&sid={RELAY_SHORT_ID}"
+            f"&fp=chrome"
+            f"&flow=xtls-rprx-vision"
+            f"#{quote(f'📡 {email} (Relay RU 2)')}"
+        )
+
+    @staticmethod
+    def vless_relay_grpc_2(email: str, uuid: str) -> str:
+        """Ветка 2: VLESS + Reality + gRPC через Relay RU (порт 12053)."""
+        return (
+            f"vless://{uuid}@{RELAY_IP}:{RELAY_GRPC_PORT_2}"
+            f"?encryption=none&security=reality"
+            f"&sni={RELAY_SNI}"
+            f"&pbk={RELAY_PUBLIC_KEY}"
+            f"&sid={RELAY_SHORT_ID}"
+            f"&fp=chrome"
+            f"&type=grpc&serviceName=vpn-grpc"
+            f"#{quote(f'📡 {email} (gRPC Relay RU 2)')}"
+        )
+
     # ── Наборы ссылок ────────────────────────────────────────────
 
     @classmethod
@@ -181,9 +225,9 @@ class LinkGenerator:
         """Relay-ссылки (через Яндекс ВМ) — приоритетные для мобильных операторов."""
         links: dict[str, str] = {}
         if RELAY_ENABLED:
-            links["vless_relay_grpc"] = cls.vless_relay_grpc(email, uuid)
             links["vless_relay"] = cls.vless_relay(email, uuid)
             links["vless_relay_xhttp"] = cls.vless_relay_xhttp(email, uuid)
+            links["vless_relay_grpc"] = cls.vless_relay_grpc(email, uuid)
         return links
 
     @classmethod
@@ -222,29 +266,35 @@ class LinkGenerator:
 
     @classmethod
     def happ_links(cls, uuid: str, email: str, routing: str = None) -> dict[str, str]:
-        """Каналы для Happ (iOS): только стабильные протоколы.
+        """Каналы для Happ (iOS): Blue-Green параллельные ветки.
 
-        iOS убивает long-lived HTTP POST при переключении приложений,
-        поэтому xHTTP stream-up исключён. Оставлены только TCP/H2-based:
-          1. gRPC Relay    — основной (HTTP/2, мультиплекс, низкий пинг)
-          2. Vision Relay  — резервный (TCP, обход блокировок)
-          3. Vision Direct — аварийный (если relay упадёт)
+        6 протоколов — 3 от Ветки 1 (основная) + 3 от Ветки 2 (резервная):
+          Ветка 1 (Blue):
+            1. Vision Relay 1  — основной (TCP, пинг из РФ)
+            2. gRPC Relay 1    — резервный (HTTP/2, мультиплекс)
+            3. Vision Direct 1 — аварийный (если relay упадёт)
+          Ветка 2 (Green):
+            4. Vision Relay 2  — резервная ветка
+            5. gRPC Relay 2    — резервная ветка (gRPC)
+            6. Vision Direct 2 — резервная ветка (прямой)
         """
         links: dict[str, str] = {}
+        # Ветка 1 (основная / Blue)
         if RELAY_ENABLED:
-            links["vless_relay_grpc"] = cls.vless_relay_grpc(email, uuid)
-            links["vless_relay"] = cls.vless_relay(email, uuid)
-        links["vless_reality"] = cls.vless_reality(uuid, email)
+            links["vless_relay_1"] = cls.vless_relay(email, uuid)
+            links["vless_relay_grpc_1"] = cls.vless_relay_grpc(email, uuid)
+        links["vless_reality_1"] = cls.vless_reality(uuid, email)
+        # Ветка 2 (резервная / Green)
+        if RELAY_ENABLED:
+            links["vless_relay_2"] = cls.vless_relay_2(email, uuid)
+            links["vless_relay_grpc_2"] = cls.vless_relay_grpc_2(email, uuid)
+        links["vless_reality_2"] = cls.vless_reality_2(uuid, email)
         return links
 
     @classmethod
     def happ_test_links(cls, uuid: str, email: str, routing: str = None) -> dict[str, str]:
         """Ссылки для тестирования в Happ (только стабильные + тестовый DNS профиль)."""
         links: dict[str, str] = {}
-        
-        # Временно исключаем xHTTP ссылки из-за несовместимости с ядром Happ (sing-box) на iOS,
-        # которая приводила к ошибке "критическая ошибка ядра xcore".
-        
         # Стандартные стабильные ссылки Happ для сравнения и тестирования DNS
         links.update(cls.happ_links(uuid, email, routing))
         return links
