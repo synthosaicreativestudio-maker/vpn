@@ -3,6 +3,38 @@
 > Документ фиксирует все значимые проблемы, их диагностику и принятые решения.  
 > **Новые записи добавлять в начало файла (самые свежие сверху).**
 
+## 2026-07-16 (2) — Пинг n/a на всех профилях (SNI mismatch после обновления Xray на релее)
+
+### Симптомы
+- В Happ все профили показывают `n/a` (пинг не проходит)
+- VPN не подключается ни через Relay, ни через Direct
+
+### Диагностика (Loop Engineering: Discover→Plan→Execute→Verify)
+1. **Xray US и Relay активны**, все порты слушают — порты не причина.
+2. **TLS handshake тест:** `openssl s_client -connect 185.4.67.223:443 -servername ozon.ru` → сертификат Ozon ✅ (inbound relays работают)
+3. **Конфиг outbounds на релее:** outbounds `to-us-vision/grpc/xhttp` использовали `serverName: yandex.ru`, тогда как US-сервер настроен на `SNI: dzen.ru` (с инцидента 28.06). Это несовпадение SNI блокировало Reality-handshake на US-сервере.
+4. **Корневая причина:** При обновлении Xray на релее (26.3.27 → 26.5.9) мы перезапустили сервис, но не проверили соответствие SNI outbounds ↔ inbounds US-сервера.
+
+### Решение
+| # | Действие | Детали |
+|---|----------|--------|
+| 1 | **Замена SNI в outbounds релея** | `sed -i 's/"serverName": "yandex.ru"/"serverName": "dzen.ru"/g'` на `/usr/local/etc/xray/config.json` |
+| 2 | **Перезапуск Xray на релее** | `systemctl restart xray` → active |
+| 3 | **Обновление .stable** | `cp config.json config.json.stable` — чтобы автооткат не вернул сломанный SNI |
+| 4 | **Перезапуск туннелей** | `vpn-relay-tunnel` на панельном сервере |
+
+### Верификация
+- [x] TLS `openssl s_client -connect 38.180.81.181:443 -servername dzen.ru` → сертификат Яндекса ✅
+- [x] Xray на релее: `active`, версия 26.5.9, логи без ошибок Reality
+- [x] Panel health → `xray_connected: true`
+- [x] `.stable` содержит 7 вхождений `dzen.ru`
+- [ ] Пользователь проверяет пинг в Happ (должны появиться реальные значения)
+
+### Урок
+> **После любого обновления Xray на релее** — ОБЯЗАТЕЛЬНО проверять соответствие SNI в outbounds релея → inbounds US-сервера командой `grep serverName /usr/local/etc/xray/config.json`. Это второй инцидент с рассогласованием SNI (предыдущий — 05.07). Нужно добавить эту проверку в чеклист обслуживания.
+
+---
+
 ## 2026-07-16 — Android: Max определяет VPN + обновление Xray на релее до 26.5.9
 
 ### Симптомы
