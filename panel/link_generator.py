@@ -65,7 +65,7 @@ class LinkGenerator:
         return (
             cls._vless_base(uuid, PORT_VLESS_REALITY)
             + "&flow=xtls-rprx-vision"
-            + f"#{quote(f'🔌 {email} (Vision)')}"
+            + f"#{quote(f'🔌 {email} (Vision 1)')}"
         )
 
     @classmethod
@@ -136,7 +136,7 @@ class LinkGenerator:
             f"&sid={RELAY_SHORT_ID}"
             f"&fp=chrome"
             f"&flow=xtls-rprx-vision"
-            f"#{quote(f'📡 {email} (Relay RU new)')}"
+            f"#{quote(f'📡 {email} (Relay RU 1)')}"
         )
 
 
@@ -166,7 +166,7 @@ class LinkGenerator:
             f"&sid={RELAY_SHORT_ID}"
             f"&fp=chrome"
             f"&type=grpc&serviceName=vpn-grpc"
-            f"#{quote(f'📡 {email} (gRPC Relay RU new)')}"
+            f"#{quote(f'📡 {email} (gRPC Relay RU 1)')}"
         )
 
     @staticmethod
@@ -245,23 +245,48 @@ class LinkGenerator:
 
     @classmethod
     def all_links(cls, uuid: str, email: str) -> dict[str, str]:
-        """Все каналы: сначала relay (мобильные операторы), потом direct (WiFi).
-
-        Порядок важен — Happ/Hiddify при автовыборе берёт
-        первый работающий, поэтому relay идут первыми.
-        """
+        """Все каналы: сначала Blue-Green параллельные ветки, затем direct (WiFi)."""
         links: dict[str, str] = {}
-        links.update(cls._relay_links(uuid, email))
-        links.update(cls._direct_links(uuid, email))
+        # Ветка 1 (основная / Blue)
+        if RELAY_ENABLED:
+            links["vless_relay_1"] = cls.vless_relay(email, uuid)
+            links["vless_relay_grpc_1"] = cls.vless_relay_grpc(email, uuid)
+        links["vless_reality_1"] = cls.vless_reality(uuid, email)
+
+        # Ветка 2 (резервная / Green)
+        if RELAY_ENABLED:
+            links["vless_relay_2"] = cls.vless_relay_2(email, uuid)
+            links["vless_relay_grpc_2"] = cls.vless_relay_grpc_2(email, uuid)
+        links["vless_reality_2"] = cls.vless_reality_2(uuid, email)
+
+        # Остальные прямые
+        links["vless_xhttp"] = cls.vless_xhttp(uuid, email)
+        links["vless_ws"] = cls.vless_ws(uuid, email)
+        links["hysteria2"] = cls.hysteria2(email)
+        links["shadowsocks"] = cls.shadowsocks(email)
         return links
 
     @classmethod
     def hiddify_links(cls, uuid: str, email: str, routing: str = None) -> dict[str, str]:
-        """Все каналы для Hiddify: relay первыми, direct вторыми."""
+        """Все каналы для Hiddify с поддержкой параллельных Blue-Green веток."""
         links: dict[str, str] = {}
-        links.update(cls._relay_links(uuid, email))
+        # Ветка 1 (основная / Blue)
+        if RELAY_ENABLED:
+            links["vless_relay_1"] = cls.vless_relay(email, uuid)
+            links["vless_relay_grpc_1"] = cls.vless_relay_grpc(email, uuid)
+        links["vless_reality_1"] = cls.vless_reality(uuid, email)
+
+        # Ветка 2 (резервная / Green)
+        if RELAY_ENABLED:
+            links["vless_relay_2"] = cls.vless_relay_2(email, uuid)
+            links["vless_relay_grpc_2"] = cls.vless_relay_grpc_2(email, uuid)
+        links["vless_reality_2"] = cls.vless_reality_2(uuid, email)
+
         if routing != "ru":
-            links.update(cls._direct_links(uuid, email))
+            links["vless_xhttp"] = cls.vless_xhttp(uuid, email)
+            links["vless_ws"] = cls.vless_ws(uuid, email)
+            links["hysteria2"] = cls.hysteria2(email)
+            links["shadowsocks"] = cls.shadowsocks(email)
         return links
 
     @classmethod
