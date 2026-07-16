@@ -820,8 +820,8 @@ _HAPP_ROUTING_PROFILE = {
         "domain:fredom.ru",
         # Все домены зоны .ru — напрямую без VPN
         "domain:ru",
-        # geosite:category-ru УБРАН — требует скачивания geosite.db с GitHub,
-        # который заблокирован в РФ. domain:ru уже покрывает все .ru домены.
+        # geosite:category-ru возвращен, так как geosite.dat раздается с нашего сервера
+        "geosite:category-ru",
         # CRM и бизнес-сервисы
         "domain:crm.topnlab.ru",
         # Дополнительные домены (CDN/API которых может не быть в geosite)
@@ -851,8 +851,8 @@ _HAPP_ROUTING_PROFILE = {
         "domain:2gis.io", "domain:2gis.pro",
     ],
     "DirectIp": [
-        # geoip:ru УБРАН — требует скачивания geoip.db с GitHub,
-        # который заблокирован в РФ без VPN. Приватные подсети оставлены.
+        # geoip:ru возвращен, так как geoip.dat раздается с нашего сервера
+        "geoip:ru",
         "10.0.0.0/8",
         "172.16.0.0/12",
         "192.168.0.0/16",
