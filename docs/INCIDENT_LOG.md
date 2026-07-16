@@ -2,6 +2,39 @@
 
 > Документ фиксирует все значимые проблемы, их диагностику и принятые решения.  
 > **Новые записи добавлять в начало файла (самые свежие сверху).**
+## 2026-07-16 (3) — Geo-базы не грузятся автоматом + failover timer не установлен
+
+### Симптомы
+- В Happ geoip.dat и geosite.dat не загружаются автоматически, только вручную.
+- Blue-Green failover timer не установлен на US-сервере (`xray-failover.timer` отсутствует).
+
+### Диагностика (Loop Engineering)
+1. **Geo-файлы:** GET запросы по `http://sub.synthosai.ru/sub/geo/geoip.dat` → HTTP 200 ✅. Но HTTPS (`https://sub.synthosai.ru/...`) → SSL error: `no alternative certificate subject name matches` ❌ (на relay нет Caddy, SSL-сертификат Reality = ozon.ru).
+2. **Корневая причина:** iOS App Transport Security (ATS) блокирует HTTP-запросы по умолчанию → Happ не может скачать geo-файлы по HTTP URL.
+3. **Решение:** Маршрут `sub.synthosai.ru:8086` → relay:8086 (dokodemo-door) → panel Caddy:8086 (HTTPS с валидным LE-сертификатом) → FastAPI. URL изменены на `https://sub.synthosai.ru:8086/...`.
+4. **Failover:** Скрипт `xray-failover.sh` существовал на сервере, но systemd timer для его периодического запуска не был создан.
+
+### Решение
+| # | Действие | Детали |
+|---|----------|--------|
+| 1 | **HTTPS geo URLs** | В `_HAPP_ROUTING_PROFILE` изменены `Geoipurl` и `Geositeurl` с `http://` на `https://sub.synthosai.ru:8086/...` |
+| 2 | **Failover timer** | Созданы `xray-failover.service` и `xray-failover.timer` на US-сервере. Timer запускает health-check каждые 5 минут. |
+
+### Верификация
+- [x] `https://sub.synthosai.ru:8086/sub/geo/geoip.dat` → HTTP 200, 18MB
+- [x] `https://sub.synthosai.ru:8086/sub/geo/geosite.dat` → HTTP 200, 10MB
+- [x] Routing-профиль содержит HTTPS URLs
+- [x] `xray-failover.timer` → active (running)
+- [x] Ручной запуск failover → `health check passed successfully`
+- [x] `ruff check .` → All checks passed
+
+### Коммит
+- `48c6664` — fix(geo): switch geo URLs from HTTP to HTTPS:8086 for iOS ATS compatibility
+
+### Урок
+> **Всегда использовать HTTPS для URL в routing-профиле** — iOS ATS блокирует HTTP по умолчанию. **Всегда проверять наличие systemd timer** для failover-скриптов — скрипт без таймера бесполезен.
+
+---
 
 ## 2026-07-16 (2) — Пинг n/a на всех профилях (SNI mismatch после обновления Xray на релее)
 
