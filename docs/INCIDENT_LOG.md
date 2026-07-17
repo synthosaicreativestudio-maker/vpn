@@ -3,6 +3,46 @@
 > Документ фиксирует все значимые проблемы, их диагностику и принятые решения.  
 > **Новые записи добавлять в начало файла (самые свежие сверху).**
 
+## 2026-07-17 — MAX/банки конфликтуют с VPN на Android: найден настоящий root cause + разделение подписок Happ iOS/Android
+
+### Симптомы
+- Пользователь `@test_roman_gerlakh` (тест лично на устройстве): на Android MAX и другие российские сервисы определяют включённый VPN, MAX и Telegram не могут работать одновременно.
+- Фикс из инцидента 2026-07-16 (6) («возвращены geoip:ru/geosite:category-ru для Android») был задеплоен, но проблема не исчезла.
+
+### Диагностика (Loop Engineering)
+1. **Исследование в сети:** MAX проверяет `NetworkCapabilities.TRANSPORT_VPN` через `ConnectivityManager` (реверс-инжиниринг, Habr) — это системный флаг ОС, истинный при любом активном `VpnService`, независимо от маршрутизации трафика внутри тоннеля. Доменные правила (geoip/geosite) в принципе не могут убрать этот флаг. MAX также делает поведенческую проверку (доступность заблокированных Telegram/WhatsApp).
+2. **Найден настоящий root cause у Романа:** после архивации Hiddify эндпоинт `/sub/happ/{token}` стал единственной Happ-ссылкой для ВСЕХ платформ (iOS/Android/Windows). Но код по-прежнему вызывал `_build_happ_routing_deeplink()` **без аргумента** → отдавал облегчённый `_HAPP_ROUTING_PROFILE` (без `geoip:ru`/`geosite:category-ru`), специально оставленный лёгким из-за краша Happ на iOS при нехватке памяти. Тяжёлый профиль `_ANDROID_ROUTING_PROFILE` был подключён только к архивному `/sub/hiddify/` и универсальному `/sub/{token}` — **но не к `/sub/happ/`**, которым реально пользуется Роман. Фикс инцидента (6) висел мёртвым грузом на неиспользуемом эндпоинте.
+3. **Обнаружено в bot/main.py:** бот уже спрашивал пользователя ОС (`os_ios`/`os_android` callback), но `_get_happ_url()` игнорировал этот выбор и всегда отдавал один и тот же (iOS-совместимый, облегчённый) URL.
+4. Дополнительно подтверждено через open-source источники: per-app split-tunneling в sing-box/Happ — известный источник обрывов DNS у исключённых приложений; единственный подтверждённый способ полностью скрыть VPN от MAX — изоляция Android Work Profile/Private Space (вне зоны серверных изменений).
+
+### Решение
+| # | Действие | Детали |
+|---|----------|--------|
+| 1 | **Разделены Happ-эндпоинты по платформам** | Новый `/sub/happ-android/{token}` (Android, полный профиль `_ANDROID_ROUTING_PROFILE` — geoip:ru + geosite:category-ru) отделён от `/sub/happ/{token}` (iOS/Windows, облегчённый профиль, без изменений поведения). |
+| 2 | **Общий хелпер `_happ_response_headers()`** | В `panel/app.py`, чтобы не дублировать логику заголовков между эндпоинтами. |
+| 3 | **Нативный per-app VPN bypass (эксперимент)** | Добавлены заголовки Happ `per-app-proxy-mode: bypass` + `per-app-proxy-list` для MAX (`ru.oneme.app`), Сбербанк (`ru.sberbankmobile`), Т-Банк (`com.idamob.tinkoff.android`), Wildberries (`com.wildberries.ru`), Ozon (`ru.ozon.app.android`), Госуслуги (`ru.rostel`). Доступно ТОЛЬКО на `/sub/happ-android/{token}?routing=ru-test` — изолированная тестовая ветка (аналог Blue-Green для клиентского профиля), не влияет на продакшн `?routing=ru`. Раскатка на всех после подтверждения на реальном устройстве. |
+| 4 | **Bot: подключен реальный выбор ОС** | `_get_happ_url(user, os_type)` в `bot/main.py` теперь выбирает `/sub/happ-android/` при `os_type == "android"`, иначе `/sub/happ/`. Обновлён вызов в `cb_app_selection`. |
+| 5 | **Admin UI** | В `panel/templates/dashboard.html` и `panel/models.py`/`get_user_links()` добавлены отдельные ссылки `sub_happ_android` / `sub_happ_android_routing`. |
+| 6 | **Бэкапы и `.stable`** | Бэкапы `app.py`/`models.py`/`dashboard.html`/`bot/main.py` сохранены в `/etc/vpn-panel/builds/` с суффиксом `pre-android-split`. После верификации `.stable`-копии панели и бота обновлены. |
+
+### Верификация
+- [x] `ruff check` — чисто на всех изменённых файлах
+- [x] `/sub/happ/…?routing=ru` (iOS) — профиль БЕЗ geoip:ru/geosite:category-ru (не сломан)
+- [x] `/sub/happ-android/…?routing=ru` (Android, продакшн) — профиль С geoip:ru/geosite:category-ru, БЕЗ per-app-proxy заголовков
+- [x] `/sub/happ-android/…?routing=ru-test` — profile + `per-app-proxy-mode: bypass` + полный список пакетов
+- [x] `/sub/happ/…?routing=ru-test` (iOS) — per-app-proxy корректно ОТСУТСТВУЕТ (Android-only фича)
+- [x] Список VLESS-ссылок идентичен между `/sub/happ/` и `/sub/happ-android/` (diff — 0 отличий)
+- [x] `/sub/{token}` и `/sub/hiddify/{token}` — не затронуты, отвечают 200
+- [x] `panel/health` → `xray_connected: true`, `vpn-panel`/`vpn-bot` active
+- [x] `.stable`-копии обновлены на панельном сервере
+- [ ] Роман тестирует `?routing=ru-test` на реальном устройстве (MAX/банки: реальный обход VPN, нет обрыва DNS, паралелльно работает Telegram)
+- [ ] После подтверждения — перенести per-app-bypass в продакшн-ветку `routing=ru` эндпоинта `/sub/happ-android/`
+
+### Урок
+> **При архивации/удалении клиента (Hiddify) — обязательно проверять, не остался ли важный фикс подключен только к удаляемому эндпоинту.** Раздельные профили маршрутизации для платформ с разными ограничениями (iOS — память, Android — нет) требуют раздельных URL/эндпоинтов, а не одного универсального. **`geoip:ru`/`geosite:category-ru` внутри тоннеля не решают детекцию VPN через `TRANSPORT_VPN`** — это системный флаг ОС, для реального обхода нужен нативный per-app VPN bypass (`per-app-proxy-mode`) или изоляция Android Work Profile.
+
+---
+
 ## 2026-07-16 (6) — Недоступность Ветки 2 и исправление раздельного туннелирования для Android
 
 ### Симптомы

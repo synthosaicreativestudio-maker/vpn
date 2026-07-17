@@ -540,10 +540,12 @@ async def get_user_links(email: str):
         email=email,
         # Стандартные подписки
         sub_happ=f"{base}/happ/{token}",
+        sub_happ_android=f"{base}/happ-android/{token}",
         sub_hiddify=f"{base}/hiddify/{token}",
         sub_url=f"{base}/{token}",
         # С маршрутизацией (обход РФ)
         sub_happ_routing=f"{base}/happ/{token}?routing=ru",
+        sub_happ_android_routing=f"{base}/happ-android/{token}?routing=ru",
         sub_hiddify_routing=f"{base}/hiddify/{token}?routing=ru",
         sub_url_routing=f"{base}/{token}?routing=ru",
         # Отдельные протоколы
@@ -673,21 +675,53 @@ async def subscription_hiddify_endpoint(
     )
 
 
+def _happ_response_headers(
+    user: dict,
+    routing: Optional[str],
+    profile: dict,
+    filename_suffix: str = "happ",
+    allow_per_app_test: bool = False,
+) -> dict:
+    """Общие заголовки Happ-подписки для заданного профиля маршрутизации.
+
+    per-app-proxy — Android-only фича Happ, поэтому ru-test ветка
+    (allow_per_app_test=True) подключается только на Android-эндпоинте.
+    """
+    headers = {
+        "Content-Disposition": f'inline; filename="{user["email"]}_{filename_suffix}.txt"',
+        "Profile-Title": user["email"],
+        "Profile-Update-Interval": "24",
+        "Subscription-UserInfo": _build_userinfo(user),
+    }
+    if routing == "ru":
+        headers["routing"] = _build_happ_routing_deeplink(profile)
+        headers["no-limit-enabled"] = "1"
+    elif routing == "ru-test" and allow_per_app_test:
+        # Тестовая ветка: тот же профиль + per-app bypass (MAX/банки/
+        # маркетплейсы) для проверки на реальном устройстве перед
+        # раскаткой на всех Android-пользователей.
+        headers["routing"] = _build_happ_routing_deeplink(profile)
+        headers["no-limit-enabled"] = "1"
+        headers.update(_build_per_app_proxy_headers())
+    return headers
+
+
 @app.api_route(
     "/sub/happ/{token}",
     methods=["GET", "HEAD"],
     tags=["Подписки"],
-    summary="Подписка для Happ (Base64)",
-    description="Оптимизированный набор ссылок для Happ/Sing-Box. Добавьте ?routing=ru для обхода РФ",
+    summary="Подписка для Happ — iOS / Windows (Base64)",
+    description="Оптимизированный набор ссылок для Happ/Sing-Box (iOS, Windows). Добавьте ?routing=ru для обхода РФ",
 )
 @limiter.limit("30/minute")
 async def subscription_happ_endpoint(
     request: Request, token: str, routing: Optional[str] = None
 ):
-    """Подписка оптимизированная для Happ (Sing-Box).
+    """Подписка Happ для iOS/Windows.
 
-    Без gRPC (Happ не поддерживает).
-    Кодировка Base64 для совместимости.
+    Облегчённый профиль маршрутизации (без geoip.dat/geosite.dat) —
+    на iOS их загрузка роняет VPN-модуль Happ из-за нехватки памяти.
+    Без gRPC (Happ не поддерживает). Кодировка Base64 для совместимости.
     ?routing=ru — включает профиль маршрутизации (обход РФ).
     """
     import base64
@@ -702,18 +736,51 @@ async def subscription_happ_endpoint(
     text = LinkGenerator.subscription_text_happ(user["uuid"], user["email"], routing=routing)
     b64_text = base64.b64encode(text.encode("utf-8")).decode("utf-8")
 
-    profile_title = user["email"]
+    headers = _happ_response_headers(user, routing, _HAPP_ROUTING_PROFILE, "happ")
 
-    headers = {
-        "Content-Disposition": f'inline; filename="{user["email"]}_happ.txt"',
-        "Profile-Title": profile_title,
-        "Profile-Update-Interval": "24",
-        "Subscription-UserInfo": _build_userinfo(user),
-    }
+    return Response(
+        content=b64_text,
+        media_type="text/plain",
+        headers=headers,
+    )
 
-    if routing == "ru":
-        headers["routing"] = _build_happ_routing_deeplink()
-        headers["no-limit-enabled"] = "1"
+
+@app.api_route(
+    "/sub/happ-android/{token}",
+    methods=["GET", "HEAD"],
+    tags=["Подписки"],
+    summary="Подписка для Happ — Android (Base64)",
+    description="Набор ссылок для Happ/Sing-Box на Android с полным профилем обхода РФ (geoip:ru + geosite:category-ru). Добавьте ?routing=ru",
+)
+@limiter.limit("30/minute")
+async def subscription_happ_android_endpoint(
+    request: Request, token: str, routing: Optional[str] = None
+):
+    """Подписка Happ для Android.
+
+    Полный профиль маршрутизации (geoip:ru + geosite:category-ru) —
+    весь российский трафик, включая MAX, банки и маркетплейсы, идёт
+    напрямую мимо VPN. На Android нет ограничения по памяти как на iOS.
+    ?routing=ru — базовый профиль обхода РФ.
+    ?routing=ru-test — то же + нативный per-app VPN bypass (MAX/банки/
+    маркетплейсы получают реальное прямое подключение на уровне ОС,
+    не только через доменные правила). Тестируется перед раскаткой всем.
+    """
+    import base64
+
+    user = _find_user_by_token_or_email(token)
+    if not user:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+
+    if not user["is_active"]:
+        raise HTTPException(status_code=403, detail="Subscription expired")
+
+    text = LinkGenerator.subscription_text_happ(user["uuid"], user["email"], routing=routing)
+    b64_text = base64.b64encode(text.encode("utf-8")).decode("utf-8")
+
+    headers = _happ_response_headers(
+        user, routing, _ANDROID_ROUTING_PROFILE, "happ_android", allow_per_app_test=True
+    )
 
     return Response(
         content=b64_text,
@@ -884,6 +951,32 @@ _ANDROID_ROUTING_PROFILE = {
         "geoip:ru",
     ],
 }
+
+
+# ── Per-App VPN Bypass (Android, VpnService-level) ────────────
+# Приложения детектируют NetworkCapabilities.TRANSPORT_VPN независимо от
+# geoip/geosite маршрутизации внутри туннеля (это флаг ОС, а не маршрут
+# трафика). Единственный способ дать им реальное прямое подключение —
+# нативный per-app bypass в Happ (addDisallowedApplication на уровне
+# VpnService.Builder), а не доменные правила. Не убирает сам факт наличия
+# VPN на устройстве (см. INCIDENT_LOG 2026-07-17), но чинит совместную
+# работу этих приложений с активным VPN-туннелем.
+_ANDROID_PER_APP_BYPASS_PACKAGES = [
+    "ru.oneme.app",                 # MAX
+    "ru.sberbankmobile",            # Сбербанк Онлайн
+    "com.idamob.tinkoff.android",   # Т-Банк (Тинькофф)
+    "com.wildberries.ru",           # Wildberries
+    "ru.ozon.app.android",          # Ozon
+    "ru.rostel",                    # Госуслуги
+]
+
+
+def _build_per_app_proxy_headers() -> dict:
+    """Заголовки Happ для реального VpnService-bypass списка приложений."""
+    return {
+        "per-app-proxy-mode": "bypass",
+        "per-app-proxy-list": ",".join(_ANDROID_PER_APP_BYPASS_PACKAGES),
+    }
 
 
 _HAPP_TEST_ROUTING_PROFILE = {

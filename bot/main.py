@@ -117,15 +117,22 @@ def _fmt_gb(value: float) -> str:
     return f"{value:.2f} Гб"
 
 
-async def _get_happ_url(user: types.User) -> str | None:
-    """Получить актуальную Happ-ссылку из панели."""
+async def _get_happ_url(user: types.User, os_type: str = "ios") -> str | None:
+    """Получить актуальную Happ-ссылку из панели.
+
+    Android получает отдельный эндпоинт с полным профилем обхода РФ
+    (geoip:ru + geosite:category-ru) — без него MAX и другие российские
+    сервисы конфликтуют с VPN. На iOS/Windows этот профиль роняет Happ
+    из-за нехватки памяти, поэтому используется облегчённый.
+    """
     email = await _resolve_email(user)
     user_info = await panel.get_user(email)
     if user_info and user_info.get("sub_token"):
         proto = "https" if SUB_PORT in (443, 8086) else "http"
         port_suffix = f":{SUB_PORT}" if SUB_PORT not in (80, 443) else ""
+        path = "happ-android" if os_type == "android" else "happ"
         return (
-            f"{proto}://{SUB_HOST}{port_suffix}/sub/happ/"
+            f"{proto}://{SUB_HOST}{port_suffix}/sub/{path}/"
             f"{user_info['sub_token']}?routing=ru"
         )
     return None
@@ -456,7 +463,7 @@ async def cb_app_selection(callback: types.CallbackQuery):
     user = callback.from_user
 
     if client == "happ":
-        sub_url = await _get_happ_url(user)
+        sub_url = await _get_happ_url(user, os_type)
         if not sub_url:
             await callback.answer("❌ Профиль не найден. Нажмите «Получить VPN».", show_alert=True)
             return

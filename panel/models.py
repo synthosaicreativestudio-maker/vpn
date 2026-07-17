@@ -57,11 +57,13 @@ class SubscriptionLinks(BaseModel):
     email: str
     # Стандартные подписки
     sub_happ: str = ""
+    sub_happ_android: str = ""
     sub_hiddify: str = ""
     sub_url: str = ""
     sub_amnezia: str = ""
     # С маршрутизацией (обход РФ)
     sub_happ_routing: str = ""
+    sub_happ_android_routing: str = ""
     sub_hiddify_routing: str = ""
     sub_url_routing: str = ""
     # Отдельные ссылки протоколов
