@@ -25,3 +25,8 @@ $DB_PATH
 *.png
 _archive/ssh-key-1770366966512/
 
+# ── Geo data (собираются scripts/build_geo_light.py, не коммитим бинарники) ──
+scripts/*.dat
+scripts/config.json.us
+scripts/config.json.us.orig
+

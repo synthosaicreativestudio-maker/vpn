@@ -719,8 +719,11 @@ async def subscription_happ_endpoint(
 ):
     """Подписка Happ для iOS/Windows.
 
-    Облегчённый профиль маршрутизации (без geoip.dat/geosite.dat) —
-    на iOS их загрузка роняет VPN-модуль Happ из-за нехватки памяти.
+    Профиль маршрутизации использует облегчённые geoip-light.dat/geosite-light.dat
+    (PRIVATE+RU, ~30-400 КБ) вместо полных файлов (~28 МБ суммарно) — полные
+    файлы роняют VPN-модуль Happ на iOS из-за лимита памяти Network Extension
+    (~15-50 МБ в зависимости от версии iOS). geosite:category-ru/geoip:ru
+    при этом включены — раздельное туннелирование РФ-сайтов работает.
     Без gRPC (Happ не поддерживает). Кодировка Base64 для совместимости.
     ?routing=ru — включает профиль маршрутизации (обход РФ).
     """
@@ -758,9 +761,10 @@ async def subscription_happ_android_endpoint(
 ):
     """Подписка Happ для Android.
 
-    Полный профиль маршрутизации (geoip:ru + geosite:category-ru) —
-    весь российский трафик, включая MAX, банки и маркетплейсы, идёт
-    напрямую мимо VPN. На Android нет ограничения по памяти как на iOS.
+    Полный профиль маршрутизации (geoip:ru + geosite:category-ru, полные
+    geoip.dat/geosite.dat) — весь российский трафик, включая MAX, банки и
+    маркетплейсы, идёт напрямую мимо VPN. На Android нет ограничения по
+    памяти Network Extension, как на iOS, поэтому точность важнее размера.
     ?routing=ru — базовый профиль обхода РФ.
     ?routing=ru-test — то же + нативный per-app VPN bypass (MAX/банки/
     маркетплейсы получают реальное прямое подключение на уровне ОС,
@@ -875,8 +879,12 @@ _HAPP_ROUTING_PROFILE = {
     "DomesticDNSType": "DoH",
     "DomesticDNSDomain": "https://common.dns.yandex.ru/dns-query",
     "DomesticDNSIP": "77.88.8.8",
-    "Geoipurl": "https://sub.synthosai.ru:8086/sub/geo/geoip.dat",
-    "Geositeurl": "https://sub.synthosai.ru:8086/sub/geo/geosite.dat",
+    # Облегчённые файлы (PRIVATE+RU / PRIVATE+CATEGORY-RU, ~30-400 КБ) —
+    # iOS Network Extension ограничен по памяти (~15-50 МБ), полные geoip.dat/
+    # geosite.dat (18/10 МБ) роняли VPN-модуль Happ. Android override — ниже,
+    # у него нет такого ограничения, поэтому получает полные файлы.
+    "Geoipurl": "https://sub.synthosai.ru:8086/sub/geo/geoip-light.dat",
+    "Geositeurl": "https://sub.synthosai.ru:8086/sub/geo/geosite-light.dat",
     "DnsHosts": {
         "cloudflare-dns.com": "1.1.1.1",
         "dns.google": "8.8.8.8",
@@ -891,8 +899,7 @@ _HAPP_ROUTING_PROFILE = {
         "domain:fredom.ru",
         # Все домены зоны .ru — напрямую без VPN
         "domain:ru",
-        # geosite:category-ru убран в основном профиле из-за конфликтов на iOS
-        # "geosite:category-ru",
+        "geosite:category-ru",
         # CRM и бизнес-сервисы
         "domain:crm.topnlab.ru",
         # Дополнительные домены (CDN/API которых может не быть в geosite)
@@ -922,8 +929,7 @@ _HAPP_ROUTING_PROFILE = {
         "domain:2gis.io", "domain:2gis.pro",
     ],
     "DirectIp": [
-        # geoip:ru убран в основном профиле из-за конфликтов на iOS
-        # "geoip:ru",
+        "geoip:ru",
         "10.0.0.0/8",
         "172.16.0.0/12",
         "192.168.0.0/16",
@@ -942,14 +948,12 @@ _HAPP_ROUTING_PROFILE = {
 
 _ANDROID_ROUTING_PROFILE = {
     **_HAPP_ROUTING_PROFILE,
-    "DirectSites": [
-        *_HAPP_ROUTING_PROFILE["DirectSites"],
-        "geosite:category-ru",
-    ],
-    "DirectIp": [
-        *_HAPP_ROUTING_PROFILE["DirectIp"],
-        "geoip:ru",
-    ],
+    # Android не ограничен по памяти Network Extension — получает полные
+    # geoip.dat/geosite.dat (точнее классификация, чем в light-версии для iOS).
+    # geosite:category-ru/geoip:ru уже в базовом профиле (_HAPP_ROUTING_PROFILE),
+    # здесь их дублировать не нужно.
+    "Geoipurl": "https://sub.synthosai.ru:8086/sub/geo/geoip.dat",
+    "Geositeurl": "https://sub.synthosai.ru:8086/sub/geo/geosite.dat",
 }
 
 
@@ -988,14 +992,7 @@ _HAPP_TEST_ROUTING_PROFILE = {
         **_HAPP_ROUTING_PROFILE["DnsHosts"],
         "dns.adguard-dns.com": "94.140.14.14",
     },
-    "DirectSites": [
-        *_HAPP_ROUTING_PROFILE["DirectSites"],
-        "geosite:category-ru",
-    ],
-    "DirectIp": [
-        *_HAPP_ROUTING_PROFILE["DirectIp"],
-        "geoip:ru",
-    ],
+    # geosite:category-ru/geoip:ru уже в базовом профиле — не дублируем.
     "BlockSites": [
         # geosite:category-ads-all УБРАН — требует скачивания с GitHub
     ],
@@ -1202,5 +1199,39 @@ async def get_geosite():
     if os.path.exists(file_path):
         return FileResponse(file_path, media_type="application/octet-stream", filename="geosite.dat")
     raise HTTPException(status_code=404, detail="GeoSite file not found")
+
+
+@app.get(
+    "/sub/geo/geoip-light.dat",
+    tags=["Подписки"],
+    summary="Скачать облегчённый geoip.dat (PRIVATE+RU) для iOS",
+    description=(
+        "Урезанная версия geoip.dat — только коды PRIVATE и RU (~390 КБ вместо ~18 МБ). "
+        "Нужна для iOS: Network Extension Happ ограничен по памяти (~15-50 МБ) и не "
+        "выдерживает загрузку полного geoip.dat. См. scripts/build_geo_light.py."
+    ),
+)
+async def get_geoip_light():
+    file_path = "/var/lib/vpn-panel/geo/geoip-light.dat"
+    if os.path.exists(file_path):
+        return FileResponse(file_path, media_type="application/octet-stream", filename="geoip-light.dat")
+    raise HTTPException(status_code=404, detail="GeoIP light file not found")
+
+
+@app.get(
+    "/sub/geo/geosite-light.dat",
+    tags=["Подписки"],
+    summary="Скачать облегчённый geosite.dat (PRIVATE+CATEGORY-RU) для iOS",
+    description=(
+        "Урезанная версия geosite.dat — только коды PRIVATE и CATEGORY-RU (~26 КБ вместо ~10 МБ). "
+        "Нужна для iOS: Network Extension Happ ограничен по памяти (~15-50 МБ) и не "
+        "выдерживает загрузку полного geosite.dat. См. scripts/build_geo_light.py."
+    ),
+)
+async def get_geosite_light():
+    file_path = "/var/lib/vpn-panel/geo/geosite-light.dat"
+    if os.path.exists(file_path):
+        return FileResponse(file_path, media_type="application/octet-stream", filename="geosite-light.dat")
+    raise HTTPException(status_code=404, detail="GeoSite light file not found")
 
 

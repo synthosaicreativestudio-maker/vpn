@@ -3,6 +3,64 @@
 > Документ фиксирует все значимые проблемы, их диагностику и принятые решения.  
 > **Новые записи добавлять в начало файла (самые свежие сверху).**
 
+## 2026-07-18 (3) — WARP routing regression: список доменов откатился с 44 до 10 (пропали Google/YouTube/Facebook/Instagram/Twitter/Discord/GitHub/LinkedIn/Microsoft)
+
+### Симптомы
+- Пользователь сообщил: западные сервисы, в частности Google AI (Gemini/AI Studio), не открываются через VPN. WARP-сервис при этом активен, `warp=on`.
+
+### Диагностика
+1. `warp-svc` активен 3+ дня, SOCKS5 на `127.0.0.1:40000` живой, `cloudflare.com/cdn-cgi/trace` → `warp=on`, exit IP `104.28.195.105` (US, Chicago, colo ORD) — сам WARP не падал.
+2. В `routing.rules` outbound `WARP` в `/etc/xray/config.json` на VPN-сервере (`38.180.81.181`) — всего **10 доменов** (openai/chatgpt/anthropic/claude.ai/netflix/spotify). Сверка с таймстемп-бэкапами показала: `config.json.pre-bg-ports` (16.07 11:34 UTC), `config.json.pre-logfix` и `config.json.pre-loglevel` (18.07 00:36–00:42 UTC) — все содержали **44 домена**, включая `geosite:google`, `youtube.com`, Facebook/Instagram/Twitter/Discord/LinkedIn/Microsoft/GitHub. Список был расширен ещё 07.07 (`a61ca12`) и не менялся кодом с тех пор.
+3. Регрессия произошла между 00:42 UTC и ~13:40 UTC 18.07 — то есть уже СЕГОДНЯ, не в пятницу, как изначально предполагал пользователь. По времени совпадает с загрузкой light geo-файлов на сервер (`/var/lib/vpn-panel/geo/geoip-light.dat`, mtime 13:39) — вероятно, `config.json` был перезаписан старой локальной копией в процессе той же ручной сессии. `config.json.stable` (эталон для авто-отката `xray-failover.sh`) был перезаписан тем же урезанным списком в 13:40 — то есть автоматический откат при сбое воспроизвёл бы то же самое сломанное состояние.
+4. Без домена в WARP-правиле трафик идёт по умолчанию outbound `DIRECT` (прямой IP сервера, Hivelocity Chicago) — базовые проверки (`google.com/generate_204`, `accounts.google.com` login-flow, `youtube.com`) через DIRECT отвечали корректно (200/204/302, без капчи/блоков). Специфичные Google AI-сервисы (`gemini.google.com`, `aistudio.google.com`) также отвечали 200 и через DIRECT, и через WARP при ручной проверке — открытой явной блокировки на уровне HTTP-кода не обнаружено ни там, ни там на момент диагностики.
+
+### Решение
+1. Бэкап текущего (сломанного) конфига: `/etc/xray/config.json.pre-warp-domains-fix.20260718_194513`.
+2. Список WARP-доменов восстановлен: 44 исходных + явно добавлены домены Google AI (`gemini.google.com`, `aistudio.google.com`, `bard.google.com`, `makersuite.google.com`, `ai.google.dev`, `labs.google`, `notebooklm.google.com`, `generativelanguage.googleapis.com`) — итого 52 домена/geosite-записи в WARP-правиле.
+3. `xray -test -config` — конфиг валиден. `systemctl restart xray` — сервис активен, все порты (443/2053/8443/10443/12053) слушают.
+4. `config.json.stable` обновлён до текущего рабочего состояния (со своим бэкапом `config.json.stable.pre-warp-fix.20260718_194948`), чтобы авто-откат `xray-failover.sh` не возвращал сломанный список при следующем срабатывании.
+
+### Проверка
+- [x] `warp=on` после рестарта, exit IP не изменился.
+- [x] YouTube/Facebook/Discord/Gemini через WARP-прокси на сервере → HTTP 200.
+- [ ] Подтверждение с реального устройства пользователя (мобильный + веб), что Google/Google AI открываются через VPN.
+
+### Урок
+> **Google банит именно shared WARP IP для нетипичных (не-браузерных/автоматических) запросов** (302→капча — инцидент 2026-07-15), но обычным браузерным клиентам к Google/Gemini/AI Studio через тот же WARP IP отдаёт 200. Не делать вывод «Google не работает через WARP» только по одному curl-тесту без реалистичного User-Agent/сессии.
+> **При любой ручной синхронизации файлов между локальной машиной и сервером — проверять, не перезаписывает ли она незакоммиченные серверные конфиги** (`config.json`, `config.json.stable`) более старой локальной копией. Конфиг Xray не в git — единственная защита это таймстемп-бэкапы, их надо явно сверять по количеству правил/доменов, а не только проверять, что сервис поднялся.
+
+## 2026-07-18 (2) — Split tunneling сломан на iOS после 7c1b4f0: облегчённые geoip/geosite вместо полного отключения правил
+
+### Симптомы
+- После коммита `7c1b4f0` (17.07, 13:39) на iOS раздельное туннелирование фактически перестало работать: любой RU-сайт, не входящий в жёстко прописанный список ~40 доменов в `_HAPP_ROUTING_PROFILE`, уходил в туннель вместо прямого доступа.
+- Android не пострадал — у него отдельный `_ANDROID_ROUTING_PROFILE` с `geosite:category-ru`/`geoip:ru`.
+
+### Диагностика
+1. С `e35e92e` (16.07, 15:41) до `7c1b4f0` (17.07, 13:39) `/sub/happ/` был общим эндпоинтом для iOS/Android/Windows и включал `geosite:category-ru`/`geoip:ru` — то есть iOS реально получал раздельное туннелирование около 22 часов.
+2. `7c1b4f0` закомментировал эти два правила в `_HAPP_ROUTING_PROFILE` (iOS/Windows) с обоснованием «на iOS их загрузка роняет VPN-модуль Happ из-за нехватки памяти» — обоснование не подкреплено логами краша/тестом на устройстве, но технически правдоподобно: iOS Network Extension (Packet Tunnel Provider) ограничен по памяти (~15-50 МБ в зависимости от версии iOS, см. Apple Developer Forums thread 106377), а полные `geoip.dat`+`geosite.dat` — это ~28 МБ на диске (заметно больше в распарсенном виде).
+3. Правку внесли наполовину: убрали текстовые правила `geosite:category-ru`/`geoip:ru`, но `Geoipurl`/`Geositeurl` в iOS-профиле продолжали указывать на те же полные файлы — то есть потенциальный риск падения по памяти не был устранён, а раздельное туннелирование потеряли.
+4. Sing-box (движок Happ) официально считает legacy `geosite`/`geoip` устаревшими в пользу компактных `rule_set`/`.srs` — общая индустриальная рекомендация: не грузить полные базы там, где нужен маленький срез.
+
+### Решение
+1. Добавлен `scripts/build_geo_light.py` — вырезает из полных `geoip.dat`/`geosite.dat` только коды `PRIVATE`+`RU` (geoip) и `PRIVATE`+`CATEGORY-RU` (geosite) через protobuf-схему v2fly `routercommon` (`scripts/common_clean.proto` / `common_clean_pb2.py`). Результат: `geoip-light.dat` ~390 КБ (было 18 МБ), `geosite-light.dat` ~26 КБ (было 10 МБ).
+2. Новые эндпоинты в `panel/app.py`: `/sub/geo/geoip-light.dat`, `/sub/geo/geosite-light.dat`, раздают файлы из `/var/lib/vpn-panel/geo/` по тому же паттерну, что и полные (HTTPS:8086, по правилу 11 AGENTS.md).
+3. `_HAPP_ROUTING_PROFILE` (iOS/Windows): `Geoipurl`/`Geositeurl` переключены на light-эндпоинты, `geosite:category-ru`/`geoip:ru` раскомментированы обратно.
+4. `_ANDROID_ROUTING_PROFILE`: явный override `Geoipurl`/`Geositeurl` на полные файлы (Android не ограничен по памяти — точность важнее размера); убрано дублирование `geosite:category-ru`/`geoip:ru`, которые теперь наследуются из базового профиля.
+5. `_HAPP_TEST_ROUTING_PROFILE`: убрано аналогичное дублирование.
+
+### Проверка
+- [x] `python3 scripts/build_geo_light.py` — детерминированно даёт файлы тех же размеров, что и ручная заготовка (393322 / 26223 байт).
+- [x] `py_compile panel/app.py` — синтаксис ок.
+- [x] Профили `_HAPP_ROUTING_PROFILE`/`_ANDROID_ROUTING_PROFILE`/`_HAPP_TEST_ROUTING_PROFILE` проверены на дублирование правил в изолированном exec — дублей нет.
+- [ ] Деплой на `37.1.212.51` (см. ниже) + health-check.
+- [ ] Реальный тест на iPhone: VPN включён → RU-сайты напрямую, зарубежные — в туннель; VPN выключен → обычный интернет работает полностью.
+- [ ] Подтвердить, что VPN-модуль Happ на iOS не падает при загрузке light-файлов (тот самый сценарий, которого боялись в 7c1b4f0).
+
+### Файлы
+- `panel/app.py` — эндпоинты `/sub/geo/geoip-light.dat`, `/sub/geo/geosite-light.dat`; профили `_HAPP_ROUTING_PROFILE`, `_ANDROID_ROUTING_PROFILE`, `_HAPP_TEST_ROUTING_PROFILE`.
+- `scripts/build_geo_light.py` — новый скрипт сборки light-файлов.
+- `scripts/common_clean.proto`, `scripts/common_clean_pb2.py` — protobuf-схема v2fly routercommon (не коммитятся бинарные `.dat`, как и раньше — только скрипт сборки).
+
 ## 2026-07-18 — Переполнение диска VPN-сервера (99%) из-за неуправляемых логов Xray
 
 ### Симптомы

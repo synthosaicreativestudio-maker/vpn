@@ -144,9 +144,18 @@ RELAY_GRPC_HOST=127.0.0.1:10086  # gRPC релея через SSH-туннель
 |-----|-----------|
 | Универсальная | `http://sub.synthosai.ru/sub/{TOKEN}` |
 | Hiddify | `http://sub.synthosai.ru/sub/hiddify/{TOKEN}` |
-| Happ (iOS) | `http://sub.synthosai.ru/sub/happ/{TOKEN}` |
-| С маршрутизацией | Добавить `?routing=ru` |
+| Happ (iOS / Windows) | `http://sub.synthosai.ru/sub/happ/{TOKEN}` |
+| Happ (Android) | `http://sub.synthosai.ru/sub/happ-android/{TOKEN}` |
+| С маршрутизацией | Добавить `?routing=ru` (Android: `?routing=ru-test` — + per-app bypass MAX/банков) |
 | Admin UI | `https://37.1.212.51.sslip.io:8086/admin/ui` |
+
+**iOS vs Android — разные профили маршрутизации, один и тот же список серверов.**
+iOS/Windows (`/sub/happ/`) использует облегчённые geoip-light.dat/geosite-light.dat
+(PRIVATE+RU, ~30-400 КБ) — полные файлы (~28 МБ) роняют VPN-модуль Happ на iOS из-за
+лимита памяти Network Extension. Android (`/sub/happ-android/`) не ограничен по памяти —
+получает полные geoip.dat/geosite.dat. Оба профиля включают `geosite:category-ru` и
+`geoip:ru` — раздельное туннелирование (RU напрямую, остальное в VPN) работает на обеих
+платформах. См. `docs/INCIDENT_LOG.md`, запись «2026-07-18 (2)».
 
 ### Содержимое Happ-подписки (6 протоколов — Blue-Green)
 
@@ -209,9 +218,41 @@ ssh root@38.180.81.181 "ssh -i /root/.ssh/id_ed25519 ubuntu@185.4.67.223 'sudo s
 
 ## Локальная раздача гео-файлов
 
-GitHub заблокирован в РФ, поэтому файлы `geoip.dat` и `geosite.dat` раздаются с нашего сервера:
-* `http://sub.synthosai.ru/sub/geo/geoip.dat`
-* `http://sub.synthosai.ru/sub/geo/geosite.dat`
+GitHub заблокирован в РФ, поэтому файлы `geoip.dat` и `geosite.dat` раздаются с нашего сервера
+(панель, `37.1.212.51`, файлы лежат в `/var/lib/vpn-panel/geo/`):
+* `https://sub.synthosai.ru:8086/sub/geo/geoip.dat` — полный (~18 МБ, 260 стран) — Android
+* `https://sub.synthosai.ru:8086/sub/geo/geosite.dat` — полный (~10 МБ, 1511 категорий) — Android
+* `https://sub.synthosai.ru:8086/sub/geo/geoip-light.dat` — облегчённый (PRIVATE+RU, ~390 КБ) — iOS/Windows
+* `https://sub.synthosai.ru:8086/sub/geo/geosite-light.dat` — облегчённый (PRIVATE+CATEGORY-RU, ~26 КБ) — iOS/Windows
+
+Light-файлы собираются скриптом `scripts/build_geo_light.py` из полных upstream-файлов
+(protobuf-схема v2fly `routercommon` в `scripts/common_clean.proto`). Бинарные `.dat`
+в git не коммитятся — только скрипт сборки; актуальные файлы разворачиваются вручную
+в `/var/lib/vpn-panel/geo/` на панельном сервере.
+
+---
+
+## WARP-маршрутизация (обход блокировок западных сервисов)
+
+VPN-сервер (`38.180.81.181`) держит Cloudflare WARP как локальный SOCKS5-прокси
+(`warp-cli`, порт `127.0.0.1:40000`) и роутит через него домены западных сервисов,
+которые нестабильны или заблокированы при обычном прямом выходе. Список доменов —
+в `routing.rules` outbound `WARP` файла `/etc/xray/config.json` на VPN-сервере
+(**не в git** — конфиг Xray живёт только на сервере, версионируется through
+`config.json.stable` + таймстемп-бэкапы `config.json.pre-*`, см. ниже).
+
+**Важно:** health-check WARP использует ТОЛЬКО `cloudflare.com/cdn-cgi/trace`
+(проверка `warp=on`). Google банит запросы с shared WARP IP не-браузерным
+клиентам/автоматике (302→капча) — поэтому `google.com` НИКОГДА не использовать
+для мониторинга WARP, хотя сами google-домены в списке маршрутизации WARP есть
+и реальным браузерным клиентам отдают 200 (проверено для google.com, youtube.com,
+gemini.google.com, aistudio.google.com).
+
+⚠️ **Инцидент 2026-07-18:** список WARP-доменов при постороннем изменении
+конфига откатился с 44 до 10 записей (потеряны Google/YouTube/Facebook/Instagram/
+Twitter/Discord/GitHub/LinkedIn/Microsoft) — обнаружено и восстановлено тем же днём.
+При любой работе с `/etc/xray/config.json` на VPN-сервере — сверять количество
+доменов в WARP-правиле с бэкапом `config.json.stable` до и после изменений.
 
 ---
 
