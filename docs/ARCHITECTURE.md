@@ -157,17 +157,13 @@ iOS/Windows (`/sub/happ/`) использует облегчённые geoip-lig
 `geoip:ru` — раздельное туннелирование (RU напрямую, остальное в VPN) работает на обеих
 платформах. См. `docs/INCIDENT_LOG.md`, запись «2026-07-18 (2)».
 
-### Содержимое Happ-подписки (6 протоколов — Blue-Green)
+### Содержимое подписок (2 протокола gRPC — Blue-Green)
 
 **Ветка 1 (Blue / основная):**
-1. `📡 @username (Relay RU new)` — Vision через релей (TCP, порт 443)
-2. `📡 @username (gRPC Relay RU new)` — gRPC через релей (HTTP/2, порт 2053)
-3. `🔌 @username (Vision)` — Прямой к US (TCP, порт 443)
+1. `📡 @username (gRPC Relay RU 1)` — gRPC через релей (HTTP/2, порт 2053)
 
 **Ветка 2 (Green / резервная):**
-4. `📡 @username (Relay RU 2)` — Vision через релей (TCP, порт 10443)
-5. `📡 @username (gRPC Relay RU 2)` — gRPC через релей (HTTP/2, порт 12053)
-6. `🔌 @username (Vision 2)` — Прямой к US (TCP, порт 10443)
+2. `📡 @username (gRPC Relay RU 2)` — gRPC через релей (HTTP/2, порт 12053)
 
 > ⚠️ **Правило:** Ветка 1 дорабатывается ТОЛЬКО когда Ветка 2 стабильно работает.
 
