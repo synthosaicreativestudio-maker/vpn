@@ -74,6 +74,8 @@ class SubscriptionLinks(BaseModel):
     vless_relay: str = ""
     hysteria2: str = ""
     shadowsocks: str = ""
+    vless_relay_grpc_1: str = ""
+    vless_relay_grpc_2: str = ""
     all_links: List[str] = []
 
 
